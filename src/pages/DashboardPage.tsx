@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Beef, Heart, Wheat, DollarSign, Milk, CheckSquare, Bell,
@@ -8,10 +8,11 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../components/ui/StatCard';
 import { PriorityBadge } from '../components/ui/Badge';
+import * as api from '../lib/api';
 import {
-  getDashboardStats, mockAlerts, mockTasks,
-  mockFeedInventory, mockDailyProduction, mockFinancialTransactions,
+  getDashboardStats, mockDailyProduction, mockFinancialTransactions,
   mockLocations, mockBreedingEvents, mockVaccinations,
+  mockFeedInventory, mockTasks, mockAlerts,
 } from '../lib/mockData';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -62,14 +63,17 @@ function SparkleIcon() {
   );
 }
 
+const todayStr = '2026-05-14';
+const todayObj = new Date(todayStr);
+
 export function DashboardPage() {
-  const stats = getDashboardStats();
   const { user } = useAuth();
   const { t, lang } = useTranslation();
   const navigate = useNavigate();
-  const today = new Date('2026-05-14');
   const locale = lang === 'id' ? 'id-ID' : 'en-US';
-  const dateStr = today.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const dateStr = todayObj.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  const stats = getDashboardStats();
 
   const milkData = useMemo(() =>
     mockDailyProduction.slice(0, 7).map(d => d.quantity).reverse(), []
@@ -77,28 +81,28 @@ export function DashboardPage() {
 
   const upcomingVaccinations = useMemo(() =>
     mockVaccinations.filter(v => v.next_due_date).filter(v => {
-      const days = Math.ceil((new Date(v.next_due_date!).getTime() - today.getTime()) / 86400000);
+      const days = Math.ceil((new Date(v.next_due_date!).getTime() - todayObj.getTime()) / 86400000);
       return days <= 7 && days >= 0;
     }), []
   );
 
   const upcomingBirths = useMemo(() =>
     mockBreedingEvents.filter(e => e.event_type === 'insemination' && e.expected_due_date).filter(e => {
-      const days = Math.ceil((new Date(e.expected_due_date!).getTime() - today.getTime()) / 86400000);
+      const days = Math.ceil((new Date(e.expected_due_date!).getTime() - todayObj.getTime()) / 86400000);
       return days <= 30 && days >= 0;
     }), []
   );
 
   const todayTasks = useMemo(() =>
-    mockTasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled' && t.due_date && t.due_date <= '2026-05-14'), []
+    mockTasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled' && t.due_date && t.due_date <= todayStr), []
   );
 
   const monthlyIncome = useMemo(() =>
-    mockFinancialTransactions.filter(t => t.type === 'income' && t.cash_flow === 'cash_in' && t.transaction_date.startsWith('2026-05')).reduce((s, t) => s + t.amount, 0), []
+    mockFinancialTransactions.filter(t => t.type === 'income' && t.transaction_date.startsWith('2026-05')).reduce((s, t) => s + t.amount, 0), []
   );
 
   const monthlyExpense = useMemo(() =>
-    mockFinancialTransactions.filter(t => t.type === 'expense' && t.cash_flow === 'cash_out' && t.transaction_date.startsWith('2026-05')).reduce((s, t) => s + t.amount, 0), []
+    mockFinancialTransactions.filter(t => t.type === 'expense' && t.transaction_date.startsWith('2026-05')).reduce((s, t) => s + t.amount, 0), []
   );
 
   const quickActions = [

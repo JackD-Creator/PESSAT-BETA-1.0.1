@@ -44,9 +44,9 @@ export async function deleteAnimal(id: string) {
 
 // ─── Weight Records ───
 export async function getWeightRecords(animalId: string) {
-  const { data, error } = await supabase.from('weight_records').select('*').eq('animal_id', animalId).order('weigh_date', { ascending: false });
+  const { data, error } = await supabase.from('weight_records').select('*, users!weight_records_recorded_by_fkey(full_name)').eq('animal_id', animalId).order('weigh_date', { ascending: false });
   if (error) throw error;
-  return data as WeightRecord[];
+  return data as (WeightRecord & { users: { full_name: string } | null })[];
 }
 
 export async function createWeightRecord(record: Partial<WeightRecord>) {

@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Filter, Download, Eye, CreditCard as Edit, Beef } from 'lucide-react';
 import { StatusBadge, SpeciesBadge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mockAnimals } from '../../lib/mockData';
+import { getAnimals } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import type { Animal } from '../../types';
 
 export function LivestockListPage() {
   const { hasRole } = useAuth();
@@ -13,8 +14,17 @@ export function LivestockListPage() {
   const [search, setSearch] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [animals, setAnimals] = useState<(Animal & { locations: { name: string } | null })[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mockAnimals.filter(a => {
+  useEffect(() => {
+    getAnimals()
+      .then(data => setAnimals(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = animals.filter(a => {
     const matchSearch = a.tag_id.toLowerCase().includes(search.toLowerCase()) ||
       a.breed.toLowerCase().includes(search.toLowerCase());
     const matchSpecies = speciesFilter === 'all' || a.species === speciesFilter;
@@ -23,12 +33,13 @@ export function LivestockListPage() {
   });
 
   const speciesCounts = {
-    cattle: mockAnimals.filter(a => a.species === 'cattle').length,
-    sheep: mockAnimals.filter(a => a.species === 'sheep').length,
-    goat: mockAnimals.filter(a => a.species === 'goat').length,
+    cattle: animals.filter(a => a.species === 'cattle').length,
+    sheep: animals.filter(a => a.species === 'sheep').length,
+    goat: animals.filter(a => a.species === 'goat').length,
   };
 
-  function getAge(birthDate: string) {
+  function getAge(birthDate?: string) {
+    if (!birthDate) return '-';
     const birth = new Date(birthDate);
     const now = new Date('2026-05-14');
     const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
@@ -40,8 +51,8 @@ export function LivestockListPage() {
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1 className="page-title">{t('livestock.title')}</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">{t('livestock.count').replace('{count}', String(mockAnimals.length))}</p>
+           <h1 className="page-title">{t('livestock.title')}</h1>
+          <p className="text-sm text-neutral-500 mt-0.5">{t('livestock.count').replace('{count}', String(animals.length))}</p>
         </div>
         {hasRole(['owner', 'manager']) && (
           <Link to="/livestock/new" className="btn-primary">
@@ -54,7 +65,7 @@ export function LivestockListPage() {
       {/* Summary chips */}
       <div className="flex flex-wrap gap-2">
         {[
-          { label: t('livestock.filter.all'), value: 'all', count: mockAnimals.length },
+          { label: t('livestock.filter.all'), value: 'all', count: animals.length },
           { label: t('species.cattle'), value: 'cattle', count: speciesCounts.cattle },
           { label: t('species.sheep'), value: 'sheep', count: speciesCounts.sheep },
           { label: t('species.goat'), value: 'goat', count: speciesCounts.goat },
@@ -76,6 +87,11 @@ export function LivestockListPage() {
         ))}
       </div>
 
+      {loading ? (
+        <div className="card p-12 text-center">
+          <p className="text-neutral-400">{t('common.loading')}</p>
+        </div>
+      ) : (
       <div className="card">
         {/* Filters */}
         <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3">
@@ -150,7 +166,7 @@ export function LivestockListPage() {
                     <td>
                       <span className="text-xs text-neutral-500 capitalize">{animal.purpose}</span>
                     </td>
-                    <td className="max-w-[160px] truncate text-xs text-neutral-500">{animal.current_location_name}</td>
+                    <td className="max-w-[160px] truncate text-xs text-neutral-500">{animal.locations?.name || '-'}</td>
                     <td>
                       <div className="flex items-center gap-1">
                         <Link to={`/livestock/${animal.id}`} className="btn-ghost btn-sm p-1.5 rounded">
@@ -172,10 +188,10 @@ export function LivestockListPage() {
 
         {filtered.length > 0 && (
           <div className="px-4 py-3 border-t border-neutral-100 text-sm text-neutral-400">
-            {t('livestock.showing').replace('{shown}', String(filtered.length)).replace('{total}', String(mockAnimals.length))}
+            {t('livestock.showing').replace('{shown}', String(filtered.length)).replace('{total}', String(animals.length))}
           </div>
         )}
-      </div>
+      </div>)}
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
-import { mockTasks, mockUsers } from '../../lib/mockData';
+import { getTasks } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { PriorityBadge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,19 +19,28 @@ export function TasksPage() {
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const today = '2026-05-14';
 
-  const filtered = mockTasks.filter(task => {
+  useEffect(() => {
+    getTasks()
+      .then(data => setTasks(data as any[]))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = tasks.filter(task => {
     const matchStatus = statusFilter === 'all' || task.status === statusFilter;
     const matchPriority = priorityFilter === 'all' || task.priority === priorityFilter;
     return matchStatus && matchPriority;
   });
 
   const counts = {
-    pending: mockTasks.filter(task => task.status === 'pending').length,
-    in_progress: mockTasks.filter(task => task.status === 'in_progress').length,
-    completed: mockTasks.filter(task => task.status === 'completed').length,
-    overdue: mockTasks.filter(task => task.due_date && task.due_date < today && task.status !== 'completed' && task.status !== 'cancelled').length,
+    pending: tasks.filter(task => task.status === 'pending').length,
+    in_progress: tasks.filter(task => task.status === 'in_progress').length,
+    completed: tasks.filter(task => task.status === 'completed').length,
+    overdue: tasks.filter(task => task.due_date && task.due_date < today && task.status !== 'completed' && task.status !== 'cancelled').length,
   };
 
   return (
@@ -64,6 +73,9 @@ export function TasksPage() {
         ))}
       </div>
 
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
       <div className="card">
         {/* Filters */}
         <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3 items-center">
@@ -117,15 +129,15 @@ export function TasksPage() {
                     <p className="text-xs text-neutral-500 mt-0.5">{task.description}</p>
                   )}
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-neutral-400">
-                    <span>{t('task.assigned.to')} <span className="font-medium text-neutral-600">{task.assigned_to_name}</span></span>
+                    <span>{t('task.assigned.to')} <span className="font-medium text-neutral-600">{task.assigned?.full_name || '-'}</span></span>
                     {task.due_date && (
                       <span className={isOverdue ? 'text-error-500 font-medium' : ''}>
                         {t('task.due.date')} {new Date(task.due_date).toLocaleDateString('id-ID')}
                       </span>
                     )}
-                    {task.related_animal_tag && (
+                    {(task.animals?.tag_id) && (
                       <span className="bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-medium">
-                        {task.related_animal_tag}
+                        {task.animals.tag_id}
                       </span>
                     )}
                   </div>
@@ -144,7 +156,7 @@ export function TasksPage() {
           )}
         </div>
         <div className="p-3 border-t border-neutral-100 text-sm text-neutral-400">{t('task.count.label').replace('{count}', String(filtered.length))}</div>
-      </div>
+      </div>)}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('task.form.title')} size="md">
         <TaskForm t={t} onClose={() => setShowModal(false)} />
@@ -164,7 +176,7 @@ function TaskForm({ t, onClose }: { t: (key: string) => string; onClose: () => v
         <div>
           <label className="label">{t('task.form.assignee')}</label>
           <select className="select">
-            {mockUsers.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+            {[<option key="1">Budi Santoso</option>, <option key="2">Dewi Lestari</option>, <option key="3">Andi Firmansyah</option>, <option key="4">Siti Rahmawati</option>]}
           </select>
         </div>
         <div>

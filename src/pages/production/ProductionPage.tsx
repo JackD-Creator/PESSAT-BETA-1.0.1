@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Milk } from 'lucide-react';
-import { mockDailyProduction } from '../../lib/mockData';
+import { getDailyProduction } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -25,8 +25,17 @@ export function ProductionPage() {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [period, setPeriod] = useState(7);
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentData = mockDailyProduction.slice(0, period).reverse();
+  useEffect(() => {
+    getDailyProduction()
+      .then(data => setRecords(data as any[]))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const recentData = records.slice(0, period).reverse();
   const totalMilk = recentData.reduce((s, d) => s + d.quantity, 0);
   const avgMilk = totalMilk / recentData.length;
   const lastMilk = recentData[recentData.length - 1]?.quantity || 0;
@@ -91,6 +100,10 @@ export function ProductionPage() {
         </div>
       </div>
 
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
+      <>
       {/* Production chart */}
       <div className="card p-5">
         <h2 className="section-header mb-4">{t('production.chart')}</h2>
@@ -136,10 +149,10 @@ export function ProductionPage() {
               </tr>
             </thead>
             <tbody>
-              {mockDailyProduction.slice(0, period).map(p => (
+              {records.slice(0, period).map(p => (
                 <tr key={p.id}>
                   <td>{new Date(p.production_date).toLocaleDateString('id-ID')}</td>
-                  <td>{p.herd_group_name || p.animal_tag}</td>
+                  <td>{p.herd_groups?.name || p.animals?.tag_id || '-'}</td>
                   <td>
                     <span className="badge badge-blue capitalize">
                       {p.product_type === 'milk' ? t('production.product.milk') : t('production.product.wool')}
@@ -149,14 +162,14 @@ export function ProductionPage() {
                   <td className="capitalize text-neutral-500">
                     {{ morning: t('production.shift.morning'), evening: t('production.shift.evening'), all_day: t('production.shift.allday') }[p.shift]}
                   </td>
-                  <td>{p.recorded_by_name}</td>
+                  <td>{p.recorded_by || '-'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-
+      </>)}
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('production.form.title')} size="md">
         <ProductionForm onClose={() => setShowModal(false)} />
       </Modal>

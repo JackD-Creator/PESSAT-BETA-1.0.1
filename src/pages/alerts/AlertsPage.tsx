@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, CheckCircle, AlertTriangle, Info, XCircle } from 'lucide-react';
-import { mockAlerts } from '../../lib/mockData';
+import { getAlerts } from '../../lib/api';
 import { SeverityBadge } from '../../components/ui/Badge';
 import { useTranslation } from '../../contexts/LanguageContext';
 
@@ -17,8 +17,17 @@ const typeLabels: Record<string, string> = {
 export function AlertsPage() {
   const { t } = useTranslation();
   const [filter, setFilter] = useState('all');
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mockAlerts.filter(a => {
+  useEffect(() => {
+    getAlerts()
+      .then(data => setAlerts(data as any[]))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = alerts.filter(a => {
     if (filter === 'unread') return !a.is_read;
     if (filter === 'resolved') return a.is_resolved;
     if (filter === 'active') return !a.is_resolved;
@@ -26,9 +35,9 @@ export function AlertsPage() {
     return true;
   });
 
-  const unreadCount = mockAlerts.filter(a => !a.is_read).length;
-  const criticalCount = mockAlerts.filter(a => a.severity === 'critical' && !a.is_resolved).length;
-  const resolvedCount = mockAlerts.filter(a => a.is_resolved).length;
+  const unreadCount = alerts.filter(a => !a.is_read).length;
+  const criticalCount = alerts.filter(a => a.severity === 'critical' && !a.is_resolved).length;
+  const resolvedCount = alerts.filter(a => a.is_resolved).length;
 
   const getIcon = (severity: string) => {
     if (severity === 'critical') return <XCircle size={18} className="text-error-600" />;
@@ -56,7 +65,7 @@ export function AlertsPage() {
         {[
           { labelKey: 'alert.summary.unread', count: unreadCount, color: 'text-neutral-700', border: 'border-l-neutral-400' },
           { labelKey: 'alert.summary.critical', count: criticalCount, color: 'text-error-700', border: 'border-l-error-500' },
-          { labelKey: 'alert.summary.active', count: mockAlerts.filter(a => !a.is_resolved).length, color: 'text-warning-700', border: 'border-l-warning-500' },
+          { labelKey: 'alert.summary.active', count: alerts.filter(a => !a.is_resolved).length, color: 'text-warning-700', border: 'border-l-warning-500' },
           { labelKey: 'alert.summary.resolved', count: resolvedCount, color: 'text-primary-700', border: 'border-l-primary-500' },
         ].map(s => (
           <div key={s.labelKey} className={`card p-4 border-l-4 ${s.border}`}>
@@ -66,6 +75,9 @@ export function AlertsPage() {
         ))}
       </div>
 
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
       <div className="card">
         {/* Filter tabs */}
         <div className="p-4 border-b border-neutral-100">
@@ -117,8 +129,8 @@ export function AlertsPage() {
                 <p className="text-sm text-neutral-500">{alert.message}</p>
                 <div className="flex items-center gap-3 mt-1 text-xs text-neutral-400">
                   <span>{new Date(alert.created_at).toLocaleString('id-ID')}</span>
-                  {alert.animal_tag && (
-                    <span className="bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-medium">{alert.animal_tag}</span>
+                  {(alert.animals?.tag_id) && (
+                    <span className="bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-medium">{alert.animals.tag_id}</span>
                   )}
                 </div>
               </div>
@@ -138,7 +150,7 @@ export function AlertsPage() {
           )}
         </div>
         <div className="p-3 border-t border-neutral-100 text-sm text-neutral-400">{t('alert.count').replace('{count}', String(filtered.length))}</div>
-      </div>
+      </div>)}
     </div>
   );
 }

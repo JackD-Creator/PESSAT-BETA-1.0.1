@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { mockFinancialTransactions } from '../../lib/mockData';
+import { useState, useEffect } from 'react';
+import { getTransactions } from '../../lib/api';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 function formatCurrency(n: number) {
@@ -11,16 +11,25 @@ export function FinancePage() {
   const [filter, setFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('2026-05-01');
   const [dateTo, setDateTo] = useState('2026-05-14');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mockFinancialTransactions.filter(tr => {
+  useEffect(() => {
+    getTransactions()
+      .then(data => setTransactions(data as any[]))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = transactions.filter(tr => {
     const matchType = filter === 'all' || tr.type === filter || tr.cash_flow === filter;
     const matchDate = tr.transaction_date >= dateFrom && tr.transaction_date <= dateTo;
     return matchType && matchDate;
   });
 
-  const totalIncome = filtered.filter(tr => tr.type === 'income').reduce((s, tr) => s + tr.amount, 0);
-  const totalExpenseCash = filtered.filter(tr => tr.type === 'expense' && tr.cash_flow === 'cash_out').reduce((s, tr) => s + tr.amount, 0);
-  const totalExpenseNonCash = filtered.filter(tr => tr.type === 'expense' && tr.cash_flow === 'non_cash').reduce((s, tr) => s + tr.amount, 0);
+  const totalIncome = filtered.filter(tr => tr.type === 'income').reduce((s: number, tr: any) => s + Number(tr.amount), 0);
+  const totalExpenseCash = filtered.filter(tr => tr.type === 'expense' && tr.cash_flow === 'cash_out').reduce((s: number, tr: any) => s + Number(tr.amount), 0);
+  const totalExpenseNonCash = filtered.filter(tr => tr.type === 'expense' && tr.cash_flow === 'non_cash').reduce((s: number, tr: any) => s + Number(tr.amount), 0);
 
   const categoryLabels: Record<string, string> = {
     feed_purchase: t('finance.category.feed'),
@@ -67,6 +76,9 @@ export function FinancePage() {
         </div>
       </div>
 
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
       <div className="card">
         {/* Filters */}
         <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3 items-center">
@@ -134,7 +146,7 @@ export function FinancePage() {
         <div className="p-3 border-t border-neutral-100 text-sm text-neutral-400">
           {t('finance.count').replace('{count}', String(filtered.length))}
         </div>
-      </div>
+      </div>)}
     </div>
   );
 }

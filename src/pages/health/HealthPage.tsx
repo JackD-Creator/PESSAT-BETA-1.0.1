@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, CheckCircle, Clock } from 'lucide-react';
-import { mockHealthRecords } from '../../lib/mockData';
+import { getHealthRecords } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,9 +17,19 @@ export function HealthPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mockHealthRecords.filter(r => {
-    const matchSearch = r.animal_tag.toLowerCase().includes(search.toLowerCase()) ||
+  useEffect(() => {
+    getHealthRecords()
+      .then(data => setRecords(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = records.filter(r => {
+    const tag = (r as any).animals?.tag_id || '';
+    const matchSearch = tag.toLowerCase().includes(search.toLowerCase()) ||
       (r.diagnosis || '').toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === 'all' ? true : filter === 'unresolved' ? !r.is_resolved : r.type === filter;
     return matchSearch && matchFilter;
@@ -30,7 +40,7 @@ export function HealthPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">{t('health.title')}</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">{t('health.count').replace('{count}', String(mockHealthRecords.filter(r => !r.is_resolved).length))}</p>
+          <p className="text-sm text-neutral-500 mt-0.5">{t('health.count').replace('{count}', String(records.filter(r => !r.is_resolved).length))}</p>
         </div>
         {hasRole(['owner', 'manager', 'worker']) && (
           <button className="btn-primary" onClick={() => setShowModal(true)}>
@@ -40,6 +50,9 @@ export function HealthPage() {
         )}
       </div>
 
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
       <div className="card">
         <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3">
           <div className="flex-1 min-w-48 relative">
@@ -77,7 +90,7 @@ export function HealthPage() {
               <tbody>
                 {filtered.map(r => (
                   <tr key={r.id}>
-                    <td className="font-semibold text-primary-700">{r.animal_tag}</td>
+                    <td className="font-semibold text-primary-700">{(r as any).animals?.tag_id || '-'}</td>
                     <td>{new Date(r.record_date).toLocaleDateString('id-ID')}</td>
                     <td>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -120,7 +133,7 @@ export function HealthPage() {
             </table>
           )}
         </div>
-      </div>
+      </div>)}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('health.form.title')} size="lg">
         <AddHealthForm onClose={() => setShowModal(false)} />

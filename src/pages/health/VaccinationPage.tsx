@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, AlertTriangle, Syringe } from 'lucide-react';
-import { mockVaccinations } from '../../lib/mockData';
+import { getVaccinations } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -9,9 +9,18 @@ export function VaccinationPage() {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [vaccinations, setVaccinations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const today = new Date('2026-05-14');
 
-  const upcoming = mockVaccinations.filter(v => {
+  useEffect(() => {
+    getVaccinations()
+      .then(data => setVaccinations(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const upcoming = vaccinations.filter(v => {
     if (!v.next_due_date) return false;
     const days = Math.ceil((new Date(v.next_due_date).getTime() - today.getTime()) / 86400000);
     return days <= 7 && days >= 0;
@@ -46,7 +55,7 @@ export function VaccinationPage() {
                   <div>
                     <span className="font-medium text-neutral-800">{v.vaccine_name}</span>
                     <span className="text-sm text-neutral-500 ml-2">
-                      · {v.animal_tag || v.herd_group_name}
+                      · {v.animals?.tag_id || v.herd_groups?.name || '-'}
                     </span>
                   </div>
                   <span className={`text-sm font-semibold ${days <= 3 ? 'text-error-600' : 'text-warning-600'}`}>
@@ -59,6 +68,9 @@ export function VaccinationPage() {
         </div>
       )}
 
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
       <div className="card">
         <div className="overflow-x-auto">
           <table className="table">
@@ -75,7 +87,7 @@ export function VaccinationPage() {
               </tr>
             </thead>
             <tbody>
-              {mockVaccinations.map(v => {
+              {vaccinations.map(v => {
                 const daysUntilDue = v.next_due_date
                   ? Math.ceil((new Date(v.next_due_date).getTime() - today.getTime()) / 86400000)
                   : null;
@@ -84,7 +96,7 @@ export function VaccinationPage() {
                 return (
                   <tr key={v.id}>
                     <td className="font-semibold text-primary-700">
-                      {v.animal_tag || v.herd_group_name}
+                      {v.animals?.tag_id || v.herd_groups?.name || '-'}
                     </td>
                     <td>{v.vaccine_name}</td>
                     <td className="text-neutral-500">{v.batch_number || '-'}</td>
@@ -114,7 +126,7 @@ export function VaccinationPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>)}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('vaccination.form.title')} size="lg">
         <VaccinationForm onClose={() => setShowModal(false)} />

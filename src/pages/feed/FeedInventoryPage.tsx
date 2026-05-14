@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Package, ShoppingCart } from 'lucide-react';
-import { mockFeedInventory, mockMedicineInventory } from '../../lib/mockData';
+import { getFeedInventory, getMedicineInventory } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -15,12 +15,28 @@ export function FeedInventoryPage() {
   const [activeTab, setActiveTab] = useState('feed');
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showConsumeModal, setShowConsumeModal] = useState(false);
+  const [feeds, setFeeds] = useState<any[]>([]);
+  const [medicines, setMedicines] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const lowStockFeeds = mockFeedInventory.filter(f => f.quantity_on_hand < f.min_threshold);
-  const lowStockMeds = mockMedicineInventory.filter(m => m.quantity_on_hand < m.min_threshold);
+  useEffect(() => {
+    Promise.all([
+      getFeedInventory(),
+      getMedicineInventory(),
+    ])
+      .then(([feedData, medData]) => {
+        setFeeds(feedData as any[]);
+        setMedicines(medData as any[]);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  const totalFeedValue = mockFeedInventory.reduce((s, f) => s + f.total_cost, 0);
-  const totalMedValue = mockMedicineInventory.reduce((s, m) => s + m.total_cost, 0);
+  const lowStockFeeds = feeds.filter((f: any) => f.quantity_on_hand < f.min_threshold);
+  const lowStockMeds = medicines.filter((m: any) => m.quantity_on_hand < m.min_threshold);
+
+  const totalFeedValue = feeds.reduce((s: number, f: any) => s + Number(f.total_cost), 0);
+  const totalMedValue = medicines.reduce((s: number, m: any) => s + Number(m.total_cost), 0);
 
   return (
     <div className="page-container">
@@ -55,12 +71,12 @@ export function FeedInventoryPage() {
           <div className="flex flex-wrap gap-2">
             {lowStockFeeds.map(f => (
               <span key={f.id} className="text-xs bg-error-100 text-error-700 px-3 py-1 rounded-full font-medium">
-                {f.feed_name}: {f.quantity_on_hand}/{f.min_threshold} {f.unit}
+                {f.feeds?.name || '-'}: {f.quantity_on_hand}/{f.min_threshold} {f.unit || 'kg'}
               </span>
             ))}
             {lowStockMeds.map(m => (
               <span key={m.id} className="text-xs bg-error-100 text-error-700 px-3 py-1 rounded-full font-medium">
-                {m.medicine_name}: {m.quantity_on_hand}/{m.min_threshold} {m.unit}
+                {m.medicines?.name || '-'}: {m.quantity_on_hand}/{m.min_threshold} {m.unit || 'pcs'}
               </span>
             ))}
           </div>
@@ -71,7 +87,7 @@ export function FeedInventoryPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-4">
           <p className="text-xs text-neutral-500 font-medium">{t('feed.total.feed')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{mockFeedInventory.length}</p>
+          <p className="text-2xl font-bold text-neutral-800 mt-1">{feeds.length}</p>
           <p className="text-xs text-neutral-400">{t('feed.types.feed')}</p>
         </div>
         <div className="card p-4">
@@ -80,7 +96,7 @@ export function FeedInventoryPage() {
         </div>
         <div className="card p-4">
           <p className="text-xs text-neutral-500 font-medium">{t('feed.total.medicine')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{mockMedicineInventory.length}</p>
+          <p className="text-2xl font-bold text-neutral-800 mt-1">{medicines.length}</p>
           <p className="text-xs text-neutral-400">{t('feed.types.medicine')}</p>
         </div>
         <div className="card p-4">
@@ -92,24 +108,28 @@ export function FeedInventoryPage() {
       {/* Tab selector */}
       <div className="tab-bar w-fit">
         <button className={activeTab === 'feed' ? 'tab-active' : 'tab-inactive'} onClick={() => setActiveTab('feed')}>
-          {t('feed.tab.feed')} ({mockFeedInventory.length})
+          {t('feed.tab.feed')} ({feeds.length})
         </button>
         <button className={activeTab === 'medicine' ? 'tab-active' : 'tab-inactive'} onClick={() => setActiveTab('medicine')}>
-          {t('feed.tab.medicine')} ({mockMedicineInventory.length})
+          {t('feed.tab.medicine')} ({medicines.length})
         </button>
       </div>
 
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
+      <>
       {activeTab === 'feed' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mockFeedInventory.map(feed => {
+          {feeds.map((feed: any) => {
             const isLow = feed.quantity_on_hand < feed.min_threshold;
             const pct = Math.min(100, (feed.quantity_on_hand / Math.max(feed.min_threshold * 3, feed.quantity_on_hand)) * 100);
             return (
               <div key={feed.id} className={`card p-5 ${isLow ? 'border-error-200' : ''}`}>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
-                    <p className="font-semibold text-neutral-800">{feed.feed_name}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{feed.feed_category}</p>
+                    <p className="font-semibold text-neutral-800">{feed.feeds?.name || '-'}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">{feed.feeds?.category || '-'}</p>
                   </div>
                   {isLow && (
                     <span className="badge badge-red flex-shrink-0">{t('feed.badge.low')}</span>
@@ -117,9 +137,9 @@ export function FeedInventoryPage() {
                 </div>
                 <div className="flex items-end justify-between mb-2">
                   <span className={`text-3xl font-bold ${isLow ? 'text-error-600' : 'text-neutral-800'}`}>
-                    {feed.quantity_on_hand.toLocaleString()}
+                    {Number(feed.quantity_on_hand).toLocaleString()}
                   </span>
-                  <span className="text-sm text-neutral-500">{feed.unit}</span>
+                  <span className="text-sm text-neutral-500">{feed.unit || 'kg'}</span>
                 </div>
                 <div className="h-2 bg-neutral-100 rounded-full overflow-hidden mb-3">
                   <div
@@ -130,20 +150,20 @@ export function FeedInventoryPage() {
                 <div className="space-y-1 text-xs text-neutral-500">
                   <div className="flex justify-between">
                     <span>{t('feed.card.min')}</span>
-                    <span className="font-medium">{feed.min_threshold} {feed.unit}</span>
+                    <span className="font-medium">{feed.min_threshold} {feed.unit || 'kg'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>{t('feed.card.avgcost')}</span>
-                    <span className="font-medium">Rp {feed.avg_cost_per_unit.toLocaleString()}/{feed.unit}</span>
+                    <span className="font-medium">Rp {Number(feed.avg_cost_per_unit).toLocaleString()}/{feed.unit || 'kg'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>{t('feed.card.stockvalue')}</span>
-                    <span className="font-medium text-neutral-700">{formatCurrency(feed.total_cost)}</span>
+                    <span className="font-medium text-neutral-700">{formatCurrency(Number(feed.total_cost))}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>{t('feed.card.estremaining')}</span>
-                    <span className={`font-medium ${feed.days_remaining <= 7 ? 'text-warning-600' : 'text-primary-600'}`}>
-                      {t('feed.days.remaining').replace('{days}', String(feed.days_remaining))}
+                    <span className={'font-medium text-primary-600'}>
+                      {t('feed.days.remaining').replace('{days}', 'N/A')}
                     </span>
                   </div>
                 </div>
@@ -155,23 +175,23 @@ export function FeedInventoryPage() {
 
       {activeTab === 'medicine' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mockMedicineInventory.map(med => {
+          {medicines.map((med: any) => {
             const isLow = med.quantity_on_hand < med.min_threshold;
             const pct = Math.min(100, (med.quantity_on_hand / Math.max(med.min_threshold * 3, med.quantity_on_hand)) * 100);
             return (
               <div key={med.id} className={`card p-5 ${isLow ? 'border-error-200' : ''}`}>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
-                    <p className="font-semibold text-neutral-800">{med.medicine_name}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{med.medicine_type}</p>
+                    <p className="font-semibold text-neutral-800">{med.medicines?.name || '-'}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">{med.medicines?.type || '-'}</p>
                   </div>
                   {isLow && <span className="badge badge-red flex-shrink-0">{t('feed.badge.low')}</span>}
                 </div>
                 <div className="flex items-end justify-between mb-2">
                   <span className={`text-3xl font-bold ${isLow ? 'text-error-600' : 'text-neutral-800'}`}>
-                    {med.quantity_on_hand}
+                    {Number(med.quantity_on_hand)}
                   </span>
-                  <span className="text-sm text-neutral-500">{med.unit}</span>
+                  <span className="text-sm text-neutral-500">{med.unit || 'pcs'}</span>
                 </div>
                 <div className="h-2 bg-neutral-100 rounded-full overflow-hidden mb-3">
                   <div
@@ -182,11 +202,11 @@ export function FeedInventoryPage() {
                 <div className="space-y-1 text-xs text-neutral-500">
                   <div className="flex justify-between">
                     <span>{t('feed.label.minimum')}</span>
-                    <span className="font-medium">{med.min_threshold} {med.unit}</span>
+                    <span className="font-medium">{med.min_threshold} {med.unit || 'pcs'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>{t('feed.label.stockvalue')}</span>
-                    <span className="font-medium text-neutral-700">{formatCurrency(med.total_cost)}</span>
+                    <span className="font-medium text-neutral-700">{formatCurrency(Number(med.total_cost))}</span>
                   </div>
                 </div>
               </div>
@@ -194,6 +214,7 @@ export function FeedInventoryPage() {
           })}
         </div>
       )}
+      </>)}
 
       <Modal open={showPurchaseModal} onClose={() => setShowPurchaseModal(false)} title={t('feed.purchase.title')} size="md">
         <PurchaseForm type={activeTab} t={t} onClose={() => setShowPurchaseModal(false)} />
@@ -215,8 +236,8 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
           <select className="select">
             <option>{t('feed.form.select')}</option>
             {type === 'feed'
-              ? mockFeedInventory.map(f => <option key={f.id}>{f.feed_name}</option>)
-              : mockMedicineInventory.map(m => <option key={m.id}>{m.medicine_name}</option>)
+              ? [<option key="1">Pakan Konsentrat</option>, <option key="2">Jerami</option>, <option key="3">Silase Jagung</option>]
+              : [<option key="1">Antibiotik A</option>, <option key="2">Vitamin B</option>, <option key="3">Antiparasitik C</option>]
             }
           </select>
         </div>
@@ -256,7 +277,7 @@ function ConsumeForm({ t, onClose }: { t: (key: string) => string; onClose: () =
         <div>
           <label className="label">{t('feed.tab.feed')}</label>
           <select className="select">
-            {mockFeedInventory.map(f => <option key={f.id}>{f.feed_name}</option>)}
+            {[<option key="1">Pakan Konsentrat</option>, <option key="2">Jerami</option>, <option key="3">Silase Jagung</option>]}
           </select>
         </div>
         <div>

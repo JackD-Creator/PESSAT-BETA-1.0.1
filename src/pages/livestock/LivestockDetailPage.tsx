@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard as Edit, Scale, Heart, Syringe, Baby, Tag, Activity } from 'lucide-react';
 import { StatusBadge, SpeciesBadge } from '../../components/ui/Badge';
-import {
-  mockAnimals, mockWeightRecords, mockHealthRecords,
-  mockVaccinations, mockBreedingEvents
-} from '../../lib/mockData';
+import { getAnimal, getWeightRecords } from '../../lib/api';
+import { getHealthRecords, getVaccinations, getBreedingEvents } from '../../lib/api';
 import { useTranslation } from '../../contexts/LanguageContext';
+import type { Animal, WeightRecord, HealthRecord, Vaccination, BreedingEvent } from '../../types';
 
 function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
   if (!value && value !== 0) return null;
@@ -21,14 +20,43 @@ function InfoRow({ label, value }: { label: string; value?: string | number | nu
 export function LivestockDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams();
-  const animalId = Number(id);
   const [activeTab, setActiveTab] = useState('info');
+  const [loading, setLoading] = useState(true);
+  const [animal, setAnimal] = useState<(Animal & { locations: { name: string } | null; dam: { tag_id: string; breed: string } | null; sire: { tag_id: string; breed: string } | null }) | null>(null);
+  const [weightHistory, setWeightHistory] = useState<WeightRecord[]>([]);
+  const [healthHistory, setHealthHistory] = useState<(HealthRecord & { animals: { tag_id: string } })[]>([]);
+  const [vaccinations, setVaccinations] = useState<(Vaccination & { animals: { tag_id: string } | null })[]>([]);
+  const [breedingEvents, setBreedingEvents] = useState<(BreedingEvent & { animals: { tag_id: string }; sire: { tag_id: string } | null })[]>([]);
 
-  const animal = mockAnimals.find(a => a.id === animalId);
-  const weightHistory = mockWeightRecords.filter(w => w.animal_id === animalId);
-  const healthHistory = mockHealthRecords.filter(h => h.animal_id === animalId);
-  const vaccinations = mockVaccinations.filter(v => v.animal_id === animalId);
-  const breedingEvents = mockBreedingEvents.filter(b => b.animal_id === animalId);
+  useEffect(() => {
+    if (!id) return;
+    Promise.all([
+      getAnimal(id),
+      getWeightRecords(id),
+      getHealthRecords(id),
+      getVaccinations(id),
+      getBreedingEvents(id),
+    ])
+      .then(([animalData, weights, health, vax, breeding]) => {
+        setAnimal(animalData);
+        setWeightHistory(weights);
+        setHealthHistory(health as any);
+        setVaccinations(vax as any);
+        setBreedingEvents(breeding as any);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="card p-12 text-center">
+          <p className="text-neutral-400">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!animal) {
     return (
@@ -135,7 +163,7 @@ export function LivestockDetailPage() {
               <InfoRow label={t('livestock.table.status')} value={animal.status} />
               <InfoRow label={t('livestock.table.purpose')} value={animal.purpose} />
               <InfoRow label={t('livestock.form.color')} value={animal.color} />
-              <InfoRow label={t('livestock.table.location')} value={animal.current_location_name} />
+              <InfoRow label={t('livestock.table.location')} value={animal.locations?.name || '-'} />
               <InfoRow label={t('livestock.form.acquisition')} value={{ born: t('livestock.form.acquisition.born'), purchased: t('livestock.form.acquisition.purchased'), gift: t('livestock.form.acquisition.gift') }[animal.acquisition_type]} />
               {animal.acquisition_cost && (
                 <InfoRow label={t('livestock.form.price')} value={`Rp ${animal.acquisition_cost.toLocaleString('id-ID')}`} />
@@ -199,7 +227,7 @@ export function LivestockDetailPage() {
                         <td>{w.chest_girth_cm ? `${w.chest_girth_cm} cm` : '-'}</td>
                         <td>{w.body_length_cm ? `${w.body_length_cm} cm` : '-'}</td>
                         <td>{w.height_cm ? `${w.height_cm} cm` : '-'}</td>
-                        <td>{w.recorded_by_name}</td>
+                        <td>{(w as any).users?.full_name || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -354,7 +382,7 @@ export function LivestockDetailPage() {
                 <h3 className="font-semibold text-neutral-700 mb-3">{t('livestock.detail.info.status')}</h3>
                 <InfoRow label={t('livestock.form.status')} value={animal.status} />
                 <InfoRow label={t('livestock.form.purpose')} value={animal.purpose} />
-                <InfoRow label={t('livestock.form.location')} value={animal.current_location_name} />
+                <InfoRow label={t('livestock.form.location')} value={animal.locations?.name || '-'} />
                 <InfoRow label={t('livestock.form.acquisition')} value={{ born: t('livestock.form.acquisition.born'), purchased: t('livestock.form.acquisition.purchased'), gift: t('livestock.form.acquisition.gift') }[animal.acquisition_type]} />
                 {animal.acquisition_cost && (
                   <InfoRow label={t('livestock.form.price')} value={`Rp ${animal.acquisition_cost.toLocaleString('id-ID')}`} />

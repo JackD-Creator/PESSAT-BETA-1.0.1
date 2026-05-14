@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Baby, Calendar } from 'lucide-react';
-import { mockBreedingEvents, mockAnimals } from '../../lib/mockData';
+import { getBreedingEvents } from '../../lib/api';
+import { getAnimals } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -23,9 +24,25 @@ export function BreedingPage() {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [breedingEvents, setBreedingEvents] = useState<any[]>([]);
+  const [allAnimals, setAllAnimals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const today = new Date('2026-05-14');
 
-  const pregnantAnimals = mockAnimals.filter(a => a.status === 'pregnant');
+  useEffect(() => {
+    Promise.all([
+      getBreedingEvents(),
+      getAnimals(),
+    ])
+      .then(([events, animals]) => {
+        setBreedingEvents(events as any[]);
+        setAllAnimals(animals as any[]);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const pregnantAnimals = allAnimals.filter((a: any) => a.status === 'pregnant');
 
   return (
     <div className="page-container">
@@ -51,8 +68,8 @@ export function BreedingPage() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {pregnantAnimals.map(a => {
-              const lastInsem = mockBreedingEvents
-                .filter(e => e.animal_id === a.id && e.event_type === 'insemination')
+              const lastInsem = breedingEvents
+                .filter((e: any) => e.animal_id === a.id && e.event_type === 'insemination')
                 .sort((x, y) => new Date(y.event_date).getTime() - new Date(x.event_date).getTime())[0];
               const daysLeft = lastInsem?.expected_due_date
                 ? Math.ceil((new Date(lastInsem.expected_due_date).getTime() - today.getTime()) / 86400000)
@@ -81,6 +98,9 @@ export function BreedingPage() {
       )}
 
       {/* All events */}
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
       <div className="card">
         <div className="p-4 border-b border-neutral-100">
           <h2 className="section-header">{t('breeding.history.title')}</h2>
@@ -99,9 +119,9 @@ export function BreedingPage() {
               </tr>
             </thead>
             <tbody>
-              {mockBreedingEvents.map(e => (
+              {breedingEvents.map(e => (
                 <tr key={e.id}>
-                  <td className="font-semibold text-primary-700">{e.animal_tag}</td>
+                  <td className="font-semibold text-primary-700">{e.animals?.tag_id || '-'}</td>
                   <td>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${eventColors[e.event_type]}`}>
                       {t(eventLabels[e.event_type])}
@@ -121,7 +141,7 @@ export function BreedingPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>)}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('breeding.form.title')} size="md">
         <BreedingForm onClose={() => setShowModal(false)} />
