@@ -16,7 +16,7 @@ interface NavItem {
   children?: NavItem[];
 }
 
-export function Sidebar(_props: { onClose?: () => void }) {
+export function Sidebar(_props?: { onClose?: () => void }) {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
 
@@ -94,7 +94,7 @@ export function Sidebar(_props: { onClose?: () => void }) {
             <p className="text-xs text-neutral-400">{roleLabels[user?.role || ''] || user?.role}</p>
           </div>
         </div>
-        <button onClick={logout} className="sidebar-link-inactive w-full text-error-600 hover:bg-error-50 hover:text-error-700">
+        <button onClick={() => { logout(); }} className="sidebar-link-inactive w-full text-error-600 hover:bg-error-50 hover:text-error-700">
           <LogOut size={16} />
           <span>{t('nav.logout')}</span>
         </button>
