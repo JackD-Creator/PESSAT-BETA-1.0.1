@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Plus, Shield, User, UserCheck } from 'lucide-react';
-import { mockUsers } from '../../lib/mockData';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Shield, User, UserCheck, Loader } from 'lucide-react';
+import { getUsers, createUser, deactivateUser, activateUser } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useTranslation } from '../../contexts/LanguageContext';
+import type { User } from '../../types';
 
 const roleConfig = {
   owner: { labelKey: 'user.role.owner', color: 'bg-earth-100 text-earth-700', icon: Shield },
@@ -13,13 +14,26 @@ const roleConfig = {
 export function UsersPage() {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(() => {
+    getUsers()
+      .then(data => setUsers(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleCreated = () => { setShowModal(false); load(); };
 
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">{t('user.title')}</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">{t('user.count').replace('{count}', String(mockUsers.filter(u => u.is_active).length))}</p>
+          <p className="text-sm text-neutral-500 mt-0.5">{t('user.count').replace('{count}', String(users.filter(u => u.is_active).length))}</p>
         </div>
         <button className="btn-primary" onClick={() => setShowModal(true)}>
           <Plus size={16} />
@@ -30,7 +44,7 @@ export function UsersPage() {
       {/* Role summary */}
       <div className="grid grid-cols-3 gap-4">
         {Object.entries(roleConfig).map(([role, cfg]) => {
-          const count = mockUsers.filter(u => u.role === role).length;
+          const count = users.filter(u => u.role === role).length;
           const Icon = cfg.icon;
           return (
             <div key={role} className="card p-5">
@@ -49,6 +63,9 @@ export function UsersPage() {
       </div>
 
       {/* Users table */}
+      {loading ? (
+        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+      ) : (
       <div className="card">
         <div className="p-4 border-b border-neutral-100">
           <h2 className="section-header">{t('user.list.title')}</h2>
@@ -66,7 +83,7 @@ export function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {mockUsers.map(u => {
+              {users.map(u => {
                 const cfg = roleConfig[u.role];
                 return (
                   <tr key={u.id}>
@@ -84,7 +101,7 @@ export function UsersPage() {
                         {t(cfg.labelKey)}
                       </span>
                     </td>
-                    <td className="text-neutral-500">{u.phone}</td>
+                    <td className="text-neutral-500">{u.phone || '-'}</td>
                     <td>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.is_active ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-500'}`}>
                         {u.is_active ? t('user.status.active') : t('user.status.inactive')}
@@ -92,9 +109,20 @@ export function UsersPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <button className="text-xs text-primary-600 hover:text-primary-700 font-medium">{t('user.action.edit')}</button>
-                        {u.is_active && (
-                          <button className="text-xs text-error-500 hover:text-error-600 font-medium">{t('user.action.deactivate')}</button>
+                        {u.is_active ? (
+                          <button
+                            className="text-xs text-error-500 hover:text-error-600 font-medium"
+                            onClick={async () => { await deactivateUser(u.id); load(); }}
+                          >
+                            {t('user.action.deactivate')}
+                          </button>
+                        ) : (
+                          <button
+                            className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                            onClick={async () => { await activateUser(u.id); load(); }}
+                          >
+                            {t('user.action.activate')}
+                          </button>
                         )}
                       </div>
                     </td>
@@ -104,7 +132,7 @@ export function UsersPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>)}
 
       {/* Role permissions info */}
       <div className="card p-5">
@@ -131,31 +159,59 @@ export function UsersPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('user.form.title')} size="md">
-        <UserForm t={t} onClose={() => setShowModal(false)} />
+        <UserForm t={t} onCreated={handleCreated} onClose={() => setShowModal(false)} />
       </Modal>
     </div>
   );
 }
 
-function UserForm({ t, onClose }: { t: (key: string) => string; onClose: () => void }) {
+function UserForm({ t, onCreated, onClose }: { t: (key: string) => string; onCreated: () => void; onClose: () => void }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    full_name: '', email: '', phone: '', role: 'worker', password: '',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSubmitting(true);
+    try {
+      await createUser({
+        email: form.email,
+        password: form.password,
+        full_name: form.full_name,
+        role: form.role as User['role'],
+        phone: form.phone || undefined,
+      });
+      onCreated();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Pengguna ditambahkan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4">
+      {error && <div className="text-sm text-error-600 bg-error-50 p-3 rounded-lg">{error}</div>}
       <div className="form-grid-2">
         <div className="col-span-2">
           <label className="label">{t('user.form.fullname')} <span className="text-error-500">*</span></label>
-          <input className="input" placeholder={t('user.form.fullname.placeholder')} required />
+          <input name="full_name" className="input" placeholder={t('user.form.fullname.placeholder')} value={form.full_name} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('user.form.email')} <span className="text-error-500">*</span></label>
-          <input type="email" className="input" placeholder={t('user.form.email.placeholder')} required />
+          <input name="email" type="email" className="input" placeholder={t('user.form.email.placeholder')} value={form.email} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('user.form.phone')}</label>
-          <input className="input" placeholder={t('user.form.phone.placeholder')} />
+          <input name="phone" className="input" placeholder={t('user.form.phone.placeholder')} value={form.phone} onChange={change} />
         </div>
         <div>
           <label className="label">{t('user.form.role')}</label>
-          <select className="select">
+          <select name="role" className="select" value={form.role} onChange={change}>
             <option value="worker">{t('user.form.role.worker')}</option>
             <option value="manager">{t('user.form.role.manager')}</option>
             <option value="owner">{t('user.form.role.owner')}</option>
@@ -163,12 +219,15 @@ function UserForm({ t, onClose }: { t: (key: string) => string; onClose: () => v
         </div>
         <div>
           <label className="label">{t('user.form.password')} <span className="text-error-500">*</span></label>
-          <input type="password" className="input" placeholder={t('user.form.password.placeholder')} required />
+          <input name="password" type="password" className="input" placeholder={t('user.form.password.placeholder')} value={form.password} onChange={change} required />
         </div>
       </div>
       <div className="flex justify-end gap-3">
-        <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-        <button type="submit" className="btn-primary">{t('user.add')}</button>
+        <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
+        <button type="submit" className="btn-primary" disabled={submitting}>
+          {submitting ? <Loader size={14} className="animate-spin" /> : <Plus size={14} />}
+          {t('user.add')}
+        </button>
       </div>
     </form>
   );
