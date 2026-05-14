@@ -1,0 +1,181 @@
+import { useState } from 'react';
+import { Plus, Users, MapPin } from 'lucide-react';
+import { mockHerdGroups, mockAnimals, mockLocations } from '../../lib/mockData';
+import { Modal } from '../../components/ui/Modal';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
+
+export function HerdGroupsPage() {
+  const { t } = useTranslation();
+  const { hasRole } = useAuth();
+  const [showModal, setShowModal] = useState(false);
+
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t('herd.title')}</h1>
+          <p className="text-sm text-neutral-500 mt-0.5">{t('herd.count').replace('{count}', String(mockHerdGroups.length))}</p>
+        </div>
+        {hasRole(['owner', 'manager']) && (
+          <button className="btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={16} />
+            {t('herd.create')}
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5">
+        {mockHerdGroups.map(group => {
+          const members = mockAnimals.filter(() => true); // would filter by group in real app
+          const healthyCount = members.filter(a => a.status === 'healthy').length;
+          const sickCount = members.filter(a => a.status === 'sick').length;
+          const pregnantCount = members.filter(a => a.status === 'pregnant').length;
+          return (
+            <div key={group.id} className="card p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-neutral-800">{group.name}</h3>
+                  {group.location_name && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-neutral-500">
+                      <MapPin size={12} />
+                      <span>{group.location_name}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-primary-50 p-2.5 rounded-xl">
+                  <Users size={18} className="text-primary-600" />
+                </div>
+              </div>
+
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <p className="text-4xl font-bold text-neutral-800">{group.member_count}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">{t('herd.members')}</p>
+                </div>
+                {group.supervisor_name && (
+                  <div className="text-right">
+                    <p className="text-xs text-neutral-400">{t('herd.supervisor')}</p>
+                    <p className="text-sm font-medium text-neutral-700">{group.supervisor_name}</p>
+                  </div>
+                )}
+              </div>
+
+              {group.notes && (
+                <p className="text-xs text-neutral-400 mb-4 italic">{group.notes}</p>
+              )}
+
+              <div className="border-t border-neutral-100 pt-3 grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-sm font-semibold text-primary-600">{healthyCount}</p>
+                  <p className="text-xs text-neutral-400">{t('status.healthy')}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-error-600">{sickCount}</p>
+                  <p className="text-xs text-neutral-400">{t('status.sick')}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-earth-600">{pregnantCount}</p>
+                  <p className="text-xs text-neutral-400">{t('status.pregnant')}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Locations overview */}
+      <div className="card">
+        <div className="p-4 border-b border-neutral-100">
+          <h2 className="section-header">{t('herd.capacity.title')}</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t('herd.table.location')}</th>
+                <th>{t('herd.table.type')}</th>
+                <th>{t('herd.table.capacity')}</th>
+                <th>{t('herd.table.occupied')}</th>
+                <th>{t('herd.table.available')}</th>
+                <th>{t('herd.table.utilization')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockLocations.map(loc => {
+                const pct = loc.capacity > 0 ? Math.round((loc.current_occupancy / loc.capacity) * 100) : 0;
+                return (
+                  <tr key={loc.id}>
+                    <td className="font-medium text-neutral-800">{loc.name}</td>
+                    <td>
+                      <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full capitalize">
+                        {loc.type.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td>{loc.capacity > 0 ? t('herd.table.capacity.unit').replace('{count}', String(loc.capacity)) : '-'}</td>
+                    <td>{loc.current_occupancy > 0 ? t('herd.table.capacity.unit').replace('{count}', String(loc.current_occupancy)) : '-'}</td>
+                    <td className={loc.capacity > 0 ? (loc.capacity - loc.current_occupancy < 5 ? 'text-warning-600 font-medium' : 'text-primary-600 font-medium') : 'text-neutral-400'}>
+                      {loc.capacity > 0 ? t('herd.table.capacity.unit').replace('{count}', String(loc.capacity - loc.current_occupancy)) : '-'}
+                    </td>
+                    <td>
+                      {loc.capacity > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden w-20">
+                            <div
+                              className={`h-full rounded-full ${pct >= 90 ? 'bg-error-500' : pct >= 70 ? 'bg-warning-500' : 'bg-primary-500'}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-neutral-600 w-8">{pct}%</span>
+                        </div>
+                      ) : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <Modal open={showModal} onClose={() => setShowModal(false)} title={t('herd.form.title')} size="md">
+        <HerdGroupForm onClose={() => setShowModal(false)} />
+      </Modal>
+    </div>
+  );
+}
+
+function HerdGroupForm({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); alert('Kelompok tersimpan (demo)'); onClose(); }} className="space-y-4">
+      <div>
+        <label className="label">{t('herd.form.name')} <span className="text-error-500">*</span></label>
+        <input className="input" placeholder="e.g. Kandang D - Sapi Perah Muda" required />
+      </div>
+      <div className="form-grid-2">
+        <div>
+          <label className="label">{t('herd.form.location')}</label>
+          <select className="select">
+            <option value="">{t('herd.form.location.placeholder')}</option>
+            {mockLocations.filter(l => l.type !== 'storage' && l.type !== 'office').map(l => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label">{t('herd.form.supervisor')}</label>
+          <input className="input" placeholder={t('herd.form.supervisor.placeholder')} />
+        </div>
+      </div>
+      <div>
+        <label className="label">{t('herd.form.notes')}</label>
+        <textarea className="input h-20 resize-none" placeholder={t('herd.form.notes.placeholder')} />
+      </div>
+      <div className="flex justify-end gap-3">
+        <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
+        <button type="submit" className="btn-primary">{t('common.save')}</button>
+      </div>
+    </form>
+  );
+}

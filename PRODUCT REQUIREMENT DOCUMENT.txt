@@ -1,0 +1,991 @@
+PRODUCT REQUIREMENT DOCUMENT (PRD) FINAL
+LIVESTOCK MANAGEMENT SYSTEM
+Versi: 2.0 Final
+Tanggal: 14 Mei 2026
+Status: Siap Implementasi
+Komoditas: Sapi Potong | Sapi Perah | Domba | Kambing
+________________________________________
+RINGKASAN PRODUK
+Livestock Management System adalah aplikasi berbasis web dan mobile yang membantu peternak sapi potong, sapi perah, domba, dan kambing mengelola seluruh operasional peternakan secara digital. Sistem ini mengintegrasikan pencatatan data ternak, pemantauan kesehatan, manajemen pakan, inventaris, keuangan, serta pelaporan dalam satu platform dengan dashboard analitik real-time.
+________________________________________
+
+
+PERSONA PENGGUNA
+1.	Pemilik (Owner) - Pemilik usaha peternakan. Kebutuhan: Melihat performa bisnis, profitabilitas, tren jangka panjang, laporan keuangan.
+2.	Manajer (Manager) - Penanggung jawab operasional harian. Kebutuhan: Mengelola data ternak, inventaris, keuangan, formulasi pakan, tugas staf.
+3.	Pekerja Kandang (Worker) - Staf lapangan (pakan, kesehatan, produksi). Kebutuhan: Mencatat aktivitas harian: pemberian pakan, produksi susu, laporan kesehatan ternak.
+________________________________________
+
+
+
+DASHBOARD – PUSAT KENDALI & WAWASAN
+Dashboard adalah halaman utama yang menampilkan data penting secara real-time dari seluruh modul, membantu pengambilan keputusan berbasis data.
+Komponen Dashboard:
+1.	Ringkasan Populasi & Kondisi Ternak
+Sumber Data: animals (GROUP BY species, status)
+Tampilan: Total ternak per spesies (sapi potong, sapi perah, domba, kambing), dikelompokkan per status: sehat, sakit, bunting, laktasi, kering, afkir, mati.
+2.	Status Kesehatan & Peringatan Dini
+Sumber Data: health_records, vaccinations, alerts, breeding_events
+Tampilan: Ringkasan penyakit aktif, vaksinasi mendatang (3 hari), ternak dengan gejala abnormal, notifikasi stok obat menipis, perkiraan kelahiran.
+3.	Produktivitas Utama
+Sumber Data: daily_production, weight_records
+Tampilan: Sapi perah: produksi susu (liter/hari); Sapi potong/domba/kambing: ADG (pertambahan bobot harian), bobot rata-rata; Grafik tren 7 hari terakhir.
+4.	Manajemen Pakan & Inventaris
+Sumber Data: feed_inventory, feed_consumption, feed_purchases
+Tampilan: Stok pakan terkini per jenis, estimasi hari tersisa, peringatan stok di bawah threshold, biaya pakan bulan ini, nilai total inventaris.
+5.	Keuangan & Biaya Operasional
+Sumber Data: financial_transactions
+Tampilan: Ringkasan arus kas (cash in/out), laba rugi bulan berjalan, biaya operasional per kategori (pakan, obat, tenaga kerja, utilitas), biaya per ekor.
+6.	Tugas & Aktivitas Mendatang
+Sumber Data: tasks
+Tampilan: Daftar tugas hari ini dan overdue: pemberian pakan, vaksinasi, inseminasi, kontrol kesehatan, pemerahan.
+7.	Peta & Kondisi Lahan
+Sumber Data: locations, animals
+Tampilan: Tampilan visual lokasi kandang/paddock, status hunian per kandang, kapasitas, rotasi penggembalaan.
+________________________________________
+
+
+CORE FEATURES – FITUR UTAMA
+1.	MANAJEMEN INVENTARIS TERNAK
+1.1 Registrasi & Identitas Ternak
+Setiap ternak didaftarkan dengan data individu lengkap:
+Data Umum (Semua Komoditas):
+•	Tag ID (eartag/QR)
+•	RFID (opsional)
+•	Spesies: cattle, sheep, goat
+•	Ras/Breed: Sapi Perah (FH, Jersey), Sapi Potong (Brahman, Simmental), Domba (Merino, Garut, Dorper), Kambing (Boer, Ettawa, Kacang)
+•	Jenis Kelamin
+•	Tanggal Lahir
+•	Bobot Lahir (kg)
+•	Bobot Terkini (kg)
+•	Warna
+•	Foto
+•	Status Fisiologis: healthy, sick, pregnant, lactating, dry, culled, sold, dead
+•	Purpose (Tujuan Pemeliharaan): dairy, beef, wool, dual, breeding
+•	Induk (dam_id)
+•	Pejantan (sire_id)
+•	Lokasi Kandang Saat Ini
+•	Cara Perolehan: born, purchased, gift
+•	Harga Beli (jika dibeli)
+1.2 Atribut Spesifik per Komoditas
+Atribut Sapi Perah (Purpose: dairy):
+•	lactation_number (Laktasi Ke) - number
+•	days_in_milk (Hari Laktasi) - number, hari
+•	milk_yield_morning (Susu Pagi) - number, liter
+•	milk_yield_evening (Susu Sore) - number, liter
+•	total_305d_milk (Total Susu 305 Hari) - number, liter
+•	body_condition_score (BCS) - number, 1-5
+•	dry_period_start (Tanggal Mulai Kering) - date
+Atribut Sapi Potong (Purpose: beef):
+•	body_condition_score (BCS) - number, 1-5
+•	average_daily_gain (ADG) - number, kg/hari
+•	feed_conversion_ratio (FCR) - number
+•	target_slaughter_weight (Target Bobot Potong) - number, kg
+•	estimated_slaughter_date (Estimasi Tanggal Potong) - date
+Atribut Domba:
+•	body_condition_score (BCS) - number, 1-5
+•	wool_grade (Grade Wol) - text
+•	wool_yield_per_shearing (Hasil Wol/Cukur) - number, kg
+•	last_shearing_date (Tanggal Cukur Terakhir) - date
+•	average_daily_gain (ADG) - number, kg/hari
+•	litter_size_avg (Rata-rata Anak) - number, ekor
+Atribut Kambing:
+•	body_condition_score (BCS) - number, 1-5
+•	milk_yield_per_day (Susu/Hari) - number, liter (untuk kambing perah)
+•	average_daily_gain (ADG) - number, kg/hari
+•	litter_size_avg (Rata-rata Anak) - number, ekor
+•	purpose (Tujuan) - text: meat, milk, dual
+1.3 Silsilah & Pemuliaan
+•	Self-reference: dam_id dan sire_id merujuk ke tabel animals
+•	Tabel genetic_records (opsional): koefisien inbreeding, EBV susu/pertumbuhan/reproduksi/wol, DNA sample ID
+1.4 Bobot & Pengukuran Berkala
+Tabel weight_records mencatat: weigh_date, weight_kg, body_condition_score, chest_girth_cm, body_length_cm, height_cm
+Setiap insert otomatis update animals.current_weight_kg dengan nilai terbaru.
+1.5 Pemindahan Ternak
+Tabel animal_movements mencatat perpindahan antar kandang/paddock dengan tanggal, alasan, petugas.
+Otomatis update animals.current_location_id.
+1.6 Pengelompokan Ternak
+Tabel herd_groups dan herd_group_members untuk manajemen kolektif.
+Contoh grup: "Kandang A - Sapi Perah Laktasi", "Paddock 1 - Sapi Potong Penggemukan".
+Grup digunakan untuk pemberian pakan massal dan vaksinasi massal.
+________________________________________
+
+
+2.	PEMANTAUAN KESEHATAN & REPRODUKSI
+2.1 Rekam Medis (health_records)
+Atribut: record_date, type (checkup/illness/injury/treatment/surgery/preventive), diagnosis, treatment, vet_name, cost, is_resolved, follow_up_date.
+Trigger: Insert dengan cost > 0 menghasilkan transaksi expense cash_out kategori vet_service.
+Insert dengan type 'illness' mengubah status ternak menjadi 'sick'.
+Update is_resolved = TRUE mengembalikan status ke 'healthy'.
+2.2 Vaksinasi (vaccinations)
+Atribut: vaccine_name, batch_number, date_administered, next_due_date, cost, animal_id atau herd_group_id (untuk vaksinasi massal).
+Trigger: Insert dengan cost > 0 menghasilkan transaksi expense cash_out kategori vaccination.
+next_due_date kurang dari atau sama dengan hari ini + 3 hari menghasilkan alert dan task otomatis.
+2.3 Reproduksi (breeding_events)
+Event types: heat, insemination, pregnancy_check, birth, abortion, dry_off.
+Atribut: sire_id, expected_due_date, actual_birth_date, offspring_count, offspring_tag_ids, cost.
+Parameter Reproduksi per Komoditas:
+•	Sapi Perah/Potong: Lama Kebuntingan 280 hari, Masa Kosong Ideal 60-90 hari, Umur Kawin Pertama 15-18 bulan, Siklus Birahi 21 hari
+•	Domba: Lama Kebuntingan 147 hari, Masa Kosong Ideal 30-45 hari, Umur Kawin Pertama 8-10 bulan, Siklus Birahi 17 hari
+•	Kambing: Lama Kebuntingan 150 hari, Masa Kosong Ideal 30-45 hari, Umur Kawin Pertama 8-10 bulan, Siklus Birahi 21 hari
+Trigger:
+•	Insert cost > 0: transaksi expense cash_out kategori breeding
+•	pregnancy_check positif: status berubah menjadi 'pregnant'
+•	birth: status berubah menjadi 'lactating', otomatis membuat record anak baru di animals
+•	dry_off: status berubah menjadi 'dry'
+•	expected_due_date <= hari ini + 7 hari: menghasilkan alert
+2.4 Pemakaian Obat (medicine_usages)
+Atribut: medicine_id, usage_date, health_record_id (opsional), animal_id, quantity, cost_per_unit_at_time, total_cost.
+Trigger: Kurangi medicine_inventory, transaksi expense non_cash kategori medicine_usage.
+________________________________________
+
+
+
+3.	MANAJEMEN PAKAN & INVENTARIS
+3.1 Master Data Pakan (feeds)
+Kategori Pakan untuk Ruminansia:
+•	Hijauan (Forage): Rumput Segar (Rumput Gajah, King Grass, Setaria), Leguminosa (Lamtoro, Kaliandra, Indigofera), Jerami (Jerami Padi, Jerami Jagung), Silase (Silase Rumput, Silase Jagung)
+•	Konsentrat: Sumber Energi (Dedak Padi, Onggok, Molases, Jagung Giling), Sumber Protein (Bungkil Kedelai, Tepung Ikan, DDGS), Pakan Komplit (Konsentrat Komersial)
+•	Mineral: Mineral Makro (Garam, Kapur, Tepung Tulang), Mineral Mikro (Premix)
+•	Suplemen: Vitamin (Premix A,D,E), Aditif (Probiotik, Enzim)
+•	Limbah Pertanian: Ampas Tahu, Ampas Kelapa, Kulit Kopi
+Kandungan Nutrisi Lengkap:
+•	dry_matter_pct (% Bahan Kering)
+•	crude_protein_pct (% Protein Kasar)
+•	crude_fiber_pct (% Serat Kasar)
+•	crude_fat_pct (% Lemak Kasar)
+•	ash_pct (% Abu)
+•	tdn_pct (% Total Digestible Nutrients)
+•	metabolizable_energy (kcal/kg)
+•	calcium_pct (% Ca)
+•	phosphorus_pct (% P)
+•	shelf_life_days (Umur Simpan)
+•	storage_condition (Kondisi Penyimpanan)
+3.2 Stok Pakan dengan Nilai (feed_inventory)
+Menggunakan metode Moving Average.
+Atribut: quantity_on_hand (kg), avg_cost_per_unit (Rp/kg), total_cost (Rp), min_threshold.
+Rumus: new_avg = ((qty_lama x avg_lama) + (qty_beli x harga_beli)) / (qty_lama + qty_beli)
+Alert: quantity_on_hand < min_threshold menghasilkan alert stok menipis.
+3.3 Pembelian Pakan (feed_purchases)
+Trigger:
+1.	Update feed_inventory: qty +, hitung ulang avg_cost, update total_cost
+2.	Insert financial_transactions: expense cash_out kategori feed_purchase
+3.4 Pemakaian Pakan (feed_consumption)
+Per individu ternak atau per grup.
+Trigger:
+1.	Ambil avg_cost_per_unit terkini dari feed_inventory
+2.	Hitung total_cost = quantity x avg_cost_per_unit
+3.	Update feed_inventory: qty -, total_cost = qty x avg_cost
+4.	Insert financial_transactions: expense non_cash kategori feed_usage
+3.5 Formulasi Ransum (feed_formulas & feed_formula_items)
+Untuk peternakan yang mencampur pakan sendiri.
+Contoh Formula:
+•	Ransum Sapi Perah Laktasi: 50% Hijauan, 30% Konsentrat, 15% Bungkil, 5% Mineral
+•	Ransum Penggemukan Sapi Potong: 40% Hijauan, 45% Konsentrat, 10% Onggok, 5% Mineral
+•	Ransum Domba Penggemukan: 35% Hijauan, 45% Konsentrat, 15% Bungkil, 5% Mineral
+Kalkulasi Otomatis: Protein kasar hasil formulasi, TDN hasil formulasi, Biaya per kg ransum.
+3.6 Standar Kebutuhan Nutrisi (nutrition_requirements)
+Kebutuhan Nutrisi per Komoditas:
+•	Sapi Perah Laktasi Awal: BK 15-18 kg/hari, PK 16-18%, TDN 68-72%, Ca 0.6-0.8%, P 0.4-0.5%
+•	Sapi Perah Laktasi Tengah: BK 13-16 kg/hari, PK 14-16%, TDN 65-68%, Ca 0.5-0.7%, P 0.35-0.45%
+•	Sapi Perah Kering: BK 8-10 kg/hari, PK 12-13%, TDN 55-60%, Ca 0.4-0.5%, P 0.3-0.35%
+•	Sapi Potong Penggemukan: BK 10-14 kg/hari, PK 12-14%, TDN 65-72%, Ca 0.4-0.6%, P 0.3-0.4%
+•	Sapi Potong Induk Bunting: BK 8-10 kg/hari, PK 10-12%, TDN 55-60%, Ca 0.4-0.5%, P 0.3-0.35%
+•	Domba Penggemukan: BK 1.2-1.8 kg/hari, PK 14-16%, TDN 65-70%, Ca 0.4-0.6%, P 0.3-0.4%
+•	Domba Induk Bunting: BK 1.0-1.5 kg/hari, PK 12-14%, TDN 58-62%, Ca 0.5-0.7%, P 0.35-0.45%
+•	Kambing Penggemukan: BK 1.0-1.5 kg/hari, PK 14-16%, TDN 65-70%, Ca 0.4-0.6%, P 0.3-0.4%
+•	Kambing Perah: BK 1.5-2.0 kg/hari, PK 16-18%, TDN 65-68%, Ca 0.6-0.8%, P 0.4-0.5%
+3.7 Penyesuaian Stok (stock_adjustments)
+Untuk stok rusak, kadaluwarsa, atau koreksi.
+Trigger (quantity_change negatif):
+1.	Update inventaris: qty -, total_cost -
+2.	Insert financial_transactions: expense non_cash kategori stock_loss
+________________________________________
+
+
+4.	MANAJEMEN KEUANGAN TERINTEGRASI
+4.1 General Ledger (financial_transactions)
+Semua pergerakan uang dicatat otomatis dari setiap modul operasional.
+Dimensi Transaksi: type (income/expense), cash_flow (cash_in/cash_out/non_cash), category, amount, source_table, source_id, animal_id.
+4.2 Mapping Sumber Transaksi (14 Sumber):
+1.	Pembelian Pakan - feed_purchases - category: feed_purchase - cash_out
+2.	Pemakaian Pakan - feed_consumption - category: feed_usage - non_cash
+3.	Pembelian Obat - medicine_purchases - category: medicine_purchase - cash_out
+4.	Pemakaian Obat - medicine_usages - category: medicine_usage - non_cash
+5.	Biaya Kesehatan (Jasa Vet) - health_records - category: vet_service - cash_out
+6.	Biaya Vaksinasi - vaccinations - category: vaccination - cash_out
+7.	Biaya Reproduksi - breeding_events - category: breeding - cash_out
+8.	Penjualan Ternak - animal_sales - category: animal_sale - cash_in
+9.	Pembelian Ternak - animal_purchases - category: animal_purchase - cash_out
+10.	Penjualan Susu - product_sales - category: product_sale - cash_in
+11.	Penjualan Wol - product_sales - category: product_sale - cash_in
+12.	Biaya Tenaga Kerja - labor_expenses - category: labor - cash_out
+13.	Biaya Operasional - operational_expenses - category: opex_[category] - cash_out
+14.	Penyesuaian Stok - stock_adjustments - category: stock_loss - non_cash
+4.3 Laporan yang Dihasilkan:
+•	Laba Rugi: Pendapatan - (Biaya cash + Biaya non-cash) dari financial_transactions
+•	Arus Kas: Cash in - Cash out (hanya cash_in/cash_out)
+•	Biaya per Ekor: Total biaya / jumlah ternak
+•	Biaya per Liter Susu: Total biaya sapi perah / total produksi susu
+•	Nilai Inventaris: Total nilai stok pakan + obat
+________________________________________
+
+
+5.	MANAJEMEN PRODUKSI HARIAN
+5.1 Pencatatan Produksi (daily_production):
+•	Sapi Perah: Susu (liter) - per individu atau grup
+•	Domba: Wol (kg) - per individu
+•	Semua: Daging/bobot potong tercatat di weight_records
+5.2 Penggunaan Data Produksi:
+•	Dashboard produktivitas harian
+•	Grafik tren produksi 7/30/365 hari
+•	Perhitungan efisiensi: susu per ekor per hari, susu per kg pakan
+•	Benchmarking performa
+________________________________________
+
+
+6.	MANAJEMEN TUGAS & NOTIFIKASI
+6.1 Manajemen Tugas (tasks):
+Atribut: title, description, assigned_to, due_date, priority (low/medium/high/urgent), status (pending/in_progress/completed/cancelled), related_animal_id, related_herd_group_id.
+Auto-generate Tasks:
+•	Vaksinasi terjadwal: "Vaksinasi [vaksin] untuk [tag_id]"
+•	Birahi terdeteksi: "Inseminasi [tag_id] dalam 12 jam"
+•	Perkiraan lahir: "Persiapan kelahiran [tag_id]"
+•	Stok menipis: "Order pakan [nama_pakan]"
+6.2 Peringatan Dini (alerts):
+Tipe Alert: vaccination_due, low_stock_feed, low_stock_medicine, health_issue, breeding_due, task_overdue, weight_loss.
+Severity: info, warning, critical.
+Trigger Auto-Alert:
+•	vaccinations.next_due_date <= hari ini + 3: vaccination_due (warning)
+•	feed_inventory.qty < min_threshold: low_stock_feed (critical)
+•	medicine_inventory.qty < min_threshold: low_stock_medicine (critical)
+•	health_records unresolved + type 'illness': health_issue (warning)
+•	breeding_events.expected_due_date <= hari ini + 7: breeding_due (info)
+•	tasks.due_date < hari ini + status != 'completed': task_overdue (warning)
+________________________________________
+
+
+7.	MANAJEMEN AKSES & PENGGUNA
+7.1 Kontrol Berbasis Peran (RBAC):
+•	Owner: Semua akses: lihat, tambah, edit, hapus, laporan keuangan, ekspor data
+•	Manager: Semua akses operasional: ternak, kesehatan, pakan, produksi, tugas; Laporan keuangan terbatas
+•	Worker: Input data: pakan, produksi, kesehatan dasar; Lihat tugas; Tidak bisa akses keuangan
+7.2 Mode Offline:
+•	Pekerja dapat mencatat data di kandang tanpa internet
+•	Data disimpan lokal (SQLite/IndexedDB)
+•	Sinkronisasi otomatis saat koneksi tersedia
+•	Konflik resolusi: timestamp terbaru menang
+________________________________________
+
+
+TRUKTUR DATABASE LENGKAP
+Berikut adalah ringkasan 34 tabel dalam sistem. Untuk detail lengkap setiap kolom (nama, tipe data, constraint, deskripsi), lihat penjelasan di bawah.
+DAFTAR 34 TABEL:
+1.	users - Manajemen Akses
+2.	locations - Area/Kandang/Paddock
+3.	animals - Individu Ternak (Sentral)
+4.	attribute_definitions - Definisi Atribut per Spesies
+5.	animal_attributes - Nilai Atribut Ternak
+6.	genetic_records - Data Genetik
+7.	weight_records - Riwayat Penimbangan
+8.	animal_movements - Riwayat Perpindahan
+9.	herd_groups - Kelompok Ternak
+10.	herd_group_members - Anggota Kelompok
+11.	health_records - Rekam Medis
+12.	vaccinations - Vaksinasi
+13.	breeding_events - Reproduksi
+14.	feeds - Master Data Pakan
+15.	feed_inventory - Stok & Nilai Pakan
+16.	feed_purchases - Pembelian Pakan
+17.	feed_consumption - Pemakaian Pakan
+18.	feed_formulas - Formula Ransum
+19.	feed_formula_items - Komposisi Formula
+20.	nutrition_requirements - Standar Kebutuhan Nutrisi
+21.	medicines - Master Data Obat
+22.	medicine_inventory - Stok & Nilai Obat
+23.	medicine_purchases - Pembelian Obat
+24.	medicine_usages - Pemakaian Obat
+25.	animal_purchases - Pembelian Ternak
+26.	animal_sales - Penjualan Ternak
+27.	daily_production - Produksi Harian
+28.	product_sales - Penjualan Hasil Ternak
+29.	labor_expenses - Biaya Tenaga Kerja
+30.	operational_expenses - Biaya Operasional
+31.	stock_adjustments - Penyesuaian Stok
+32.	financial_transactions - General Ledger
+33.	alerts - Notifikasi
+34.	tasks - Manajemen Tugas
+
+
+DETAIL TABEL:
+Tabel 1: users
+•	id: INT, PK, AUTO_INCREMENT
+•	full_name: VARCHAR(100), NOT NULL
+•	email: VARCHAR(100), UNIQUE, NOT NULL
+•	password_hash: VARCHAR(255), NOT NULL
+•	role: ENUM('owner','manager','worker'), NOT NULL
+•	phone: VARCHAR(20), NULL
+•	is_active: BOOLEAN, DEFAULT TRUE
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+Tabel 2: locations
+•	id: INT, PK, AUTO_INCREMENT
+•	name: VARCHAR(100), NOT NULL
+•	type: ENUM('shed','paddock','quarantine','storage','office','milking_parlor'), NOT NULL
+•	capacity: INT, NULL
+•	area_sqm: DECIMAL(8,2), NULL
+•	is_active: BOOLEAN, DEFAULT TRUE
+•	notes: TEXT, NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+Tabel 3: animals
+•	id: INT, PK, AUTO_INCREMENT
+•	tag_id: VARCHAR(50), UNIQUE, NOT NULL
+•	rfid: VARCHAR(100), UNIQUE, NULL
+•	species: ENUM('cattle','sheep','goat'), NOT NULL
+•	breed: VARCHAR(50), NULL
+•	gender: ENUM('male','female'), NOT NULL
+•	birth_date: DATE, NULL
+•	birth_weight_kg: DECIMAL(6,2), NULL
+•	current_weight_kg: DECIMAL(6,2), NULL
+•	status: ENUM('healthy','sick','pregnant','lactating','dry','culled','sold','dead'), DEFAULT 'healthy'
+•	purpose: ENUM('dairy','beef','wool','dual','breeding'), NULL
+•	color: VARCHAR(50), NULL
+•	photo_url: VARCHAR(255), NULL
+•	dam_id: INT, FK -> animals.id, NULL
+•	sire_id: INT, FK -> animals.id, NULL
+•	current_location_id: INT, FK -> locations.id, NULL
+•	acquisition_type: ENUM('born','purchased','gift'), DEFAULT 'born'
+•	acquisition_cost: DECIMAL(12,2), NULL
+•	acquisition_date: DATE, NULL
+•	death_date: DATE, NULL
+•	death_reason: VARCHAR(255), NULL
+•	notes: TEXT, NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+Tabel 4: attribute_definitions
+•	id: INT, PK, AUTO_INCREMENT
+•	species: ENUM('cattle','sheep','goat'), NOT NULL
+•	purpose: ENUM('dairy','beef','wool','dual','breeding'), NULL
+•	attribute_key: VARCHAR(50), NOT NULL
+•	label: VARCHAR(100), NOT NULL
+•	data_type: ENUM('text','number','date','boolean'), NOT NULL
+•	unit: VARCHAR(20), NULL
+•	min_value: DECIMAL(10,2), NULL
+•	max_value: DECIMAL(10,2), NULL
+•	is_required: BOOLEAN, DEFAULT FALSE
+•	category: VARCHAR(50), NULL
+•	sort_order: INT, DEFAULT 0
+•	Composite UNIQUE: (species, purpose, attribute_key)
+Tabel 5: animal_attributes
+•	id: INT, PK, AUTO_INCREMENT
+•	animal_id: INT, FK -> animals.id, NOT NULL
+•	attribute_key: VARCHAR(50), NOT NULL
+•	attribute_value: VARCHAR(255), NOT NULL
+•	recorded_date: DATE, NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+•	Composite UNIQUE: (animal_id, attribute_key, recorded_date)
+Tabel 6: genetic_records
+•	id: INT, PK, AUTO_INCREMENT
+•	animal_id: INT, FK -> animals.id, UNIQUE
+•	inbreeding_coefficient: DECIMAL(5,2), NULL
+•	genetic_merit_milk: DECIMAL(6,2), NULL
+•	genetic_merit_growth: DECIMAL(6,2), NULL
+•	genetic_merit_reproduction: DECIMAL(6,2), NULL
+•	genetic_merit_wool: DECIMAL(6,2), NULL
+•	dna_sample_id: VARCHAR(50), NULL
+•	genotype_data: TEXT, NULL
+•	notes: TEXT, NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+Tabel 7: weight_records
+•	id: INT, PK, AUTO_INCREMENT
+•	animal_id: INT, FK -> animals.id, NOT NULL
+•	weigh_date: DATE, NOT NULL
+•	weight_kg: DECIMAL(6,2), NOT NULL
+•	body_condition_score: DECIMAL(3,1), NULL
+•	chest_girth_cm: DECIMAL(5,1), NULL
+•	body_length_cm: DECIMAL(5,1), NULL
+•	height_cm: DECIMAL(5,1), NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Indeks: animal_id, weigh_date
+•	Trigger: INSERT -> Update animals.current_weight_kg dengan nilai terbaru
+Tabel 8: animal_movements
+•	id: INT, PK, AUTO_INCREMENT
+•	animal_id: INT, FK -> animals.id, NOT NULL
+•	from_location_id: INT, FK -> locations.id, NULL
+•	to_location_id: INT, FK -> locations.id, NOT NULL
+•	movement_date: DATE, NOT NULL
+•	reason: VARCHAR(255), NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Indeks: animal_id, movement_date
+•	Trigger: INSERT -> Update animals.current_location_id = NEW.to_location_id
+Tabel 9: herd_groups
+•	id: INT, PK, AUTO_INCREMENT
+•	name: VARCHAR(100), NOT NULL
+•	location_id: INT, FK -> locations.id, NULL
+•	supervisor_id: INT, FK -> users.id, NULL
+•	notes: TEXT, NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+Tabel 10: herd_group_members
+•	id: INT, PK, AUTO_INCREMENT
+•	herd_group_id: INT, FK -> herd_groups.id, NOT NULL
+•	animal_id: INT, FK -> animals.id, NOT NULL
+•	joined_date: DATE, NOT NULL
+•	left_date: DATE, NULL
+•	Composite UNIQUE: (herd_group_id, animal_id, joined_date)
+•	Indeks: herd_group_id, animal_id
+Tabel 11: health_records
+•	id: INT, PK, AUTO_INCREMENT
+•	animal_id: INT, FK -> animals.id, NOT NULL
+•	record_date: DATE, NOT NULL
+•	type: ENUM('checkup','illness','injury','treatment','surgery','preventive'), NOT NULL
+•	diagnosis: TEXT, NULL
+•	treatment: TEXT, NULL
+•	vet_name: VARCHAR(100), NULL
+•	cost: DECIMAL(10,2), DEFAULT 0
+•	is_resolved: BOOLEAN, DEFAULT FALSE
+•	follow_up_date: DATE, NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+•	Indeks: animal_id, record_date, type, is_resolved
+•	Trigger INSERT (cost > 0): Insert financial_transactions (expense, cash_out, vet_service)
+•	Trigger INSERT (type = 'illness'): Update animals.status = 'sick'
+•	Trigger UPDATE (is_resolved = TRUE): Update animals.status = 'healthy' (jika tidak ada penyakit lain)
+Tabel 12: vaccinations
+•	id: INT, PK, AUTO_INCREMENT
+•	animal_id: INT, FK -> animals.id, NULL
+•	herd_group_id: INT, FK -> herd_groups.id, NULL
+•	vaccine_name: VARCHAR(100), NOT NULL
+•	batch_number: VARCHAR(50), NULL
+•	date_administered: DATE, NOT NULL
+•	next_due_date: DATE, NULL
+•	cost: DECIMAL(10,2), DEFAULT 0
+•	administered_by: VARCHAR(100), NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	CHECK: animal_id IS NOT NULL OR herd_group_id IS NOT NULL
+•	Indeks: animal_id, next_due_date
+•	Trigger INSERT (cost > 0): Insert financial_transactions (expense, cash_out, vaccination)
+•	Trigger: next_due_date <= CURDATE() + 3 -> Insert alerts (vaccination_due)
+Tabel 13: breeding_events
+•	id: INT, PK, AUTO_INCREMENT
+•	animal_id: INT, FK -> animals.id, NOT NULL
+•	sire_id: INT, FK -> animals.id, NULL
+•	event_type: ENUM('heat','insemination','pregnancy_check','birth','abortion','dry_off'), NOT NULL
+•	event_date: DATE, NOT NULL
+•	expected_due_date: DATE, NULL
+•	actual_birth_date: DATE, NULL
+•	offspring_count: INT, NULL
+•	offspring_tag_ids: TEXT, NULL
+•	cost: DECIMAL(10,2), DEFAULT 0
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Indeks: animal_id, event_date, event_type
+•	Trigger INSERT (cost > 0): Insert financial_transactions (expense, cash_out, breeding)
+•	Trigger INSERT (event_type = 'pregnancy_check' positif): Update animals.status = 'pregnant'
+•	Trigger INSERT (event_type = 'birth'): Update animals.status = 'lactating', auto-create anak
+•	Trigger INSERT (event_type = 'dry_off'): Update animals.status = 'dry'
+•	Trigger: expected_due_date <= CURDATE() + 7 -> Insert alerts (breeding_due)
+Tabel 14: feeds
+•	id: INT, PK, AUTO_INCREMENT
+•	name: VARCHAR(100), NOT NULL
+•	category: ENUM('forage','concentrate','mineral','supplement','byproduct','complete_feed','additive'), NOT NULL
+•	sub_category: VARCHAR(50), NULL
+•	form: ENUM('fresh','dry','silage','hay','pellet','mash','crumble','liquid','block'), NULL
+•	unit: VARCHAR(20), NOT NULL
+•	conversion_to_kg: DECIMAL(10,3), DEFAULT 1.000
+•	dry_matter_pct: DECIMAL(5,2), NULL
+•	crude_protein_pct: DECIMAL(5,2), NULL
+•	crude_fiber_pct: DECIMAL(5,2), NULL
+•	crude_fat_pct: DECIMAL(5,2), NULL
+•	ash_pct: DECIMAL(5,2), NULL
+•	tdn_pct: DECIMAL(5,2), NULL
+•	metabolizable_energy: DECIMAL(8,2), NULL
+•	calcium_pct: DECIMAL(5,2), NULL
+•	phosphorus_pct: DECIMAL(5,2), NULL
+•	shelf_life_days: INT, NULL
+•	storage_condition: VARCHAR(100), NULL
+•	default_min_threshold: DECIMAL(10,2), DEFAULT 0
+•	supplier: VARCHAR(100), NULL
+•	is_active: BOOLEAN, DEFAULT TRUE
+•	notes: TEXT, NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+Tabel 15: feed_inventory
+•	id: INT, PK, AUTO_INCREMENT
+•	feed_id: INT, FK -> feeds.id, UNIQUE, NOT NULL
+•	quantity_on_hand: DECIMAL(10,2), NOT NULL DEFAULT 0
+•	avg_cost_per_unit: DECIMAL(10,3), NOT NULL DEFAULT 0
+•	total_cost: DECIMAL(12,2), NOT NULL DEFAULT 0
+•	min_threshold: DECIMAL(10,2), DEFAULT 0
+•	last_purchase_date: DATE, NULL
+•	last_updated: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+•	CHECK: quantity_on_hand >= 0
+Tabel 16: feed_purchases
+•	id: INT, PK, AUTO_INCREMENT
+•	purchase_date: DATE, NOT NULL
+•	feed_id: INT, FK -> feeds.id, NOT NULL
+•	supplier: VARCHAR(100), NULL
+•	quantity: DECIMAL(10,2), NOT NULL, CHECK > 0
+•	unit_price: DECIMAL(10,2), NOT NULL, CHECK > 0
+•	total_price: DECIMAL(12,2), NOT NULL
+•	invoice_number: VARCHAR(50), NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger INSERT: 1) Update feed_inventory (qty +, recalculate avg cost) 2) Insert financial_transactions (expense, cash_out, feed_purchase)
+Tabel 17: feed_consumption
+•	id: INT, PK, AUTO_INCREMENT
+•	feed_id: INT, FK -> feeds.id, NOT NULL
+•	consumption_date: DATE, NOT NULL
+•	herd_group_id: INT, FK -> herd_groups.id, NULL
+•	animal_id: INT, FK -> animals.id, NULL
+•	quantity: DECIMAL(10,2), NOT NULL, CHECK > 0
+•	cost_per_unit_at_time: DECIMAL(10,3), NOT NULL
+•	total_cost: DECIMAL(10,2), NOT NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	CHECK: herd_group_id IS NOT NULL OR animal_id IS NOT NULL
+•	Indeks: feed_id, consumption_date, herd_group_id, animal_id
+•	Trigger INSERT: 1) Ambil avg_cost dari feed_inventory 2) Update feed_inventory (qty -, total_cost -) 3) Insert financial_transactions (expense, non_cash, feed_usage)
+Tabel 18: feed_formulas
+•	id: INT, PK, AUTO_INCREMENT
+•	name: VARCHAR(100), NOT NULL
+•	target_species: ENUM('cattle','sheep','goat'), NOT NULL
+•	target_purpose: ENUM('dairy','beef','wool','dual'), NULL
+•	target_phase: VARCHAR(50), NOT NULL
+•	total_quantity_kg: DECIMAL(10,2), NOT NULL
+•	calculated_protein_pct: DECIMAL(5,2), NULL
+•	calculated_tdn_pct: DECIMAL(5,2), NULL
+•	calculated_cost_per_kg: DECIMAL(10,2), NULL
+•	is_active: BOOLEAN, DEFAULT TRUE
+•	notes: TEXT, NULL
+•	created_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+Tabel 19: feed_formula_items
+•	id: INT, PK, AUTO_INCREMENT
+•	formula_id: INT, FK -> feed_formulas.id, NOT NULL
+•	feed_id: INT, FK -> feeds.id, NOT NULL
+•	quantity_kg: DECIMAL(10,2), NOT NULL
+•	percentage: DECIMAL(5,2), NOT NULL
+•	cost_at_formulation: DECIMAL(10,2), NULL
+•	Indeks: formula_id, feed_id
+Tabel 20: nutrition_requirements
+•	id: INT, PK, AUTO_INCREMENT
+•	species: ENUM('cattle','sheep','goat'), NOT NULL
+•	purpose: ENUM('dairy','beef','wool','dual'), NULL
+•	physiological_phase: VARCHAR(50), NOT NULL
+•	weight_range_kg: VARCHAR(50), NULL
+•	daily_dm_intake_kg: DECIMAL(6,2), NULL
+•	dm_pct_body_weight: DECIMAL(4,1), NULL
+•	cp_requirement_pct: DECIMAL(5,2), NULL
+•	tdn_requirement_pct: DECIMAL(5,2), NULL
+•	me_requirement_mcal: DECIMAL(8,2), NULL
+•	ca_requirement_pct: DECIMAL(5,2), NULL
+•	p_requirement_pct: DECIMAL(5,2), NULL
+•	reference: VARCHAR(255), NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+Tabel 21: medicines
+•	id: INT, PK, AUTO_INCREMENT
+•	name: VARCHAR(100), NOT NULL
+•	type: ENUM('antibiotic','vitamin','vaccine','antiparasitic','hormone','anti_inflammatory','other'), NOT NULL
+•	unit: VARCHAR(20), NOT NULL
+•	default_min_threshold: DECIMAL(10,2), DEFAULT 0
+•	notes: TEXT, NULL
+•	is_active: BOOLEAN, DEFAULT TRUE
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+Tabel 22: medicine_inventory
+•	id: INT, PK, AUTO_INCREMENT
+•	medicine_id: INT, FK -> medicines.id, UNIQUE, NOT NULL
+•	quantity_on_hand: DECIMAL(10,2), NOT NULL DEFAULT 0
+•	avg_cost_per_unit: DECIMAL(10,3), NOT NULL DEFAULT 0
+•	total_cost: DECIMAL(12,2), NOT NULL DEFAULT 0
+•	min_threshold: DECIMAL(10,2), DEFAULT 0
+•	last_purchase_date: DATE, NULL
+•	last_updated: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+Tabel 23: medicine_purchases
+•	id: INT, PK, AUTO_INCREMENT
+•	purchase_date: DATE, NOT NULL
+•	medicine_id: INT, FK -> medicines.id, NOT NULL
+•	supplier: VARCHAR(100), NULL
+•	quantity: DECIMAL(10,2), NOT NULL, CHECK > 0
+•	unit_price: DECIMAL(10,2), NOT NULL, CHECK > 0
+•	total_price: DECIMAL(12,2), NOT NULL
+•	invoice_number: VARCHAR(50), NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger INSERT: 1) Update medicine_inventory (qty +, recalculate avg cost) 2) Insert financial_transactions (expense, cash_out, medicine_purchase)
+Tabel 24: medicine_usages
+•	id: INT, PK, AUTO_INCREMENT
+•	medicine_id: INT, FK -> medicines.id, NOT NULL
+•	usage_date: DATE, NOT NULL
+•	health_record_id: INT, FK -> health_records.id, NULL
+•	animal_id: INT, FK -> animals.id, NULL
+•	quantity: DECIMAL(10,2), NOT NULL, CHECK > 0
+•	cost_per_unit_at_time: DECIMAL(10,3), NOT NULL
+•	total_cost: DECIMAL(10,2), NOT NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger INSERT: 1) Ambil avg_cost dari medicine_inventory 2) Update medicine_inventory (qty -, total_cost -) 3) Insert financial_transactions (expense, non_cash, medicine_usage)
+Tabel 25: animal_purchases
+•	id: INT, PK, AUTO_INCREMENT
+•	purchase_date: DATE, NOT NULL
+•	animal_id: INT, FK -> animals.id, UNIQUE, NOT NULL
+•	supplier: VARCHAR(100), NULL
+•	purchase_price: DECIMAL(12,2), NOT NULL
+•	additional_costs: DECIMAL(10,2), DEFAULT 0
+•	total_cost: DECIMAL(12,2), NOT NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger INSERT: 1) Update animals (acquisition_cost, acquisition_type='purchased', acquisition_date) 2) Insert financial_transactions (expense, cash_out, animal_purchase)
+Tabel 26: animal_sales
+•	id: INT, PK, AUTO_INCREMENT
+•	sale_date: DATE, NOT NULL
+•	animal_id: INT, FK -> animals.id, NOT NULL
+•	buyer: VARCHAR(100), NULL
+•	sale_price: DECIMAL(12,2), NOT NULL, CHECK > 0
+•	weight_at_sale_kg: DECIMAL(6,2), NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger INSERT: 1) Update animals.status = 'sold' 2) Insert financial_transactions (income, cash_in, animal_sale)
+Tabel 27: daily_production
+•	id: INT, PK, AUTO_INCREMENT
+•	production_date: DATE, NOT NULL
+•	animal_id: INT, FK -> animals.id, NULL
+•	herd_group_id: INT, FK -> herd_groups.id, NULL
+•	product_type: ENUM('milk','wool'), NOT NULL
+•	quantity: DECIMAL(10,2), NOT NULL
+•	unit: VARCHAR(20), NOT NULL
+•	shift: ENUM('morning','evening','all_day'), DEFAULT 'all_day'
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	CHECK: animal_id IS NOT NULL OR herd_group_id IS NOT NULL
+•	Indeks: production_date, product_type, animal_id
+Tabel 28: product_sales
+•	id: INT, PK, AUTO_INCREMENT
+•	sale_date: DATE, NOT NULL
+•	product_type: ENUM('milk','wool','meat','manure','other'), NOT NULL
+•	quantity: DECIMAL(10,2), NOT NULL, CHECK > 0
+•	unit: VARCHAR(20), NOT NULL
+•	unit_price: DECIMAL(10,2), NOT NULL
+•	total_revenue: DECIMAL(12,2), NOT NULL
+•	buyer: VARCHAR(100), NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger INSERT: Insert financial_transactions (income, cash_in, product_sale)
+Tabel 29: labor_expenses
+•	id: INT, PK, AUTO_INCREMENT
+•	payment_date: DATE, NOT NULL
+•	user_id: INT, FK -> users.id, NULL
+•	description: VARCHAR(255), NOT NULL
+•	category: ENUM('salary','wage','overtime','bonus','other'), NOT NULL
+•	amount: DECIMAL(12,2), NOT NULL, CHECK > 0
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger INSERT: Insert financial_transactions (expense, cash_out, labor)
+Tabel 30: operational_expenses
+•	id: INT, PK, AUTO_INCREMENT
+•	expense_date: DATE, NOT NULL
+•	category: ENUM('electricity','water','fuel','repair','maintenance','transport','insurance','tax','other'), NOT NULL
+•	description: TEXT, NOT NULL
+•	amount: DECIMAL(12,2), NOT NULL, CHECK > 0
+•	vendor: VARCHAR(100), NULL
+•	invoice_number: VARCHAR(50), NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger INSERT: Insert financial_transactions (expense, cash_out, opex_[category])
+Tabel 31: stock_adjustments
+•	id: INT, PK, AUTO_INCREMENT
+•	adjustment_date: DATE, NOT NULL
+•	item_type: ENUM('feed','medicine'), NOT NULL
+•	item_id: INT, NOT NULL
+•	quantity_change: DECIMAL(10,2), NOT NULL
+•	reason: VARCHAR(255), NOT NULL
+•	cost_per_unit_at_time: DECIMAL(10,3), NOT NULL
+•	total_cost_change: DECIMAL(12,2), NOT NULL
+•	notes: TEXT, NULL
+•	recorded_by: INT, FK -> users.id, NOT NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Trigger (quantity_change < 0): 1) Update inventory (qty -, total_cost -) 2) Insert financial_transactions (expense, non_cash, stock_loss)
+Tabel 32: financial_transactions
+•	id: INT, PK, AUTO_INCREMENT
+•	transaction_date: DATETIME, NOT NULL
+•	type: ENUM('income','expense'), NOT NULL
+•	category: VARCHAR(50), NOT NULL
+•	cash_flow: ENUM('cash_in','cash_out','non_cash'), NOT NULL
+•	amount: DECIMAL(12,2), NOT NULL
+•	description: TEXT, NULL
+•	source_table: VARCHAR(50), NOT NULL
+•	source_id: INT, NOT NULL
+•	animal_id: INT, FK -> animals.id, NULL
+•	recorded_by: INT, FK -> users.id, NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Composite UNIQUE: (source_table, source_id)
+•	Indeks: transaction_date, type, category, cash_flow, animal_id
+Tabel 33: alerts
+•	id: INT, PK, AUTO_INCREMENT
+•	type: ENUM('vaccination_due','low_stock_feed','low_stock_medicine','health_issue','breeding_due','task_overdue','weight_loss'), NOT NULL
+•	severity: ENUM('info','warning','critical'), NOT NULL
+•	title: VARCHAR(255), NOT NULL
+•	message: TEXT, NOT NULL
+•	source_table: VARCHAR(50), NULL
+•	source_id: INT, NULL
+•	animal_id: INT, FK -> animals.id, NULL
+•	is_read: BOOLEAN, DEFAULT FALSE
+•	is_resolved: BOOLEAN, DEFAULT FALSE
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	Indeks: type, is_read, created_at
+Tabel 34: tasks
+•	id: INT, PK, AUTO_INCREMENT
+•	title: VARCHAR(255), NOT NULL
+•	description: TEXT, NULL
+•	assigned_to: INT, FK -> users.id, NOT NULL
+•	created_by: INT, FK -> users.id, NOT NULL
+•	due_date: DATE, NULL
+•	priority: ENUM('low','medium','high','urgent'), DEFAULT 'medium'
+•	status: ENUM('pending','in_progress','completed','cancelled'), DEFAULT 'pending'
+•	related_animal_id: INT, FK -> animals.id, NULL
+•	related_herd_group_id: INT, FK -> herd_groups.id, NULL
+•	related_source_table: VARCHAR(50), NULL
+•	related_source_id: INT, NULL
+•	completed_at: TIMESTAMP, NULL
+•	created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+•	updated_at: TIMESTAMP, ON UPDATE CURRENT_TIMESTAMP
+•	Indeks: assigned_to, status, due_date
+________________________________________
+
+
+
+RELASI UTAMA ANTAR TABEL
+•	animals.dam_id -> animals.id (self-reference)
+•	animals.sire_id -> animals.id (self-reference)
+•	animals.current_location_id -> locations.id
+•	animal_movements.animal_id -> animals.id
+•	animal_movements.from_location_id -> locations.id
+•	animal_movements.to_location_id -> locations.id
+•	herd_group_members.herd_group_id -> herd_groups.id
+•	herd_group_members.animal_id -> animals.id
+•	herd_groups.location_id -> locations.id
+•	health_records.animal_id -> animals.id
+•	vaccinations.animal_id -> animals.id
+•	vaccinations.herd_group_id -> herd_groups.id
+•	breeding_events.animal_id -> animals.id
+•	breeding_events.sire_id -> animals.id
+•	animal_attributes.animal_id -> animals.id
+•	genetic_records.animal_id -> animals.id
+•	weight_records.animal_id -> animals.id
+•	feed_inventory.feed_id -> feeds.id
+•	feed_purchases.feed_id -> feeds.id
+•	feed_consumption.feed_id -> feeds.id
+•	feed_consumption.animal_id -> animals.id
+•	feed_consumption.herd_group_id -> herd_groups.id
+•	feed_formula_items.formula_id -> feed_formulas.id
+•	feed_formula_items.feed_id -> feeds.id
+•	medicine_inventory.medicine_id -> medicines.id
+•	medicine_purchases.medicine_id -> medicines.id
+•	medicine_usages.medicine_id -> medicines.id
+•	medicine_usages.animal_id -> animals.id
+•	medicine_usages.health_record_id -> health_records.id
+•	animal_purchases.animal_id -> animals.id
+•	animal_sales.animal_id -> animals.id
+•	daily_production.animal_id -> animals.id
+•	daily_production.herd_group_id -> herd_groups.id
+•	financial_transactions.animal_id -> animals.id
+•	alerts.animal_id -> animals.id
+•	tasks.related_animal_id -> animals.id
+•	tasks.related_herd_group_id -> herd_groups.id
+•	Semua tabel dengan recorded_by -> users.id
+•	Semua tabel dengan created_by -> users.id
+•	Semua tabel dengan assigned_to -> users.id
+•	financial_transactions.source_table + source_id -> polymorphic FK ke tabel sumber
+________________________________________
+
+
+ATURAN BISNIS KUNCI
+1.	Moving Average Cost: new_avg = ((qty_lama x avg_lama) + (qty_beli x harga_beli)) / (qty_lama + qty_beli)
+2.	Lama Kebuntingan: Sapi = 280 hari, Domba = 147 hari, Kambing = 150 hari
+3.	Auto-status Sick: Saat health_record type 'illness' ditambahkan
+4.	Auto-status Healthy: Saat semua health_record unresolved diselesaikan
+5.	Auto-status Pregnant: Saat pregnancy_check positif
+6.	Auto-status Lactating: Saat birth
+7.	Auto-status Dry: Saat dry_off
+8.	Auto-status Sold: Saat animal_sales
+9.	Stok Tidak Boleh Negatif: Constraint CHECK pada feed_inventory.quantity_on_hand >= 0
+10.	Alert Stok Menipis: quantity_on_hand < min_threshold
+11.	Alert Vaksinasi: 3 hari sebelum next_due_date
+12.	Alert Kelahiran: 7 hari sebelum expected_due_date
+13.	Composite UNIQUE (source_table, source_id) di financial_transactions mencegah duplikasi
+________________________________________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+API ENDPOINTS (Gambaran Umum)
+Autentikasi:
+•	POST /api/auth/login
+•	POST /api/auth/logout
+•	GET /api/auth/me
+Dashboard:
+•	GET /api/dashboard/summary
+•	GET /api/dashboard/population
+•	GET /api/dashboard/production
+•	GET /api/dashboard/finance
+•	GET /api/dashboard/tasks
+Ternak:
+•	GET /api/animals (query: species, status, location_id, herd_group_id)
+•	GET /api/animals/{id}
+•	POST /api/animals
+•	PUT /api/animals/{id}
+•	DELETE /api/animals/{id}
+•	GET /api/animals/{id}/attributes
+•	POST /api/animals/{id}/attributes
+•	GET /api/animals/{id}/weight-history
+•	POST /api/animals/{id}/weight
+•	GET /api/animals/{id}/movements
+•	POST /api/animals/{id}/movements
+•	GET /api/animals/{id}/pedigree
+Kesehatan:
+•	GET /api/animals/{id}/health-records
+•	POST /api/health-records
+•	PUT /api/health-records/{id}
+•	GET /api/animals/{id}/vaccinations
+•	POST /api/vaccinations
+Reproduksi:
+•	GET /api/animals/{id}/breeding-events
+•	POST /api/breeding-events
+Pakan:
+•	GET /api/feeds
+•	POST /api/feeds
+•	GET /api/feed-inventory
+•	GET /api/feed-purchases
+•	POST /api/feed-purchases
+•	GET /api/feed-consumption
+•	POST /api/feed-consumption
+•	GET /api/feed-formulas
+•	POST /api/feed-formulas
+Obat:
+•	GET /api/medicines
+•	POST /api/medicines
+•	GET /api/medicine-inventory
+•	GET /api/medicine-purchases
+•	POST /api/medicine-purchases
+•	POST /api/medicine-usages
+Produksi:
+•	GET /api/daily-production
+•	POST /api/daily-production
+Penjualan & Pembelian:
+•	POST /api/animal-sales
+•	POST /api/animal-purchases
+•	POST /api/product-sales
+Keuangan:
+•	GET /api/finance/transactions (query: date_from, date_to, category, type, cash_flow)
+•	GET /api/finance/summary (query: period)
+•	GET /api/finance/profit-loss (query: date_from, date_to)
+•	GET /api/finance/cash-flow (query: date_from, date_to)
+•	POST /api/labor-expenses
+•	POST /api/operational-expenses
+•	POST /api/stock-adjustments
+Tugas & Notifikasi:
+•	GET /api/tasks (query: assigned_to, status, due_date)
+•	POST /api/tasks
+•	PUT /api/tasks/{id}
+•	GET /api/alerts (query: is_read, type)
+•	PUT /api/alerts/{id}/read
+•	PUT /api/alerts/{id}/resolve
+________________________________________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PERSYARATAN NON-FUNGSIONAL
+•	Keamanan: Autentikasi JWT, password bcrypt, RBAC, semua endpoint dilindungi
+•	Performa: Dashboard memuat data agregat < 2 detik, caching Redis, query optimasi indeks
+•	Skalabilitas: Dapat menangani hingga 100.000 data ternak
+•	Offline Support: Aplikasi mobile menyimpan data lokal (SQLite) dan sinkronisasi saat online
+•	Ketersediaan: Sistem web berbasis cloud dengan uptime 99.5%
+•	Backup: Backup database otomatis harian
+•	Logging: Semua transaksi keuangan memiliki audit trail
+•	Lokalisasi: Bahasa Indonesia (default), Inggris opsional
+________________________________________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+VALIDASI KELENGKAPAN
+Dashboard 7 Komponen: LENGKAP
+6 Core Features: LENGKAP
+Spesifik Komoditas (Sapi Potong, Sapi Perah, Domba, Kambing): LENGKAP
+Integrasi Keuangan (14 sumber transaksi): LENGKAP
+Stok & Nilai Stok (Moving Average): LENGKAP
+Formulasi Ransum: LENGKAP
+Standar Nutrisi: LENGKAP
+Manajemen Tugas: LENGKAP
+Produksi Harian (Susu, Wol): LENGKAP
+Notifikasi & Alert: LENGKAP
+Manajemen Akses (RBAC): LENGKAP
+Mode Offline: LENGKAP
+Total Tabel: 34 tabel
+________________________________________
+
