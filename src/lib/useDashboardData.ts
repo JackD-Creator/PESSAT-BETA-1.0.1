@@ -22,16 +22,12 @@ export function useDashboardData(today = '2026-05-14') {
         const todayObj = new Date(today);
         const sevenDaysAgo = new Date(todayObj.getTime() - 7 * 86400000).toISOString().split('T')[0];
         const monthStart = today.slice(0, 7) + '-01';
-        const future30 = new Date(todayObj.getTime() + 30 * 86400000).toISOString().split('T')[0];
-        const future7 = new Date(todayObj.getTime() + 7 * 86400000).toISOString().split('T')[0];
-
-        const [animalsRes, alertsRes, tasksRes, feedRes, prodRes, txRes, finRes] = await Promise.all([
+        const [animalsRes, alertsRes, tasksRes, feedRes, prodRes, finRes] = await Promise.all([
           supabase.from('animals').select('species, status'),
           supabase.from('alerts').select('*').eq('is_resolved', false).order('created_at', { ascending: false }).limit(5),
           supabase.from('tasks').select('*').in('status', ['pending', 'in_progress']).order('created_at', { ascending: false }).limit(5),
           supabase.from('feed_inventory').select('*, feeds(name, category)').order('feeds(name)'),
           supabase.from('daily_production').select('quantity, production_date').gte('production_date', sevenDaysAgo).order('production_date'),
-          supabase.from('financial_transactions').select('*, animals(tag_id)').order('transaction_date', { ascending: false }).limit(5),
           supabase.from('financial_transactions').select('type, amount').gte('transaction_date', monthStart),
         ]);
 

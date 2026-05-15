@@ -148,13 +148,13 @@ export function HerdGroupsPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('herd.form.title')} size="md">
-        <HerdGroupForm onClose={() => setShowModal(false)} />
+        <HerdGroupForm locations={locations} onClose={() => setShowModal(false)} />
       </Modal>
     </div>
   );
 }
 
-function HerdGroupForm({ onClose }: { onClose: () => void }) {
+function HerdGroupForm({ locations, onClose }: { locations: any[]; onClose: () => void }) {
   const { t } = useTranslation();
   return (
     <form onSubmit={(e) => { e.preventDefault(); alert('Kelompok tersimpan (demo)'); onClose(); }} className="space-y-4">

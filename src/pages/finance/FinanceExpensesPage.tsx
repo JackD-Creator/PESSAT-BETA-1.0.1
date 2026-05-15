@@ -37,12 +37,12 @@ export function FinanceExpensesPage() {
   const expenses = txs.filter((tr: any) => tr.type === 'expense');
   const filtered = expenses.filter((tr: any) => categoryFilter === 'all' || tr.category === categoryFilter);
 
-  const cashExpenses = expenses.filter(tr => tr.cash_flow === 'cash_out').reduce((s, tr) => s + tr.amount, 0);
-  const nonCashExpenses = expenses.filter(tr => tr.cash_flow === 'non_cash').reduce((s, tr) => s + tr.amount, 0);
+  const cashExpenses = expenses.filter((tr: any) => tr.cash_flow === 'cash_out').reduce((s: number, tr: any) => s + Number(tr.amount), 0);
+  const nonCashExpenses = expenses.filter((tr: any) => tr.cash_flow === 'non_cash').reduce((s: number, tr: any) => s + Number(tr.amount), 0);
 
   const byCategory = Object.entries(
-    expenses.reduce((acc, tr) => {
-      acc[tr.category] = (acc[tr.category] || 0) + tr.amount;
+    expenses.reduce((acc: Record<string, number>, tr: any) => {
+      acc[tr.category] = (acc[tr.category] || 0) + Number(tr.amount);
       return acc;
     }, {} as Record<string, number>)
   ).sort((a, b) => b[1] - a[1]);

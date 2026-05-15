@@ -108,7 +108,7 @@ export function TasksPage() {
         <div className="divide-y divide-neutral-50">
           {filtered.map(task => {
             const isOverdue = task.due_date && task.due_date < today && task.status !== 'completed' && task.status !== 'cancelled';
-            const cfg = statusConfig[task.status];
+            const cfg = statusConfig[task.status as keyof typeof statusConfig];
             const Icon = cfg.icon;
             return (
               <div key={task.id} className={`p-4 flex items-start gap-4 hover:bg-neutral-50/50 transition-colors ${isOverdue ? 'bg-error-50/30' : ''}`}>

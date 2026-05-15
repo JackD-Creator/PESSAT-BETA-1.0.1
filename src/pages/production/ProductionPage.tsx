@@ -160,7 +160,7 @@ export function ProductionPage() {
                   </td>
                   <td className="font-semibold">{p.quantity} {p.unit}</td>
                   <td className="capitalize text-neutral-500">
-                    {{ morning: t('production.shift.morning'), evening: t('production.shift.evening'), all_day: t('production.shift.allday') }[p.shift]}
+                    {{ morning: t('production.shift.morning'), evening: t('production.shift.evening'), all_day: t('production.shift.allday') }[p.shift as string]}
                   </td>
                   <td>{p.recorded_by || '-'}</td>
                 </tr>

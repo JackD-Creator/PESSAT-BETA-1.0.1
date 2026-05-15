@@ -146,13 +146,13 @@ export function AnimalTransactionsPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={txType === 'sale' ? t('transaction.form.sale.title') : t('transaction.form.purchase.title')} size="md">
-        <AnimalTransactionForm type={txType} onClose={() => setShowModal(false)} />
+        <AnimalTransactionForm animals={animals} type={txType} onClose={() => setShowModal(false)} />
       </Modal>
     </div>
   );
 }
 
-function AnimalTransactionForm({ type, onClose }: { type: 'sale' | 'purchase'; onClose: () => void }) {
+function AnimalTransactionForm({ animals, type, onClose }: { animals: any[]; type: 'sale' | 'purchase'; onClose: () => void }) {
   const { t } = useTranslation();
   return (
     <form onSubmit={(e) => { e.preventDefault(); alert('Transaksi tersimpan (demo)'); onClose(); }} className="space-y-4">

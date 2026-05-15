@@ -70,7 +70,7 @@ export function LivestockDetailPage() {
   }
 
   function getAge() {
-    const birth = new Date(animal!.birth_date);
+    const birth = new Date(animal!.birth_date!);
     const now = new Date('2026-05-14');
     const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
     if (months < 12) return `${months} ${t('livestock.detail.age.month')}`;
@@ -156,7 +156,7 @@ export function LivestockDetailPage() {
               <InfoRow label={t('livestock.table.species')} value={{ cattle: t('species.cattle'), sheep: t('species.sheep'), goat: t('species.goat') }[animal.species]} />
               <InfoRow label={t('livestock.table.breed')} value={animal.breed} />
               <InfoRow label={t('livestock.table.gender')} value={animal.gender === 'male' ? t('gender.male') : t('gender.female')} />
-              <InfoRow label={t('livestock.form.dob')} value={new Date(animal.birth_date).toLocaleDateString('id-ID')} />
+              <InfoRow label={t('livestock.form.dob')} value={animal.birth_date ? new Date(animal.birth_date).toLocaleDateString('id-ID') : '-'} />
               <InfoRow label={t('livestock.table.age')} value={getAge()} />
             </div>
             <div>
@@ -374,7 +374,7 @@ export function LivestockDetailPage() {
                 <InfoRow label={t('livestock.table.breed')} value={animal.breed} />
                 <InfoRow label={t('livestock.table.gender')} value={animal.gender === 'male' ? t('gender.male') : t('gender.female')} />
                 <InfoRow label={t('livestock.form.color')} value={animal.color} />
-                <InfoRow label={t('livestock.form.dob')} value={new Date(animal.birth_date).toLocaleDateString('id-ID')} />
+                <InfoRow label={t('livestock.form.dob')} value={animal.birth_date ? new Date(animal.birth_date).toLocaleDateString('id-ID') : '-'} />
                 <InfoRow label={t('livestock.form.birth.weight')} value={`${animal.birth_weight_kg} kg`} />
                 <InfoRow label={t('livestock.form.current.weight')} value={`${animal.current_weight_kg} kg`} />
               </div>
