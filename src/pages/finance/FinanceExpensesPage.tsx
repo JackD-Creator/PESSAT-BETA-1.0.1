@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Plus, DollarSign } from 'lucide-react';
-import { getFinancialTransactions } from '../../lib/db';
-import { createLaborExpense, createOperationalExpense } from '../../lib/api/finance';
+import { getTransactions, createLaborExpense, createOperationalExpense } from '../../lib/api/finance';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
-function formatCurrency(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
+function formatCurrency(n: number, locale = 'id-ID') {
+  return `Rp ${n.toLocaleString(locale)}`;
 }
 
 export function FinanceExpensesPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -33,7 +32,7 @@ export function FinanceExpensesPage() {
   };
 
   const [txs, setTxs] = useState<any[]>([]);
-  const loadData = () => { getFinancialTransactions(user?.id).then(setTxs); };
+  const loadData = () => { if (user?.id) getTransactions(user.id).then(setTxs); };
   useEffect(() => { loadData(); }, [user?.id]);
 
   const expenses = txs.filter((tr: any) => tr.type === 'expense');
@@ -128,7 +127,7 @@ export function FinanceExpensesPage() {
               <tbody>
                 {filtered.map(tr => (
                   <tr key={tr.id}>
-                    <td>{new Date(tr.transaction_date).toLocaleDateString('id-ID')}</td>
+                    <td>{new Date(tr.transaction_date).toLocaleDateString(locale)}</td>
                     <td>
                       <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full">
                         {categoryLabels[tr.category] || tr.category}

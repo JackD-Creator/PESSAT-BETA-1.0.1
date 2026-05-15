@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 export function VaccinationPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [vaccinations, setVaccinations] = useState<any[]>([]);
@@ -103,16 +103,16 @@ export function VaccinationPage() {
                     </td>
                     <td>{v.vaccine_name}</td>
                     <td className="text-neutral-500">{v.batch_number || '-'}</td>
-                    <td>{new Date(v.date_administered).toLocaleDateString('id-ID')}</td>
+                    <td>{new Date(v.date_administered).toLocaleDateString(locale)}</td>
                     <td>
                       {v.next_due_date ? (
                         <span className={`font-medium ${isOverdue ? 'text-error-600' : isDueSoon ? 'text-warning-600' : 'text-neutral-700'}`}>
-                          {new Date(v.next_due_date).toLocaleDateString('id-ID')}
+                          {new Date(v.next_due_date).toLocaleDateString(locale)}
                           {isDueSoon && <span className="ml-1 text-xs">({daysUntilDue}h)</span>}
                         </span>
                       ) : '-'}
                     </td>
-                    <td>Rp {v.cost.toLocaleString('id-ID')}</td>
+                    <td>Rp {v.cost.toLocaleString(locale)}</td>
                     <td>{v.administered_by || '-'}</td>
                     <td>
                       {isOverdue ? (

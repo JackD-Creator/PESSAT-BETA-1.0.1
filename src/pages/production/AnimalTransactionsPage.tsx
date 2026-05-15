@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-import { getAnimals } from '../../lib/db';
+import { getAnimals } from '../../lib/api';
 import { getAnimalSales, getAnimalPurchases, createAnimalSale, createAnimalPurchase } from '../../lib/api/production';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { SpeciesBadge } from '../../components/ui/Badge';
 
-function formatCurrency(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
+function formatCurrency(n: number, locale = 'id-ID') {
+  return `Rp ${n.toLocaleString(locale)}`;
 }
 
 export function AnimalTransactionsPage() {
   const { hasRole, user } = useAuth();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [txType, setTxType] = useState<'sale' | 'purchase'>('sale');
   const [filter, setFilter] = useState('all');
@@ -139,7 +139,7 @@ export function AnimalTransactionsPage() {
             <tbody>
               {filtered.map(tx => (
                 <tr key={tx.id}>
-                  <td>{new Date(tx.transaction_date).toLocaleDateString('id-ID')}</td>
+                  <td>{new Date(tx.transaction_date).toLocaleDateString(locale)}</td>
                   <td>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 w-fit ${tx.type === 'sale' ? 'bg-primary-100 text-primary-700' : 'bg-error-100 text-error-700'}`}>
                       {tx.type === 'sale' ? <ArrowUpRight size={11} /> : <ArrowDownLeft size={11} />}

@@ -16,7 +16,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export function AlertsPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { user } = useAuth();
   const [filter, setFilter] = useState('all');
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -132,7 +132,7 @@ export function AlertsPage() {
                 </div>
                 <p className="text-sm text-neutral-500">{alert.message}</p>
                 <div className="flex items-center gap-3 mt-1 text-xs text-neutral-400">
-                  <span>{new Date(alert.created_at).toLocaleString('id-ID')}</span>
+                  <span>{new Date(alert.created_at).toLocaleString(locale)}</span>
                   {(alert.animals?.tag_id) && (
                     <span className="bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-medium">{alert.animals.tag_id}</span>
                   )}

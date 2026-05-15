@@ -103,10 +103,10 @@ export async function createOperationalExpense(userId: string, expense: Partial<
 
 // ─── Stock Adjustments ───
 export async function getStockAdjustments(userId: string) {
-  let q = supabaseAdmin.from('stock_adjustments').select('*').eq('user_id', userId);
+  let q = supabaseAdmin.from('stock_adjustments').select('*, feeds!left(name), medicines!left(name)').eq('user_id', userId);
   const { data, error } = await q.order('adjustment_date', { ascending: false }).limit(50);
   if (error) throw error;
-  return data as StockAdjustment[];
+  return data as (StockAdjustment & { feeds?: { name: string } | null; medicines?: { name: string } | null })[];
 }
 
 export async function createStockAdjustment(userId: string, adjustment: Partial<StockAdjustment>) {

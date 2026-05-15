@@ -21,7 +21,7 @@ const eventColors: Record<string, string> = {
 };
 
 export function BreedingPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [breedingEvents, setBreedingEvents] = useState<any[]>([]);
@@ -87,7 +87,7 @@ export function BreedingPage() {
                     <div className="mt-2 flex items-center gap-1">
                       <Calendar size={12} className="text-earth-500" />
                       <span className="text-xs text-earth-600">
-                        {t('breeding.due')} {new Date(lastInsem.expected_due_date).toLocaleDateString('id-ID')}
+                        {t('breeding.due')} {new Date(lastInsem.expected_due_date).toLocaleDateString(locale)}
                         {daysLeft !== null && <span className="ml-1 font-medium">({daysLeft} {t('breeding.days')})</span>}
                       </span>
                     </div>
@@ -129,14 +129,14 @@ export function BreedingPage() {
                       {t(eventLabels[e.event_type])}
                     </span>
                   </td>
-                  <td>{new Date(e.event_date).toLocaleDateString('id-ID')}</td>
+                  <td>{new Date(e.event_date).toLocaleDateString(locale)}</td>
                   <td>
                     {e.expected_due_date ? (
-                      <span className="text-earth-600">{new Date(e.expected_due_date).toLocaleDateString('id-ID')}</span>
+                      <span className="text-earth-600">{new Date(e.expected_due_date).toLocaleDateString(locale)}</span>
                     ) : '-'}
                   </td>
                   <td>{e.offspring_count || '-'}</td>
-                  <td>Rp {e.cost.toLocaleString('id-ID')}</td>
+                  <td>Rp {e.cost.toLocaleString(locale)}</td>
                   <td className="max-w-[200px] truncate text-neutral-500">{e.notes || '-'}</td>
                 </tr>
               ))}

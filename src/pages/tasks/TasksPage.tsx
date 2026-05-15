@@ -15,7 +15,7 @@ const statusConfig = {
 };
 
 export function TasksPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -135,7 +135,7 @@ export function TasksPage() {
                     <span>{t('task.assigned.to')} <span className="font-medium text-neutral-600">{task.assigned?.full_name || '-'}</span></span>
                     {task.due_date && (
                       <span className={isOverdue ? 'text-error-500 font-medium' : ''}>
-                        {t('task.due.date')} {new Date(task.due_date).toLocaleDateString('id-ID')}
+                        {t('task.due.date')} {new Date(task.due_date).toLocaleDateString(locale)}
                       </span>
                     )}
                     {(task.animals?.tag_id) && (

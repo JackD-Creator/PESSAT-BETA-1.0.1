@@ -5,6 +5,7 @@ interface LanguageContextValue {
   lang: Lang;
   setLang: (lang: Lang) => void;
   t: (key: string) => string;
+  locale: string;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -24,8 +25,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return translations[lang]?.[key] || key;
   }, [lang]);
 
+  const locale = lang === 'id' ? 'id-ID' : 'en-US';
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, t, locale }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -22,7 +22,7 @@ export function LivestockListPage() {
       .then(data => setAnimals(data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   const filtered = animals.filter(a => {
     const matchSearch = a.tag_id.toLowerCase().includes(search.toLowerCase()) ||

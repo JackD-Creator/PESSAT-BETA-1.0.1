@@ -43,13 +43,13 @@ export async function createProductSale(userId: string, sale: Partial<ProductSal
   if (error) throw error;
 
   // Record financial transaction
-  const saleAmount = (Number(sale.quantity) || 0) * (Number(sale.unit_price) || 0);
+  const saleAmount = (Number(sale.quantity) || 0) * (Number(sale.price_per_unit) || 0);
   if (saleAmount > 0) {
     recordFinancialTransaction(userId, {
       type: 'income',
       category: 'product_sale',
       amount: saleAmount,
-      description: `Penjualan produk${sale.product_name ? ' - ' + sale.product_name : ''}`,
+      description: `Penjualan ${sale.product_type || 'produk'}`,
       transaction_date: sale.sale_date || new Date().toISOString().split('T')[0],
       cash_flow: 'cash_in',
       source_table: 'product_sales',

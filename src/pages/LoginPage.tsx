@@ -17,6 +17,7 @@ export function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   // Registration extra fields
   const [role, setRole] = useState<UserRole>('owner');
@@ -36,12 +37,12 @@ export function LoginPage() {
 
     if (mode === 'register') {
       if (password !== confirmPass) {
-        setError('Konfirmasi kata sandi tidak cocok');
+        setError(t('register.error.password.match'));
         setLoading(false);
         return;
       }
       if (password.length < 6) {
-        setError('Kata sandi minimal 6 karakter');
+        setError(t('register.error.password.length'));
         setLoading(false);
         return;
       }
@@ -58,12 +59,12 @@ export function LoginPage() {
       setLoading(false);
       if (err) {
         if (err.includes('rate_limit') || err.includes('rate limit') || err.includes('Rate limit'))
-          setError('Terlalu banyak pendaftaran. Coba lagi dalam beberapa menit.');
+          setError(t('register.error.rate.limit'));
         else
           setError(err);
       } else {
         setMode('login');
-        setError('Akun berhasil dibuat. Silakan masuk.');
+        setSuccessMsg(t('register.success'));
       }
       return;
     }
@@ -119,20 +120,20 @@ export function LoginPage() {
             </div>
 
             <h2 className="login-form-title">
-              {mode === 'login' ? t('login.title') : 'Buat Akun Baru'}
+              {mode === 'login' ? t('login.title') : t('register.title')}
             </h2>
             <p className="login-form-subtitle">
-              {mode === 'login' ? t('login.subtitle') : 'Daftar untuk mengelola peternakan Anda'}
+              {mode === 'login' ? t('login.subtitle') : t('register.subtitle')}
             </p>
 
             <form onSubmit={handleSubmit} className="login-form">
               {mode === 'register' && (
                 <div>
-                  <label className="label">Nama Lengkap</label>
+                  <label className="label">{t('register.fullname')}</label>
                   <input
                     type="text"
                     className="input"
-                    placeholder="Nama Anda"
+                    placeholder={t('register.fullname.placeholder')}
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
                     required
@@ -174,7 +175,7 @@ export function LoginPage() {
               </div>
               {mode === 'register' && (
                 <div>
-                  <label className="label">Konfirmasi Kata Sandi</label>
+                  <label className="label">{t('register.confirm.password')}</label>
                   <input
                     type="password"
                     className="input"
@@ -189,59 +190,62 @@ export function LoginPage() {
               {mode === 'register' && (
                 <>
                   <hr className="my-3 border-neutral-200" />
-                  <p className="text-xs font-semibold text-neutral-500 mb-2 uppercase tracking-wider">Data Peternakan</p>
+                  <p className="text-xs font-semibold text-neutral-500 mb-2 uppercase tracking-wider">{t('register.farm.data')}</p>
 
                   <div>
-                    <label className="label">Role</label>
+                    <label className="label">{t('register.role')}</label>
                     <select className="input" value={role} onChange={e => setRole(e.target.value as UserRole)}>
-                      <option value="owner">Pemilik (Owner)</option>
-                      <option value="manager">Manajer (Manager)</option>
-                      <option value="worker">Pekerja (Worker)</option>
+                      <option value="owner">{t('role.owner')}</option>
+                      <option value="manager">{t('role.manager')}</option>
+                      <option value="worker">{t('role.worker')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="label">Nama Peternakan</label>
-                    <input type="text" className="input" placeholder="Cth. Peternakan Maju Jaya" value={farmName} onChange={e => setFarmName(e.target.value)} />
+                    <label className="label">{t('register.farm.name')}</label>
+                    <input type="text" className="input" placeholder={t('register.farm.name.placeholder')} value={farmName} onChange={e => setFarmName(e.target.value)} />
                   </div>
                   <div>
-                    <label className="label">Nama Pemilik</label>
-                    <input type="text" className="input" placeholder="Nama lengkap pemilik" value={ownerName} onChange={e => setOwnerName(e.target.value)} />
+                    <label className="label">{t('register.farm.owner')}</label>
+                    <input type="text" className="input" placeholder={t('register.farm.owner.placeholder')} value={ownerName} onChange={e => setOwnerName(e.target.value)} />
                   </div>
                   <div>
-                    <label className="label">Alamat / Lokasi Peternakan</label>
-                    <textarea className="input" rows={2} placeholder="Alamat lengkap" value={farmAddress} onChange={e => setFarmAddress(e.target.value)} />
+                    <label className="label">{t('register.farm.address')}</label>
+                    <textarea className="input" rows={2} placeholder={t('register.farm.address.placeholder')} value={farmAddress} onChange={e => setFarmAddress(e.target.value)} />
                   </div>
                   <div>
-                    <label className="label">Skala Ternak</label>
+                    <label className="label">{t('register.farm.scale')}</label>
                     <select className="input" value={farmScale} onChange={e => setFarmScale(e.target.value as FarmScale)}>
-                      <option value="kecil">Kecil</option>
-                      <option value="sedang">Sedang</option>
-                      <option value="besar">Besar</option>
+                      <option value="kecil">{t('farm.scale.small')}</option>
+                      <option value="sedang">{t('farm.scale.medium')}</option>
+                      <option value="besar">{t('farm.scale.large')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="label">No. Telefon</label>
-                    <input type="tel" className="input" placeholder="08123456789" value={farmPhone} onChange={e => setFarmPhone(e.target.value)} />
+                    <label className="label">{t('register.farm.phone')}</label>
+                    <input type="tel" className="input" placeholder={t('register.farm.phone.placeholder')} value={farmPhone} onChange={e => setFarmPhone(e.target.value)} />
                   </div>
                   <div>
-                    <label className="label">Email Peternakan</label>
-                    <input type="email" className="input" placeholder="peternakan@email.com" value={farmEmail} onChange={e => setFarmEmail(e.target.value)} />
+                    <label className="label">{t('register.farm.email')}</label>
+                    <input type="email" className="input" placeholder={t('register.farm.email.placeholder')} value={farmEmail} onChange={e => setFarmEmail(e.target.value)} />
                   </div>
                   <div>
-                    <label className="label">Website</label>
-                    <input type="url" className="input" placeholder="https://" value={farmWebsite} onChange={e => setFarmWebsite(e.target.value)} />
+                    <label className="label">{t('register.farm.website')}</label>
+                    <input type="url" className="input" placeholder={t('register.farm.website.placeholder')} value={farmWebsite} onChange={e => setFarmWebsite(e.target.value)} />
                   </div>
                   <div>
-                    <label className="label">Media Sosial</label>
-                    <input type="text" className="input" placeholder="Instagram, Facebook, dll." value={farmSocial} onChange={e => setFarmSocial(e.target.value)} />
+                    <label className="label">{t('register.farm.social')}</label>
+                    <input type="text" className="input" placeholder={t('register.farm.social.placeholder')} value={farmSocial} onChange={e => setFarmSocial(e.target.value)} />
                   </div>
                 </>
               )}
 
+              {successMsg && (
+                <div className="text-sm px-4 py-3 rounded-xl border animate-slide-in bg-primary-50 text-primary-700 border-primary-100">
+                  {successMsg}
+                </div>
+              )}
               {error && (
-                <div className={`text-sm px-4 py-3 rounded-xl border animate-slide-in ${
-                  error.includes('berhasil') ? 'bg-primary-50 text-primary-700 border-primary-100' : 'bg-error-50 text-error-700 border-error-100'
-                }`}>
+                <div className="text-sm px-4 py-3 rounded-xl border animate-slide-in bg-error-50 text-error-700 border-error-100">
                   {error}
                 </div>
               )}
@@ -255,7 +259,7 @@ export function LoginPage() {
                 ) : (
                   <span className="flex items-center gap-2">
                     {mode === 'login' ? <LogIn size={18} /> : <UserPlus size={18} />}
-                    {mode === 'login' ? t('login.signin') : 'Daftar'}
+                    {mode === 'login' ? t('login.signin') : t('register.submit')}
                   </span>
                 )}
               </button>
@@ -265,9 +269,9 @@ export function LoginPage() {
               <button
                 type="button"
                 className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(''); }}
+                onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(''); setSuccessMsg(''); }}
               >
-                {mode === 'login' ? 'Belum punya akun? Daftar di sini' : 'Sudah punya akun? Masuk'}
+                {mode === 'login' ? t('register.toggle.register') : t('register.toggle.login')}
               </button>
             </div>
 

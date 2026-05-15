@@ -23,7 +23,7 @@ function MiniSparkline({ data, color = '#3b82f6' }: { data: number[]; color?: st
 
 export function ProductionPage() {
   const { hasRole, user } = useAuth();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [period, setPeriod] = useState(7);
   const [records, setRecords] = useState<any[]>([]);
@@ -106,7 +106,7 @@ export function ProductionPage() {
           <p className="text-xs text-neutral-500 font-medium">{t('production.total').replace('{period}', String(period))}</p>
           <p className="text-3xl font-bold text-neutral-800 mt-1">{totalQty} {unit}</p>
           <p className="text-xs text-neutral-400 mt-1">
-            {t('production.value').replace('{value}', 'Rp ' + (totalQty * 20000).toLocaleString('id-ID'))}
+            {t('production.value').replace('{value}', 'Rp ' + (totalQty * 20000).toLocaleString(locale))}
           </p>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function ProductionPage() {
                   </div>
                 </div>
                 <span className="text-xs text-neutral-400 whitespace-nowrap">
-                  {new Date(d.production_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                  {new Date(d.production_date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
                 </span>
               </div>
             );
@@ -162,7 +162,7 @@ export function ProductionPage() {
             <tbody>
               {records.slice(0, period).map(p => (
                 <tr key={p.id}>
-                  <td>{new Date(p.production_date).toLocaleDateString('id-ID')}</td>
+                  <td>{new Date(p.production_date).toLocaleDateString(locale)}</td>
                   <td>{p.herd_groups?.name || p.animals?.tag_id || '-'}</td>
                   <td>
                     <span className="badge badge-blue capitalize">
@@ -221,7 +221,7 @@ function ProductionForm({ onClose }: { onClose: () => void }) {
     else record.herd_group_id = form.targetId || undefined;
 
     try {
-      await createDailyProduction(record);
+      await createDailyProduction(user?.id || '', record);
       onClose();
     } catch { alert('Gagal menyimpan produksi'); }
   };

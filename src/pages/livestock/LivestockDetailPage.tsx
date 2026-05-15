@@ -19,7 +19,7 @@ function InfoRow({ label, value }: { label: string; value?: string | number | nu
 }
 
 export function LivestockDetailPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { user } = useAuth();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('info');
@@ -53,7 +53,7 @@ export function LivestockDetailPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, [id]);
+  useEffect(() => { loadData(); }, [id, user?.id]);
 
   if (loading) {
     return (
@@ -163,7 +163,7 @@ export function LivestockDetailPage() {
               <InfoRow label={t('livestock.table.species')} value={{ cattle: t('species.cattle'), sheep: t('species.sheep'), goat: t('species.goat') }[animal.species]} />
               <InfoRow label={t('livestock.table.breed')} value={animal.breed} />
               <InfoRow label={t('livestock.table.gender')} value={animal.gender === 'male' ? t('gender.male') : t('gender.female')} />
-              <InfoRow label={t('livestock.form.dob')} value={animal.birth_date ? new Date(animal.birth_date).toLocaleDateString('id-ID') : '-'} />
+              <InfoRow label={t('livestock.form.dob')} value={animal.birth_date ? new Date(animal.birth_date).toLocaleDateString(locale) : '-'} />
               <InfoRow label={t('livestock.table.age')} value={getAge()} />
             </div>
             <div>
@@ -173,7 +173,7 @@ export function LivestockDetailPage() {
               <InfoRow label={t('livestock.table.location')} value={animal.locations?.name || '-'} />
               <InfoRow label={t('livestock.form.acquisition')} value={{ born: t('livestock.form.acquisition.born'), purchased: t('livestock.form.acquisition.purchased'), gift: t('livestock.form.acquisition.gift') }[animal.acquisition_type]} />
               {animal.acquisition_cost && (
-                <InfoRow label={t('livestock.form.price')} value={`Rp ${animal.acquisition_cost.toLocaleString('id-ID')}`} />
+                <InfoRow label={t('livestock.form.price')} value={`Rp ${animal.acquisition_cost.toLocaleString(locale)}`} />
               )}
               {animal.notes && <InfoRow label={t('livestock.form.notes')} value={animal.notes} />}
             </div>
@@ -236,7 +236,7 @@ export function LivestockDetailPage() {
                   <tbody>
                     {weightHistory.map(w => (
                       <tr key={w.id}>
-                        <td>{new Date(w.weigh_date).toLocaleDateString('id-ID')}</td>
+                        <td>{new Date(w.weigh_date).toLocaleDateString(locale)}</td>
                         <td className="font-semibold">{w.weight_kg}</td>
                         <td>{w.body_condition_score || '-'}</td>
                         <td>{w.chest_girth_cm ? `${w.chest_girth_cm} cm` : '-'}</td>
@@ -280,8 +280,8 @@ export function LivestockDetailPage() {
                           {h.vet_name && <p className="text-xs text-neutral-400 mt-1">{t('livestock.detail.health.vet')} {h.vet_name}</p>}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-medium text-neutral-700">{new Date(h.record_date).toLocaleDateString('id-ID')}</p>
-                          {h.cost > 0 && <p className="text-xs text-neutral-500">Rp {h.cost.toLocaleString('id-ID')}</p>}
+                          <p className="text-sm font-medium text-neutral-700">{new Date(h.record_date).toLocaleDateString(locale)}</p>
+                          {h.cost > 0 && <p className="text-xs text-neutral-500">Rp {h.cost.toLocaleString(locale)}</p>}
                         </div>
                       </div>
                     </div>
@@ -318,16 +318,16 @@ export function LivestockDetailPage() {
                     {vaccinations.map(v => (
                       <tr key={v.id}>
                         <td className="font-medium">{v.vaccine_name}</td>
-                        <td>{new Date(v.date_administered).toLocaleDateString('id-ID')}</td>
+                        <td>{new Date(v.date_administered).toLocaleDateString(locale)}</td>
                         <td>{v.batch_number || '-'}</td>
                         <td>
                           {v.next_due_date ? (
                             <span className={`text-sm ${new Date(v.next_due_date) <= new Date(new Date().toISOString().split('T')[0]) ? 'text-error-600 font-medium' : ''}`}>
-                              {new Date(v.next_due_date).toLocaleDateString('id-ID')}
+                              {new Date(v.next_due_date).toLocaleDateString(locale)}
                             </span>
                           ) : '-'}
                         </td>
-                        <td>Rp {v.cost.toLocaleString('id-ID')}</td>
+                        <td>Rp {v.cost.toLocaleString(locale)}</td>
                         <td>{v.administered_by || '-'}</td>
                       </tr>
                     ))}
@@ -363,12 +363,12 @@ export function LivestockDetailPage() {
                               <span className="text-sm font-semibold text-neutral-800">{eventTypeLabels[e.event_type]}</span>
                               {e.notes && <p className="text-xs text-neutral-500 mt-0.5">{e.notes}</p>}
                               {e.expected_due_date && (
-                                <p className="text-xs text-earth-600 mt-0.5">{t('livestock.detail.reproduction.due')} {new Date(e.expected_due_date).toLocaleDateString('id-ID')}</p>
+                                <p className="text-xs text-earth-600 mt-0.5">{t('livestock.detail.reproduction.due')} {new Date(e.expected_due_date).toLocaleDateString(locale)}</p>
                               )}
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="text-sm text-neutral-600">{new Date(e.event_date).toLocaleDateString('id-ID')}</p>
-                              {e.cost > 0 && <p className="text-xs text-neutral-400">Rp {e.cost.toLocaleString('id-ID')}</p>}
+                              <p className="text-sm text-neutral-600">{new Date(e.event_date).toLocaleDateString(locale)}</p>
+                              {e.cost > 0 && <p className="text-xs text-neutral-400">Rp {e.cost.toLocaleString(locale)}</p>}
                             </div>
                           </div>
                         </div>
@@ -389,7 +389,7 @@ export function LivestockDetailPage() {
                 <InfoRow label={t('livestock.table.breed')} value={animal.breed} />
                 <InfoRow label={t('livestock.table.gender')} value={animal.gender === 'male' ? t('gender.male') : t('gender.female')} />
                 <InfoRow label={t('livestock.form.color')} value={animal.color} />
-                <InfoRow label={t('livestock.form.dob')} value={animal.birth_date ? new Date(animal.birth_date).toLocaleDateString('id-ID') : '-'} />
+                <InfoRow label={t('livestock.form.dob')} value={animal.birth_date ? new Date(animal.birth_date).toLocaleDateString(locale) : '-'} />
                 <InfoRow label={t('livestock.form.birth.weight')} value={`${animal.birth_weight_kg} kg`} />
                 <InfoRow label={t('livestock.form.current.weight')} value={`${animal.current_weight_kg} kg`} />
               </div>
@@ -400,10 +400,10 @@ export function LivestockDetailPage() {
                 <InfoRow label={t('livestock.form.location')} value={animal.locations?.name || '-'} />
                 <InfoRow label={t('livestock.form.acquisition')} value={{ born: t('livestock.form.acquisition.born'), purchased: t('livestock.form.acquisition.purchased'), gift: t('livestock.form.acquisition.gift') }[animal.acquisition_type]} />
                 {animal.acquisition_cost && (
-                  <InfoRow label={t('livestock.form.price')} value={`Rp ${animal.acquisition_cost.toLocaleString('id-ID')}`} />
+                  <InfoRow label={t('livestock.form.price')} value={`Rp ${animal.acquisition_cost.toLocaleString(locale)}`} />
                 )}
                 {animal.acquisition_date && (
-                  <InfoRow label={t('livestock.detail.info.acquisition_date')} value={new Date(animal.acquisition_date).toLocaleDateString('id-ID')} />
+                  <InfoRow label={t('livestock.detail.info.acquisition_date')} value={new Date(animal.acquisition_date).toLocaleDateString(locale)} />
                 )}
                 {animal.notes && <InfoRow label={t('livestock.form.notes')} value={animal.notes} />}
                 {attributes.length > 0 && (

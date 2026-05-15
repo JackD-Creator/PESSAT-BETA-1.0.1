@@ -12,7 +12,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export function HealthPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { hasRole, user } = useAuth();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -94,7 +94,7 @@ export function HealthPage() {
                 {filtered.map(r => (
                   <tr key={r.id}>
                     <td className="font-semibold text-primary-700">{(r as any).animals?.tag_id || '-'}</td>
-                    <td>{new Date(r.record_date).toLocaleDateString('id-ID')}</td>
+                    <td>{new Date(r.record_date).toLocaleDateString(locale)}</td>
                     <td>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         r.type === 'illness' ? 'bg-error-100 text-error-700' :
@@ -104,11 +104,11 @@ export function HealthPage() {
                     </td>
                     <td className="max-w-[200px] truncate">{r.diagnosis}</td>
                     <td>{r.vet_name || '-'}</td>
-                    <td>Rp {r.cost.toLocaleString('id-ID')}</td>
+                    <td>Rp {r.cost.toLocaleString(locale)}</td>
                     <td>
                       {r.follow_up_date ? (
                         <span className=                          {new Date(r.follow_up_date) <= new Date(new Date().toISOString().split('T')[0]) ? 'text-error-600 font-medium' : ''}>
-                          {new Date(r.follow_up_date).toLocaleDateString('id-ID')}
+                          {new Date(r.follow_up_date).toLocaleDateString(locale)}
                         </span>
                       ) : '-'}
                     </td>

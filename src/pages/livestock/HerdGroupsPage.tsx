@@ -17,11 +17,24 @@ export function HerdGroupsPage() {
   const [locations, setLocations] = useState<any[]>([]);
   const [membersGroup, setMembersGroup] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
+  const [groupMemberMap, setGroupMemberMap] = useState<Record<string, any[]>>({});
 
   const loadData = () => {
     getHerdGroups(user?.id).then(setHerdGroups);
     getAnimals(user?.id).then(setAnimals);
     getLocations(user?.id).then(setLocations);
+    if (user?.id) {
+      getHerdGroups(user?.id).then(async (groups) => {
+        const map: Record<string, any[]> = {};
+        for (const g of groups) {
+          const { data } = await supabaseAdmin.from('herd_group_members')
+            .select('*, animals(tag_id, species, breed, gender, status)')
+            .eq('herd_group_id', g.id);
+          map[g.id] = (data || []).map((m: any) => m.animals).filter(Boolean);
+        }
+        setGroupMemberMap(map);
+      });
+    }
   };
 
   useEffect(() => { loadData(); }, [user?.id]);
@@ -43,10 +56,10 @@ export function HerdGroupsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5">
         {herdGroups.map((group: any) => {
-          const members = animals.filter(() => true);
-          const healthyCount = members.filter(a => a.status === 'healthy').length;
-          const sickCount = members.filter(a => a.status === 'sick').length;
-          const pregnantCount = members.filter(a => a.status === 'pregnant').length;
+          const groupAnimals = groupMemberMap[group.id] || [];
+          const healthyCount = groupAnimals.filter((a: any) => a.status === 'healthy').length;
+          const sickCount = groupAnimals.filter((a: any) => a.status === 'sick').length;
+          const pregnantCount = groupAnimals.filter((a: any) => a.status === 'pregnant').length;
           return (
             <div key={group.id} className="card p-5">
               <div className="flex items-start justify-between mb-4">

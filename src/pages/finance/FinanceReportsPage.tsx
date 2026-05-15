@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, BarChart2, Users, Milk } from 'lucide-react';
-import { getFinancialTransactions } from '../../lib/db';
+import { getTransactions } from '../../lib/api/finance';
 import { getAnimals, getDailyProduction } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
-function formatCurrency(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
+function formatCurrency(n: number, locale = 'id-ID') {
+  return `Rp ${n.toLocaleString(locale)}`;
 }
 
 const categoryGroups: Record<string, { labelKey: string; categories: string[] }> = {
@@ -36,9 +36,11 @@ export function FinanceReportsPage() {
   const [animals, setAnimals] = useState<any[]>([]);
   const [production, setProduction] = useState<any[]>([]);
   useEffect(() => {
-    getFinancialTransactions(user?.id).then(setTxs);
-    getAnimals(user?.id).then(setAnimals).catch(() => {});
-    getDailyProduction(user?.id).then(p => setProduction((p as any[]).filter(r => r.product_type === 'milk'))).catch(() => {});
+    if (user?.id) {
+      getTransactions(user.id).then(setTxs);
+      getAnimals(user.id).then(setAnimals).catch(() => {});
+      getDailyProduction(user.id).then(p => setProduction((p as any[]).filter(r => r.product_type === 'milk'))).catch(() => {});
+    }
   }, [user?.id]);
 
   const income = txs.filter(tr => tr.type === 'income').reduce((s, tr) => s + tr.amount, 0);

@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
 import { Plus, TrendingUp, ShoppingBag } from 'lucide-react';
-import { getFinancialTransactions, getDailyProduction, getProductSales } from '../../lib/db';
-import type { ProductSale } from '../../lib/db';
-import { createProductSale } from '../../lib/api/production';
+import { getTransactions } from '../../lib/api/finance';
+import { getDailyProduction, getProductSales, createProductSale } from '../../lib/api/production';
+import type { ProductSale } from '../../types';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
-function formatCurrency(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
+function formatCurrency(n: number, locale = 'id-ID') {
+  return `Rp ${n.toLocaleString(locale)}`;
 }
 
 export function ProductSalesPage() {
   const { hasRole, user } = useAuth();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [txs, setTxs] = useState<any[]>([]);
   const [production, setProduction] = useState<any[]>([]);
   const [sales, setSales] = useState<ProductSale[]>([]);
 
   const loadData = () => {
-    getFinancialTransactions(user?.id).then(setTxs);
-    getDailyProduction(user?.id, 30).then(setProduction);
-    getProductSales(user?.id).then(setSales);
+    if (!user?.id) return;
+    getTransactions(user.id).then(setTxs);
+    getDailyProduction(user.id, 30).then(setProduction);
+    getProductSales(user.id).then(setSales);
   };
 
   useEffect(() => { loadData(); }, [user?.id]);
@@ -92,7 +93,7 @@ export function ProductSalesPage() {
             <tbody>
               {sales.map(s => (
                 <tr key={s.id}>
-                  <td>{new Date(s.sale_date).toLocaleDateString('id-ID')}</td>
+                  <td>{new Date(s.sale_date).toLocaleDateString(locale)}</td>
                   <td>
                     <span className="badge badge-blue">{s.product_type}</span>
                   </td>

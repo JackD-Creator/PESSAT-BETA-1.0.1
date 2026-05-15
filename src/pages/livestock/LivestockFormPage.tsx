@@ -14,7 +14,7 @@ export function LivestockFormPage() {
   const isEditing = !!id;
   const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(isEditing);
-  useEffect(() => { getLocations(user?.id).then(setLocations); }, []);
+  useEffect(() => { if (user?.id) getLocations(user.id).then(setLocations); }, [user?.id]);
   useEffect(() => {
     if (id) {
       getAnimal(user?.id, id).then(a => {
@@ -38,7 +38,7 @@ export function LivestockFormPage() {
         setLoading(false);
       }).catch(() => { navigate('/livestock'); });
     }
-  }, [id]);
+    }, [id, user?.id]);
 
   const [form, setForm] = useState({
     tag_id: '', rfid: '', species: 'cattle', breed: '', gender: 'female',

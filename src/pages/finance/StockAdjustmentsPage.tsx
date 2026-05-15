@@ -8,12 +8,12 @@ import { useTranslation } from '../../contexts/LanguageContext';
 
 function formatDate(d: string) {
   if (!d) return '-';
-  try { return new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }); }
+  try { return new Date(d).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' }); }
   catch { return d; }
 }
 
 export function StockAdjustmentsPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { hasRole, user } = useAuth();
   const [adjustments, setAdjustments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +79,7 @@ export function StockAdjustmentsPage() {
                         {a.item_type === 'feed' ? 'Pakan' : 'Obat'}
                       </span>
                     </td>
-                    <td className="text-neutral-500">{a.item_id}</td>
+                    <td className="text-neutral-500">{a.feeds?.name || a.medicines?.name || a.item_id.substring(0, 8)}</td>
                     <td>
                       <span className={`font-semibold ${Number(a.quantity_change) < 0 ? 'text-error-600' : 'text-primary-600'}`}>
                         {Number(a.quantity_change) > 0 ? '+' : ''}{Number(a.quantity_change)}

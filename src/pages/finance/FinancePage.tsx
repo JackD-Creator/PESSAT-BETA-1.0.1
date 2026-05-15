@@ -3,12 +3,12 @@ import { getTransactions } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
-function formatCurrency(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
+function formatCurrency(n: number, locale = 'id-ID') {
+  return `Rp ${n.toLocaleString(locale)}`;
 }
 
 export function FinancePage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { user } = useAuth();
   const [filter, setFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0]; });
@@ -118,7 +118,7 @@ export function FinancePage() {
             <tbody>
               {filtered.map(tr => (
                 <tr key={tr.id}>
-                  <td>{new Date(tr.transaction_date).toLocaleDateString('id-ID')}</td>
+                  <td>{new Date(tr.transaction_date).toLocaleDateString(locale)}</td>
                   <td>
                     <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full">
                       {categoryLabels[tr.category] || tr.category}

@@ -734,11 +734,8 @@ function MedicineStockView() {
         </div>
         {hasRole(['owner', 'manager']) && (
           <div className="flex gap-2">
-            <button className="btn-secondary" onClick={() => setShowConsumeModal(true)}>
+            <button className="btn-secondary" onClick={() => setShowUsageModal(true)}>
               <Package size={16} /> {t('feed.use')}
-            </button>
-            <button className="btn-secondary" onClick={() => setShowFormulaModal(true)}>
-              <Plus size={16} /> Buat Formula
             </button>
             <button className="btn-primary" onClick={() => setShowPurchaseModal(true)}>
               <ShoppingCart size={16} /> {t('feed.purchase')}

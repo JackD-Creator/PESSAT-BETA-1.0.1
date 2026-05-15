@@ -35,7 +35,17 @@ export function AppLayout() {
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
-  const titleKey = pageTitleKeys[location.pathname];
+  const matchDynamic = (path: string) => {
+    if (pageTitleKeys[path]) return pageTitleKeys[path];
+    if (path.startsWith('/livestock/')) {
+      if (path.endsWith('/edit')) return 'page.livestock.edit';
+      return 'page.livestock.detail';
+    }
+    if (path.startsWith('/nutrition-requirements')) return 'page.feed.nutrition';
+    if (path.startsWith('/finance/adjustments')) return 'page.finance.adjustments';
+    return null;
+  };
+  const titleKey = matchDynamic(location.pathname);
   const title = titleKey ? t(titleKey) : t('app.name');
 
   return (
@@ -64,7 +74,7 @@ export function AppLayout() {
         <main className="flex-1 overflow-y-auto">
           <Outlet />
           <footer className="px-4 md:px-6 lg:px-8 py-4 border-t border-neutral-100">
-            <div className="login-footer-text flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="text-xs text-neutral-500 flex flex-col sm:flex-row items-center justify-between gap-2">
               <span>{t('login.copyright')}</span>
               <div className="flex items-center gap-3">
                 <button>{t('login.terms')}</button>
