@@ -25,7 +25,8 @@ export function LocationsPage() {
   const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
 
   const load = useCallback(() => {
-    getLocations(user?.id)
+    if (!user?.id) return;
+    getLocations(user.id)
       .then(data => setLocations(data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -121,8 +122,8 @@ export function LocationsPage() {
             <div className="flex justify-end gap-3">
               <button className="btn-secondary" onClick={() => setDeletingLocation(null)}>{t('common.cancel')}</button>
               <button className="btn-danger" onClick={async () => {
-                if (!hasRole(['owner', 'manager'])) return;
-                await deleteLocation(user?.id, deletingLocation.id);
+    if (!hasRole(['owner', 'manager'])) return;
+    await deleteLocation(user!.id, deletingLocation.id);
                 setDeletingLocation(null);
                 load();
               }}>{t('common.delete')}</button>
@@ -154,7 +155,7 @@ function LocationForm({ t, user, location, onDone }: { t: (key: string) => strin
     setSubmitting(true);
     try {
       if (location) {
-        await updateLocation(user?.id, location.id, {
+        await updateLocation(user!.id, location.id, {
           name: form.name,
           type: form.type as Location['type'],
           capacity: Number(form.capacity) || 0,
@@ -162,7 +163,7 @@ function LocationForm({ t, user, location, onDone }: { t: (key: string) => strin
           notes: form.notes || undefined,
         });
       } else {
-        await createLocation(user?.id, {
+        await createLocation(user!.id, {
           name: form.name,
           type: form.type as Location['type'],
           capacity: Number(form.capacity) || 0,

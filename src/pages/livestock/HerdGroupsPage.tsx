@@ -20,11 +20,11 @@ export function HerdGroupsPage() {
   const [groupMemberMap, setGroupMemberMap] = useState<Record<string, any[]>>({});
 
   const loadData = () => {
-    getHerdGroups(user?.id).then(setHerdGroups);
-    getAnimals(user?.id).then(setAnimals);
-    getLocations(user?.id).then(setLocations);
-    if (user?.id) {
-      getHerdGroups(user?.id).then(async (groups) => {
+    if (!user?.id) return;
+    getHerdGroups(user.id).then(setHerdGroups);
+    getAnimals(user.id).then(setAnimals);
+    getLocations(user.id).then(setLocations);
+    getHerdGroups(user.id).then(async (groups) => {
         const map: Record<string, any[]> = {};
         for (const g of groups) {
           const { data } = await supabaseAdmin.from('herd_group_members')
@@ -34,7 +34,6 @@ export function HerdGroupsPage() {
         }
         setGroupMemberMap(map);
       });
-    }
   };
 
   useEffect(() => { loadData(); }, [user?.id]);
@@ -284,7 +283,7 @@ function LocationForm({ user, onClose }: { user: any; onClose: () => void }) {
     setError('');
     setSubmitting(true);
     try {
-      await createLocation(user?.id, {
+      await createLocation(user!.id, {
         name: form.name,
         type: form.type,
         capacity: Number(form.capacity) || 0,
@@ -359,7 +358,7 @@ function HerdGroupForm({ user, locations, onClose }: { user: any; locations: any
     setError('');
     setSubmitting(true);
     try {
-      await createHerdGroup(user?.id, {
+      await createHerdGroup(user!.id, {
         name: form.name,
         location_id: form.location_id || undefined,
         supervisor_name: form.supervisor_name || undefined,

@@ -18,7 +18,8 @@ export function LivestockListPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAnimals(user?.id)
+    if (!user?.id) return;
+    getAnimals(user.id)
       .then(data => setAnimals(data))
       .catch(() => {})
       .finally(() => setLoading(false));
