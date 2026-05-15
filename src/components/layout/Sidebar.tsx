@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Heart, Wheat, DollarSign,
   Milk, CheckSquare, Bell, LogOut, Building2,
   Users, MapPin, Package, ShoppingCart, ClipboardList, Beef,
-  ClipboardSignature, Scale,
+  ClipboardSignature, Scale, Pill,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -47,8 +47,13 @@ export function Sidebar(_props?: { onClose?: () => void }) {
         { labelKey: 'nav.feed.stock', to: '/feed-inventory', icon: <Package size={16} /> },
         { labelKey: 'nav.feed.purchases', to: '/feed-purchases', icon: <ShoppingCart size={16} /> },
         { labelKey: 'nav.feed.formulas', to: '/feed-formulas', icon: <ClipboardList size={16} /> },
-        { labelKey: 'nav.feed.medicine', to: '/medicine-inventory', icon: <Package size={16} /> },
         { labelKey: 'nav.feed.nutrition', to: '/nutrition-requirements', icon: <ClipboardSignature size={16} /> },
+      ]
+    },
+    {
+      labelKey: 'nav.medicine', icon: <Pill size={18} />,
+      children: [
+        { labelKey: 'nav.medicine.inventory', to: '/medicine-inventory', icon: <Package size={16} /> },
       ]
     },
     {

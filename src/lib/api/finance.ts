@@ -40,8 +40,7 @@ export async function getTransactions(userId: string, params?: { type?: string; 
 }
 
 export async function getFinanceSummary(userId: string) {
-  let q = supabaseAdmin.from('financial_transactions')
-    .select('type, cash_flow, amount')
+  const q = supabaseAdmin.from('financial_transactions').select('type, cash_flow, amount')
     .gte('transaction_date', new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0])
     .eq('user_id', userId);
   const { data, error } = await q;
@@ -58,6 +57,13 @@ export async function getFinanceSummary(userId: string) {
 }
 
 // ─── Labor Expenses ───
+export async function getLaborExpenses(userId: string) {
+  const q = supabaseAdmin.from('labor_expenses').select('*').eq('user_id', userId);
+  const { data, error } = await q.order('expense_date', { ascending: false }).limit(50);
+  if (error) throw error;
+  return data as LaborExpense[];
+}
+
 export async function createLaborExpense(userId: string, expense: Partial<LaborExpense>) {
   const { data, error } = await supabaseAdmin.from('labor_expenses').insert({ ...expense, user_id: userId }).select().single();
   if (error) throw error;
@@ -80,6 +86,13 @@ export async function createLaborExpense(userId: string, expense: Partial<LaborE
 }
 
 // ─── Operational Expenses ───
+export async function getOperationalExpenses(userId: string) {
+  const q = supabaseAdmin.from('operational_expenses').select('*').eq('user_id', userId);
+  const { data, error } = await q.order('expense_date', { ascending: false }).limit(50);
+  if (error) throw error;
+  return data as OperationalExpense[];
+}
+
 export async function createOperationalExpense(userId: string, expense: Partial<OperationalExpense>) {
   const { data, error } = await supabaseAdmin.from('operational_expenses').insert({ ...expense, user_id: userId }).select().single();
   if (error) throw error;
@@ -103,7 +116,7 @@ export async function createOperationalExpense(userId: string, expense: Partial<
 
 // ─── Stock Adjustments ───
 export async function getStockAdjustments(userId: string) {
-  let q = supabaseAdmin.from('stock_adjustments').select('*, feeds!left(name), medicines!left(name)').eq('user_id', userId);
+  const q = supabaseAdmin.from('stock_adjustments').select('*, feeds!left(name), medicines!left(name)').eq('user_id', userId);
   const { data, error } = await q.order('adjustment_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as (StockAdjustment & { feeds?: { name: string } | null; medicines?: { name: string } | null })[];
@@ -114,7 +127,7 @@ export async function createStockAdjustment(userId: string, adjustment: Partial<
   if (error) throw error;
 
   // Record financial loss
-  const lossAmount = Math.abs(Number(adjustment.total_cost_change) || 0);
+  const lossAmount = Math.abs(Number((adjustment as any).total_cost_change) || 0);
   if (lossAmount > 0) {
     recordFinancialTransaction(userId, {
       type: 'expense',

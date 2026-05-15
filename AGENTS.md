@@ -1,5 +1,50 @@
 # PESSAT - Livestock Management System
 
+## Session History
+
+### Session 1 (May 16, 2026) — Major refactor: split FeedInventoryPage, separate Feed/Medicine menus, fix typecheck
+
+**Goal:** Fix 7 issues: UI mismatch, incomplete data, wrong relationships, messy structure, incorrect menus, pop menu mismatches, missing functions.
+
+**Actions:**
+- Created `opencode.json` with `opencode-auto-resume` plugin (45s timeout, 3 retries)
+- Created `AGENTS.md` with full project context
+- Split monolithic `FeedInventoryPage.tsx` (1098 lines) into 4 dedicated page components:
+  - `FeedInventoryPage.tsx` — feed stock view only
+  - `FeedPurchasesPage.tsx` — purchases + consumption with tabs
+  - `FeedFormulasPage.tsx` — feed formulas + creation modal
+  - `MedicineInventoryPage.tsx` — medicine stock + purchase history
+- Created 4 shared form components: `FeedPurchaseForm`, `FeedConsumeForm`, `MedicinePurchaseForm`, `MedicineUsageForm`
+- Updated `App.tsx` routes: each feed/medicine path points to its own page
+- Updated `Sidebar.tsx`: separated Feed menu (stock, purchases, formulas, nutrition) from Medicine menu (inventory)
+- Added translation keys `nav.medicine` / `nav.medicine.inventory`; removed `nav.feed.medicine`
+- Added missing API functions: `getLaborExpenses`, `getOperationalExpenses` (finance.ts), `updateMedicineThreshold` (medicine.ts)
+- Fixed type errors: `user?.id` → `user!.id` (avoids non-null-asserted-optional-chain), `let q` → `const q` in API files (auto-fixed via `eslint --fix`), `.catch()` on supabase inserts → `.then(() => {}, () => {})`
+- Fixed unused imports (`Syringe` in Sidebar), unused params (`t`/`onClose`), `locale` scope in StockAdjustmentsPage
+- Build passes: `npm run build` successful (1604 modules, 14.5s)
+- Typecheck: 0 errors in feed/ pages; remaining ~50 pre-existing errors in other pages (all `string|undefined` pattern)
+
+**Files changed:**
+- `AGENTS.md` — session tracking
+- `opencode.json` — auto-resume plugin config
+- `package.json`, `package-lock.json` — added `opencode-auto-resume`
+- `src/App.tsx` — updated routes for feed/medicine pages
+- `src/components/layout/Sidebar.tsx` — separated Feed/Medicine menus, removed unused `Syringe` import
+- `src/lib/translations.ts` — added `nav.medicine.*`, removed `nav.feed.medicine`
+- `src/lib/api/finance.ts` — added `getLaborExpenses`, `getOperationalExpenses`; fixed `total_cost_change` type cast
+- `src/lib/api/medicine.ts` — added `updateMedicineThreshold`
+- `src/pages/feed/FeedInventoryPage.tsx` — slimmed to feed stock only
+- `src/pages/feed/FeedPurchasesPage.tsx` — new: purchases + consumption
+- `src/pages/feed/FeedFormulasPage.tsx` — new: formulas + creation form
+- `src/pages/feed/MedicineInventoryPage.tsx` — new: medicine stock + history
+- `src/pages/feed/FeedPurchaseForm.tsx` — new: shared purchase form
+- `src/pages/feed/FeedConsumeForm.tsx` — new: shared consumption form
+- `src/pages/feed/MedicinePurchaseForm.tsx` — new: medicine purchase form
+- `src/pages/feed/MedicineUsageForm.tsx` — new: medicine usage form
+- `src/pages/feed/NutritionRequirementsPage.tsx` — fixed unused import, `.catch()` on insert
+- `src/pages/finance/StockAdjustmentsPage.tsx` — fixed `locale` scope, `user?.id` → `user!.id`
+- `src/lib/api/animals.ts`, `feed.ts`, `health.ts`, `medicine.ts`, `production.ts`, `finance.ts` — `let`→`const` fixes
+
 ## Project Overview
 A web-based livestock management system for Indonesian farmers. Manages beef cattle, dairy cattle, sheep, and goats. Built with React + TypeScript + Vite + Supabase.
 

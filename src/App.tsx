@@ -12,6 +12,9 @@ import { HealthPage } from './pages/health/HealthPage';
 import { VaccinationPage } from './pages/health/VaccinationPage';
 import { BreedingPage } from './pages/health/BreedingPage';
 import { FeedInventoryPage } from './pages/feed/FeedInventoryPage';
+import { FeedPurchasesPage } from './pages/feed/FeedPurchasesPage';
+import { FeedFormulasPage } from './pages/feed/FeedFormulasPage';
+import { MedicineInventoryPage } from './pages/feed/MedicineInventoryPage';
 import { NutritionRequirementsPage } from './pages/feed/NutritionRequirementsPage';
 import { ProductionPage } from './pages/production/ProductionPage';
 import { ProductSalesPage } from './pages/production/ProductSalesPage';
@@ -52,9 +55,9 @@ function AppRoutes() {
         <Route path="vaccinations" element={<VaccinationPage />} />
         <Route path="breeding" element={<BreedingPage />} />
         <Route path="feed-inventory" element={<FeedInventoryPage />} />
-        <Route path="feed-purchases" element={<FeedInventoryPage />} />
-        <Route path="feed-formulas" element={<FeedInventoryPage />} />
-        <Route path="medicine-inventory" element={<FeedInventoryPage />} />
+        <Route path="feed-purchases" element={<FeedPurchasesPage />} />
+        <Route path="feed-formulas" element={<FeedFormulasPage />} />
+        <Route path="medicine-inventory" element={<MedicineInventoryPage />} />
         <Route path="production" element={<ProductionPage />} />
         <Route path="product-sales" element={<ProductSalesPage />} />
         <Route path="animal-transactions" element={<AnimalTransactionsPage />} />

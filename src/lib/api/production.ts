@@ -21,7 +21,7 @@ export async function createDailyProduction(userId: string, record: Partial<Dail
 
 export async function getProductionSummary(userId: string, days: number = 7) {
   const from = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
-  let q = supabaseAdmin.from('daily_production')
+  const q = supabaseAdmin.from('daily_production')
     .select('production_date, product_type, quantity, unit')
     .gte('production_date', from)
     .eq('user_id', userId);
@@ -32,7 +32,7 @@ export async function getProductionSummary(userId: string, days: number = 7) {
 
 // ─── Product Sales ───
 export async function getProductSales(userId: string) {
-  let q = supabaseAdmin.from('product_sales').select('*').eq('user_id', userId);
+  const q = supabaseAdmin.from('product_sales').select('*').eq('user_id', userId);
   const { data, error } = await q.order('sale_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as ProductSale[];
@@ -62,7 +62,7 @@ export async function createProductSale(userId: string, sale: Partial<ProductSal
 
 // ─── Animal Purchases ───
 export async function getAnimalPurchases(userId: string) {
-  let q = supabaseAdmin.from('animal_purchases').select('*, animals(tag_id, species, breed)').eq('user_id', userId);
+  const q = supabaseAdmin.from('animal_purchases').select('*, animals(tag_id, species, breed)').eq('user_id', userId);
   const { data, error } = await q.order('purchase_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as (AnimalPurchase & { animals: { tag_id: string; species: string; breed: string } })[];
@@ -91,7 +91,7 @@ export async function createAnimalPurchase(userId: string, purchase: Partial<Ani
 
 // ─── Animal Sales ───
 export async function getAnimalSales(userId: string) {
-  let q = supabaseAdmin.from('animal_sales').select('*, animals(tag_id, species, breed)').eq('user_id', userId);
+  const q = supabaseAdmin.from('animal_sales').select('*, animals(tag_id, species, breed)').eq('user_id', userId);
   const { data, error } = await q.order('sale_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as (AnimalSale & { animals: { tag_id: string; species: string; breed: string } })[];

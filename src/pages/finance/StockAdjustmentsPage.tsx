@@ -6,21 +6,21 @@ import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
-function formatDate(d: string) {
+function formatDate(d: string, locale: string) {
   if (!d) return '-';
   try { return new Date(d).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' }); }
   catch { return d; }
 }
 
 export function StockAdjustmentsPage() {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const { hasRole, user } = useAuth();
   const [adjustments, setAdjustments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
   const loadData = () => {
-    getStockAdjustments(user?.id)
+      getStockAdjustments(user!.id)
       .then(data => setAdjustments(data as any[]))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -73,7 +73,7 @@ export function StockAdjustmentsPage() {
               <tbody>
                 {adjustments.map(a => (
                   <tr key={a.id}>
-                    <td className="text-sm">{formatDate(a.adjustment_date)}</td>
+                    <td className="text-sm">{formatDate(a.adjustment_date, 'id-ID')}</td>
                     <td>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.item_type === 'feed' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
                         {a.item_type === 'feed' ? 'Pakan' : 'Obat'}
@@ -119,8 +119,8 @@ function AdjustmentForm({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     Promise.all([
-      getFeeds(user?.id), getMedicines(user?.id),
-      getFeedInventory(user?.id), getMedicineInventory(user?.id),
+      getFeeds(user!.id), getMedicines(user!.id),
+      getFeedInventory(user!.id), getMedicineInventory(user!.id),
     ]).then(([f, m, fi, mi]) => {
       setFeedList(f as any[]);
       setMedList(m as any[]);
@@ -141,7 +141,7 @@ function AdjustmentForm({ onClose }: { onClose: () => void }) {
         ? feedInv.find((i: any) => i.feed_id === form.item_id)
         : medInv.find((i: any) => i.medicine_id === form.item_id);
       const ppu = Number(inv?.avg_cost_per_unit) || 0;
-      await createStockAdjustment(user?.id, {
+      await createStockAdjustment(user!.id, {
         item_type: form.item_type as any,
         item_id: form.item_id,
         adjustment_date: form.adjustment_date,

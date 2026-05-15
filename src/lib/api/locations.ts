@@ -2,7 +2,7 @@ import { supabaseAdmin } from '../supabaseAdmin';
 import type { Location } from '../../types';
 
 export async function getLocations(userId: string) {
-  let q = supabaseAdmin.from('locations').select('*').eq('user_id', userId);
+  const q = supabaseAdmin.from('locations').select('*').eq('user_id', userId);
   const { data, error } = await q.order('name');
   if (error) throw error;
   return data as Location[];

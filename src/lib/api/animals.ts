@@ -22,7 +22,7 @@ export async function getAnimals(userId: string, params?: {
 }
 
 export async function getAnimal(userId: string, id: string) {
-  let q = supabaseAdmin.from('animals').select('*, locations!animals_current_location_id_fkey(name), dam:dam_id(tag_id, breed), sire:sire_id(tag_id, breed)').eq('id', id).eq('user_id', userId);
+  const q = supabaseAdmin.from('animals').select('*, locations!animals_current_location_id_fkey(name), dam:dam_id(tag_id, breed), sire:sire_id(tag_id, breed)').eq('id', id).eq('user_id', userId);
   const { data, error } = await q.single();
   if (error) throw error;
   return data as Animal & { locations: { name: string } | null; dam: { tag_id: string; breed: string } | null; sire: { tag_id: string; breed: string } | null };
@@ -47,7 +47,7 @@ export async function deleteAnimal(userId: string, id: string) {
 
 // ─── Weight Records ───
 export async function getWeightRecords(userId: string, animalId: string) {
-  let q = supabaseAdmin.from('weight_records').select('*, users!weight_records_recorded_by_fkey(full_name)').eq('animal_id', animalId).eq('user_id', userId);
+  const q = supabaseAdmin.from('weight_records').select('*, users!weight_records_recorded_by_fkey(full_name)').eq('animal_id', animalId).eq('user_id', userId);
   const { data, error } = await q.order('weigh_date', { ascending: false });
   if (error) throw error;
   return data as (WeightRecord & { users: { full_name: string } | null })[];
@@ -61,7 +61,7 @@ export async function createWeightRecord(userId: string, record: Partial<WeightR
 
 // ─── Movements ───
 export async function getMovements(userId: string, animalId: string) {
-  let q = supabaseAdmin.from('animal_movements').select('*, from:from_location_id(name), to:to_location_id(name)').eq('animal_id', animalId).eq('user_id', userId);
+  const q = supabaseAdmin.from('animal_movements').select('*, from:from_location_id(name), to:to_location_id(name)').eq('animal_id', animalId).eq('user_id', userId);
   const { data, error } = await q.order('movement_date', { ascending: false });
   if (error) throw error;
   return data as (AnimalMovement & { from: { name: string } | null; to: { name: string } | null })[];
@@ -75,7 +75,7 @@ export async function createMovement(userId: string, movement: Partial<AnimalMov
 
 // ─── Herd Groups ───
 export async function getHerdGroups(userId: string) {
-  let q = supabaseAdmin.from('herd_groups').select('*, locations(name)').eq('user_id', userId);
+  const q = supabaseAdmin.from('herd_groups').select('*, locations(name)').eq('user_id', userId);
   const { data, error } = await q.order('name');
   if (error) throw error;
   return data as (HerdGroup & { locations: { name: string } | null })[];
@@ -88,7 +88,7 @@ export async function createHerdGroup(userId: string, group: Partial<HerdGroup>)
 }
 
 export async function getHerdGroupMembers(userId: string, herdGroupId: string) {
-  let q = supabaseAdmin.from('herd_group_members').select('*, animals(tag_id, species, breed, gender, status)').eq('herd_group_id', herdGroupId).eq('user_id', userId);
+  const q = supabaseAdmin.from('herd_group_members').select('*, animals(tag_id, species, breed, gender, status)').eq('herd_group_id', herdGroupId).eq('user_id', userId);
   const { data, error } = await q;
   if (error) throw error;
   return data as (HerdGroupMember & { animals: Partial<Animal> })[];
@@ -96,7 +96,7 @@ export async function getHerdGroupMembers(userId: string, herdGroupId: string) {
 
 // ─── Counts ───
 export async function getAnimalCounts(userId: string) {
-  let q = supabaseAdmin.from('animals').select('species, status').eq('user_id', userId);
+  const q = supabaseAdmin.from('animals').select('species, status').eq('user_id', userId);
   const { data, error } = await q;
   if (error) throw error;
   const species: Record<string, number> = {};

@@ -25,7 +25,7 @@ export async function updateTaskStatus(userId: string, id: string, status: strin
 }
 
 export async function getTaskSummary(userId: string) {
-  let q = supabaseAdmin.from('tasks').select('status, due_date').eq('user_id', userId);
+  const q = supabaseAdmin.from('tasks').select('status, due_date').eq('user_id', userId);
   const { data, error } = await q;
   if (error) throw error;
   const now = new Date().toISOString().split('T')[0];
@@ -58,7 +58,7 @@ export async function markAlertRead(userId: string, id: string) {
 }
 
 export async function getAlertSummary(userId: string) {
-  let q = supabaseAdmin.from('alerts').select('severity, is_resolved, is_read').eq('user_id', userId);
+  const q = supabaseAdmin.from('alerts').select('severity, is_resolved, is_read').eq('user_id', userId);
   const { data, error } = await q;
   if (error) throw error;
   return {

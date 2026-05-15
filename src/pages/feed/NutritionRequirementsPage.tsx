@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wheat, Plus, Loader } from 'lucide-react';
+import { Wheat, Loader } from 'lucide-react';
 import { getNutritionRequirements } from '../../lib/api';
 import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { useAuth } from '../../contexts/AuthContext';
@@ -40,7 +40,7 @@ export function NutritionRequirementsPage() {
   const [seeding, setSeeding] = useState(false);
 
   const loadData = () => {
-    getNutritionRequirements(user?.id)
+    getNutritionRequirements(user!.id)
       .then(data => setRequirements(data as any[]))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -64,7 +64,7 @@ export function NutritionRequirementsPage() {
           ca_requirement_pct: group.ca,
           p_requirement_pct: group.p,
           user_id: user.id,
-        }).catch(() => {});
+        }).then(() => {}, () => {});
       }
     }
     setSeeding(false);
