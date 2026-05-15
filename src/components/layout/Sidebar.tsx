@@ -80,30 +80,30 @@ export function Sidebar(_props?: { onClose?: () => void }) {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-neutral-100">
-      <div className="px-4 py-5 border-b border-neutral-100">
+    <div className="flex flex-col h-full bg-gradient-to-b from-primary-900 via-primary-900 to-primary-950 border-r border-primary-950/40">
+      <div className="px-4 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <img src="/PESSATLOGO.png" alt="PESSAT" className="sidebar-logo" />
+          <img src="/PESSATLOGO.png" alt="PESSAT" className="sidebar-logo" style={{ filter: 'brightness(1.05) saturate(0.75)' }} />
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
         {navItems.map(item => (
           <NavGroup key={item.to || item.labelKey} item={item} user={user} t={t} />
         ))}
       </nav>
 
-      <div className="border-t border-neutral-100 p-4 space-y-3">
+      <div className="border-t border-white/10 p-4 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary-100 to-emerald-100 rounded-full flex items-center justify-center text-primary-700 text-sm font-semibold flex-shrink-0">
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
             {user?.full_name.charAt(0)}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-neutral-800 truncate">{user?.full_name}</p>
-            <p className="text-xs text-neutral-400">{roleLabels[user?.role || ''] || user?.role}</p>
+            <p className="text-sm font-medium text-white truncate">{user?.full_name}</p>
+            <p className="text-xs text-emerald-300">{roleLabels[user?.role || ''] || user?.role}</p>
           </div>
         </div>
-        <button onClick={() => { logout(); }} className="sidebar-link-inactive w-full text-error-600 hover:bg-error-50 hover:text-error-700">
+        <button onClick={() => { logout(); }} className="sidebar-link text-red-300/80 hover:text-red-200 hover:bg-red-900/20 w-full">
           <LogOut size={16} />
           <span>{t('nav.logout')}</span>
         </button>
@@ -140,7 +140,7 @@ function NavGroup({ item, user, t, depth = 0 }: { item: NavItem; user: any; t: (
     <div>
       <button
         onClick={() => setOpen(v => !v)}
-        className={`sidebar-link-inactive w-full ${hasActiveChild ? 'text-primary-700 bg-primary-50/60' : ''}`}
+        className={`sidebar-link w-full ${hasActiveChild ? 'text-white bg-white/10' : 'text-emerald-100/75 hover:text-white hover:bg-white/[0.08]'}`}
       >
         <span className="flex-shrink-0">{item.icon}</span>
         <span className="flex-1 text-left">{t(item.labelKey)}</span>
@@ -149,7 +149,7 @@ function NavGroup({ item, user, t, depth = 0 }: { item: NavItem; user: any; t: (
         </span>
       </button>
       {open && (
-        <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-primary-100 pl-3">
+        <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-white/20 pl-3">
           {item.children.map(child => (
             <NavGroup key={child.to || child.labelKey} item={child} user={user} t={t} depth={depth + 1} />
           ))}

@@ -587,7 +587,10 @@ export interface StockAdjustment {
   quantity_change: number;
   reason: string;
   notes?: string;
+  cost_per_unit_at_time?: number;
+  total_cost_change?: number;
   recorded_by?: string;
+  user_id?: string;
   created_at: string;
 }
 

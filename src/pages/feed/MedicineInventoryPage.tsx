@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Package, ShoppingCart, Trash2 } from 'lucide-react';
-import { getMedicineInventory, getMedicinePurchases, deleteMedicine, deleteMedicinePurchase } from '../../lib/api';
+import { AlertTriangle, Package, ShoppingCart, Trash2, Plus } from 'lucide-react';
+import { getMedicineInventory, getMedicinePurchases, deleteMedicine, deleteMedicinePurchase, createMedicine } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -25,6 +25,9 @@ export function MedicineInventoryPage() {
   const [loading, setLoading] = useState(true);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
+  const [showAddMedicineModal, setShowAddMedicineModal] = useState(false);
+  const [newMedicineName, setNewMedicineName] = useState('');
+  const [newMedicineType, setNewMedicineType] = useState('other');
   const [activeTab, setActiveTab] = useState<'stock' | 'history'>('stock');
 
   const handleDeleteMedicine = async (med: any) => {
@@ -71,6 +74,9 @@ export function MedicineInventoryPage() {
           <div className="flex gap-2">
             <button className="btn-secondary" onClick={() => setShowUsageModal(true)}>
               <Package size={16} /> Pakai Obat
+            </button>
+            <button className="btn-secondary" onClick={() => setShowAddMedicineModal(true)}>
+              <Plus size={16} /> Tambah Obat
             </button>
             <button className="btn-primary" onClick={() => setShowPurchaseModal(true)}>
               <ShoppingCart size={16} /> {t('feed.purchase')}
@@ -210,6 +216,40 @@ export function MedicineInventoryPage() {
 
       <Modal open={showUsageModal} onClose={() => setShowUsageModal(false)} title="Catat Pemakaian Obat" size="md">
         <MedicineUsageForm t={t} onClose={() => { setShowUsageModal(false); loadData(); }} />
+      </Modal>
+      <Modal open={showAddMedicineModal} onClose={() => setShowAddMedicineModal(false)} title="Tambah Obat Baru" size="sm">
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          if (!newMedicineName.trim()) { alert('Nama obat harus diisi'); return; }
+          try {
+            await createMedicine(user!.id, { name: newMedicineName.trim(), type: newMedicineType as any });
+            setShowAddMedicineModal(false);
+            setNewMedicineName('');
+            setNewMedicineType('other');
+            loadData();
+          } catch { alert('Gagal menambah obat'); }
+        }} className="space-y-4">
+          <div>
+            <label className="label">Nama Obat <span className="text-error-500">*</span></label>
+            <input className="input" value={newMedicineName} onChange={e => setNewMedicineName(e.target.value)} placeholder="Contoh: Amoxicillin 500mg" required />
+          </div>
+          <div>
+            <label className="label">Tipe Obat</label>
+            <select className="select" value={newMedicineType} onChange={e => setNewMedicineType(e.target.value)}>
+              <option value="antibiotic">Antibiotik</option>
+              <option value="vitamin">Vitamin</option>
+              <option value="vaccine">Vaksin</option>
+              <option value="antiparasitic">Antiparasit</option>
+              <option value="hormone">Hormon</option>
+              <option value="anti_inflammatory">Anti Inflamasi</option>
+              <option value="other">Lainnya</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button type="button" className="btn-secondary" onClick={() => setShowAddMedicineModal(false)}>Batal</button>
+            <button type="submit" className="btn-primary">Simpan</button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

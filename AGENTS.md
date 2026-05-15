@@ -73,6 +73,39 @@
 - `src/pages/livestock/LivestockListPage.tsx` — null-safe weight/gender
 - `AGENTS.md` — session tracking
 
+### Session 4 (May 16, 2026) — Fix 6 bugs: Stock Adj., Tasks, Users, Meds, Dashboard, Profile
+
+**Goal:** Fix 6 bugs: dashboard no feed purchases shown, medicine master data not user-creatable, stock adjustments failed, tasks failed, new users not appearing, profile UI ugly.
+
+**Root causes & fixes:**
+
+1. **Bug 3 — Stock Adjustments:** DB table `stock_adjustments` missing columns `notes`, `cost_per_unit_at_time`, `total_cost_change`; API used invalid FK joins `feeds!left(name), medicines!left(name)` (no FK exists). → Created migration `20260516000002_fix_stock_adjustments_and_tasks.sql`; rewrote `getStockAdjustments` to resolve item names client-side; fixed `createStockAdjustment` to explicitly set column list & update inventory after insert; added missing fields to `StockAdjustment` type; removed duplicate function definitions.
+
+2. **Bug 4 — Tasks:** `getTasks` used non-existent FK constraint name `tasks_related_animal_id_fkey` for join; `createTask` received tag string (e.g. "KP-001") for `related_animal_id` (UUID column). → Rewrote `getTasks` to resolve assigned name + animal tag_id client-side; `createTask`/`updateTask` now detect tag strings and auto-resolve to UUID via `animals.tag_id` lookup before insert.
+
+3. **Bug 5 — Users:** `getUsers(userId)` in `auth.ts` added `.eq('id', userId)` when provided → UsersPage called `getUsers(user?.id)` → showed only the current user. → Changed parameter to `_userId` (ignored), query now always returns ALL users.
+
+4. **Bug 2 — Medicine master data:** No UI to add medicine types; only seeded data available. → Added "Tambah Obat Baru" button + modal with name/type fields in `MedicineInventoryPage`; calls existing `createMedicine` API.
+
+5. **Bug 1 — Dashboard feed purchases:** Dashboard showed feed stock levels only, no purchase history. → Added `getFeedPurchases` import from API; added recent purchases section (last 3) below stock bars in the Feed card on the right column.
+
+6. **Bug 6 — Profile UI:** Plain card form, no modern look. → Rewrote `ProfilePage` with full gradient hero (matching dashboard), SparkleIcon, 4 hero stat cards (scale, contact, email, status), polished form layout with icon + title header, bordered tabs.
+
+**Migration required:** `supabase/migrations/20260516000002_fix_stock_adjustments_and_tasks.sql` must be applied via Supabase SQL editor to add `notes`, `cost_per_unit_at_time`, `total_cost_change` columns to `stock_adjustments`.
+
+**Build:** `npm run build` passes (0 errors, 1604 modules, 14.75s). Typecheck: 0 new errors (all ~60 pre-existing remain from `string|undefined` pattern).
+
+**Files changed:**
+- `supabase/migrations/20260516000002_fix_stock_adjustments_and_tasks.sql` — new migration
+- `src/lib/api/finance.ts` — fix stock adj. joins, explicit inserts, inventory updates; remove duplicates
+- `src/lib/api/tasks.ts` — client-side FK resolution, UUID tag→id lookup
+- `src/lib/api/auth.ts` — remove `.eq('id', userId)` filter in `getUsers`
+- `src/types/index.ts` — add `cost_per_unit_at_time`, `total_cost_change`, `user_id` to `StockAdjustment`
+- `src/pages/DashboardPage.tsx` — add feed purchases section, import `ShoppingCart`
+- `src/pages/feed/MedicineInventoryPage.tsx` — add medicine creation modal
+- `src/pages/ProfilePage.tsx` — full redesign with dashboard-style hero
+- `AGENTS.md` — session tracking
+
 ### Session 3 (May 16, 2026) — Add loading/empty states, fix supervisor_name insert failure
 
 **Goal:** Fix "kolom kosong" — pages show no data and forms silently fail.

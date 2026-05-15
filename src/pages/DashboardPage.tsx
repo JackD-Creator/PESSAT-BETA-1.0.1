@@ -4,7 +4,7 @@ import {
   Beef, Heart, Wheat, DollarSign, Milk, CheckSquare, Bell,
   TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Clock,
   MapPin, ArrowRight, Syringe, Baby,
-  ChevronRight, BarChart3,
+  ChevronRight, BarChart3, ShoppingCart,
 } from 'lucide-react';
 import { StatCard } from '../components/ui/StatCard';
 import { PriorityBadge } from '../components/ui/Badge';
@@ -14,6 +14,7 @@ import {
   getFeedInventory, getTasks, getAlerts,
   getAnimals,
 } from '../lib/db';
+import { getFeedPurchases } from '../lib/api/feed';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 
@@ -81,6 +82,7 @@ export function DashboardPage() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [feedInventory, setFeedInventory] = useState<any[]>([]);
+  const [feedPurchases, setFeedPurchases] = useState<any[]>([]);
 
   useEffect(() => {
     getAnimals(user?.id).then(setAnimals);
@@ -92,6 +94,7 @@ export function DashboardPage() {
     getTasks(user?.id).then(setTasks);
     getAlerts(user?.id).then(setAlerts);
     getFeedInventory(user?.id).then(setFeedInventory);
+    getFeedPurchases(user?.id).then(setFeedPurchases);
   }, [user?.id]);
 
   const cattleCount = animals.filter(a => a.species === 'cattle').length;
@@ -145,6 +148,16 @@ export function DashboardPage() {
   const criticalAlerts = alerts.filter((a: any) => a.severity === 'critical' && !a.is_resolved).length;
 
   const lowStockCount = feedInventory.filter((f: any) => f.quantity_on_hand < f.min_threshold).length;
+
+  const healthRate = totalAnimals > 0 ? Math.round((healthyCount / totalAnimals) * 100) : 0;
+  const lastMonthStr = new Date(todayObj.getFullYear(), todayObj.getMonth() - 1, 1).toISOString().slice(0, 7);
+  const lastMonthIncome = transactions.filter((tx: any) => tx.type === 'income' && tx.transaction_date?.startsWith(lastMonthStr)).reduce((s: number, tx: any) => s + tx.amount, 0);
+  const lastMonthExpense = transactions.filter((tx: any) => tx.type === 'expense' && tx.transaction_date?.startsWith(lastMonthStr)).reduce((s: number, tx: any) => s + tx.amount, 0);
+  const incomeTrendPct = lastMonthIncome > 0 ? ((monthlyIncome - lastMonthIncome) / lastMonthIncome * 100) : null;
+  const expenseTrendPct = lastMonthExpense > 0 ? ((monthlyExpense - lastMonthExpense) / lastMonthExpense * 100) : null;
+  const milkTrendPct = milkData.length >= 2 && milkData[milkData.length - 2] > 0
+    ? ((milkData[milkData.length - 1] - milkData[milkData.length - 2]) / milkData[milkData.length - 2] * 100)
+    : null;
 
   const stats = {
     totalAnimals, cattleCount, sheepCount, goatCount,
@@ -253,25 +266,40 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Row */}
+      {/* KPI Row - Operational Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <StatCard title={t('dashboard.total.livestock')} value={stats.totalAnimals}
-          subtitle={`${stats.cattleCount} ${t('species.cattle')} \u00B7 ${stats.sheepCount} ${t('species.sheep')} \u00B7 ${stats.goatCount} ${t('species.goat')}`}
-          icon={<Beef size={22} className="text-emerald-600" />} iconBg="bg-emerald-50"
-          onClick={() => navigate('/livestock')} />
-        <StatCard title={t('dashboard.today.production')} value={`${stats.avgMilkToday} L`}
-          subtitle={t('dashboard.production.subtitle')}
-          icon={<Milk size={22} className="text-blue-600" />} iconBg="bg-blue-50"
-          trend={{ value: 3.2, label: t('dashboard.vs.yesterday') }}
-          onClick={() => navigate('/production')} />
-        <StatCard title={t('dashboard.monthly.revenue')} value={formatCurrency(monthlyIncome)}
-          subtitle={t('dashboard.revenue.subtitle')}
-          icon={<TrendingUp size={22} className="text-emerald-600" />} iconBg="bg-emerald-50"
-          onClick={() => navigate('/finance/transactions')} />
-        <StatCard title={t('dashboard.active.alerts')} value={stats.unreadAlerts}
-          subtitle={`${stats.criticalAlerts} ${t('severity.critical')} \u00B7 ${stats.lowStockCount} ${t('dashboard.low.stock.text')}`}
-          icon={<Bell size={22} className="text-rose-600" />} iconBg="bg-rose-50"
-          onClick={() => navigate('/alerts')} />
+        <StatCard
+          title={t('dashboard.health.rate')}
+          value={`${healthRate}%`}
+          subtitle={`${stats.healthyCount} ${t('dashboard.healthy.animals')} / ${stats.totalAnimals}`}
+          icon={<Heart size={22} className={healthRate >= 80 ? 'text-emerald-600' : healthRate >= 60 ? 'text-amber-600' : 'text-red-600'} />}
+          iconBg={healthRate >= 80 ? 'bg-emerald-50' : healthRate >= 60 ? 'bg-amber-50' : 'bg-red-50'}
+          onClick={() => navigate('/livestock')}
+        />
+        <StatCard
+          title={t('dashboard.net.profit')}
+          value={formatCurrency(monthlyIncome - monthlyExpense)}
+          subtitle={incomeTrendPct !== null ? `${incomeTrendPct >= 0 ? '+' : ''}${incomeTrendPct.toFixed(1)}% vs ${t('dashboard.last.month')}` : t('dashboard.revenue.subtitle')}
+          icon={<TrendingUp size={22} className={monthlyIncome >= monthlyExpense ? 'text-emerald-600' : 'text-red-600'} />}
+          iconBg={monthlyIncome >= monthlyExpense ? 'bg-emerald-50' : 'bg-red-50'}
+          onClick={() => navigate('/finance/reports')}
+        />
+        <StatCard
+          title={t('dashboard.feed.stock')}
+          value={`${feedInventory.length > 0 ? feedInventory.length - lowStockCount : 0}/${feedInventory.length}`}
+          subtitle={`${lowStockCount} ${t('dashboard.low.stock.text')}`}
+          icon={<Wheat size={22} className={lowStockCount > 0 ? 'text-amber-600' : 'text-emerald-600'} />}
+          iconBg={lowStockCount > 0 ? 'bg-amber-50' : 'bg-emerald-50'}
+          onClick={() => navigate('/feed-inventory')}
+        />
+        <StatCard
+          title={t('dashboard.pending.tasks')}
+          value={stats.pendingTasks}
+          subtitle={`${stats.overdueTasks} ${t('dashboard.overdue')}`}
+          icon={<CheckSquare size={22} className={stats.overdueTasks > 0 ? 'text-red-600' : 'text-emerald-600'} />}
+          iconBg={stats.overdueTasks > 0 ? 'bg-red-50' : 'bg-emerald-50'}
+          onClick={() => navigate('/tasks')}
+        />
       </div>
 
       {/* Main Grid */}
@@ -336,15 +364,19 @@ export function DashboardPage() {
             </div>
             <div className="flex items-end gap-3 mb-4">
               <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl px-4 py-2.5 shadow-lg shadow-blue-200">
-                <span className="text-2xl md:text-3xl font-extrabold">{milkData[milkData.length - 1]}</span>
+                <span className="text-2xl md:text-3xl font-extrabold">{milkData[milkData.length - 1] ?? 0}</span>
                 <span className="text-base md:text-lg font-bold ml-1 opacity-90">L</span>
               </div>
-              <div className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg mb-1">
-                <TrendingUp size={14} />
-                <span>+3.2% {t('dashboard.vs.yesterday')}</span>
-              </div>
+              {milkTrendPct !== null ? (
+                <div className={`flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg mb-1 ${
+                  milkTrendPct >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
+                }`}>
+                  {milkTrendPct >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  <span>{milkTrendPct >= 0 ? '+' : ''}{milkTrendPct.toFixed(1)}% {t('dashboard.vs.yesterday')}</span>
+                </div>
+              ) : null}
               <span className="text-xs md:text-sm text-neutral-400 font-semibold mb-1 ml-auto">
-                {t('dashboard.avg.per.day').replace('{0}', String(Math.round(milkData.reduce((a, b) => a + b, 0) / milkData.length)))}
+                {t('dashboard.avg.per.day').replace('{0}', String(Math.round(milkData.reduce((a, b) => a + b, 0) / (milkData.length || 1))))}
               </span>
             </div>
             <div className="relative bg-neutral-50/50 rounded-2xl p-3 md:p-4">
@@ -427,20 +459,32 @@ export function DashboardPage() {
                 <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-lg shadow-emerald-200">
                   <p className="text-[11px] font-bold uppercase tracking-wider opacity-80 mb-1">{t('finance.income')}</p>
                   <p className="text-lg md:text-xl font-extrabold">{formatCurrency(monthlyIncome)}</p>
-                  <div className="flex items-center gap-1 mt-1.5 text-xs font-bold text-emerald-100"><TrendingUp size={12} /> +8.2%</div>
+                  {incomeTrendPct !== null ? (
+                    <div className="flex items-center gap-1 mt-1.5 text-xs font-bold text-emerald-100">
+                      {incomeTrendPct >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {incomeTrendPct >= 0 ? '+' : ''}{incomeTrendPct.toFixed(1)}%
+                    </div>
+                  ) : null}
                 </div>
                 <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-4 text-white shadow-lg shadow-red-200">
                   <p className="text-[11px] font-bold uppercase tracking-wider opacity-80 mb-1">{t('finance.expenses')}</p>
                   <p className="text-lg md:text-xl font-extrabold">{formatCurrency(monthlyExpense)}</p>
-                  <div className="flex items-center gap-1 mt-1.5 text-xs font-bold text-red-100"><TrendingDown size={12} /> -2.1%</div>
+                  {expenseTrendPct !== null ? (
+                    <div className="flex items-center gap-1 mt-1.5 text-xs font-bold text-red-100">
+                      {expenseTrendPct >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {expenseTrendPct >= 0 ? '+' : ''}{expenseTrendPct.toFixed(1)}%
+                    </div>
+                  ) : null}
                 </div>
                 <div className={`bg-gradient-to-br rounded-2xl p-4 text-white shadow-lg ${monthlyIncome - monthlyExpense >= 0 ? 'from-emerald-500 to-emerald-600 shadow-emerald-200' : 'from-red-500 to-red-600 shadow-red-200'}`}>
                   <p className="text-[11px] font-bold uppercase tracking-wider opacity-80 mb-1">{t('finance.net.profit')}</p>
                   <p className="text-lg md:text-xl font-extrabold">{formatCurrency(monthlyIncome - monthlyExpense)}</p>
-                  <div className={`flex items-center gap-1 mt-1.5 text-xs font-bold ${monthlyIncome - monthlyExpense >= 0 ? 'text-emerald-100' : 'text-red-100'}`}>
-                    {monthlyIncome - monthlyExpense >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                    {monthlyIncome - monthlyExpense >= 0 ? '+5.1%' : '-5.1%'}
-                  </div>
+                  {incomeTrendPct !== null ? (
+                    <div className={`flex items-center gap-1 mt-1.5 text-xs font-bold ${monthlyIncome - monthlyExpense >= 0 ? 'text-emerald-100' : 'text-red-100'}`}>
+                      {incomeTrendPct >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {incomeTrendPct >= 0 ? '+' : ''}{incomeTrendPct.toFixed(1)}%
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <div>
@@ -589,7 +633,32 @@ export function DashboardPage() {
                   </div>
                 );
               })}
+              {feedInventory.length === 0 && (
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3"><Wheat size={24} className="text-amber-400" /></div>
+                  <p className="text-sm font-bold text-neutral-500">Belum ada stok pakan</p>
+                </div>
+              )}
             </div>
+            {feedPurchases.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-neutral-100">
+                <p className="text-xs font-bold text-neutral-400 uppercase tracking-[0.1em] mb-3">Pembelian Terbaru</p>
+                <div className="space-y-2">
+                  {feedPurchases.slice(0, 3).map((p: any) => (
+                    <div key={p.id} className="flex items-center justify-between py-1.5">
+                      <div className="flex items-center gap-2">
+                        <ShoppingCart size={12} className="text-neutral-400" />
+                        <span className="text-xs font-semibold text-neutral-700">{p.feeds?.name || '-'}</span>
+                      </div>
+                      <span className="text-xs font-bold text-neutral-500">{Number(p.quantity)} kg</span>
+                    </div>
+                  ))}
+                  <Link to="/feed-purchases" className="block text-xs font-bold text-emerald-600 hover:text-emerald-700 text-center mt-2">
+                    Lihat semua pembelian <ArrowRight size={12} className="inline" />
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Locations */}

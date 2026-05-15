@@ -2,7 +2,7 @@ import { supabaseAdmin } from '../supabaseAdmin';
 import type { FinancialTransaction, LaborExpense, OperationalExpense, StockAdjustment } from '../../types';
 
 // ─── Helper: auto-record financial transaction ───
-export async function recordFinancialTransaction(userId: string, tx: {
+export async function recordFinancialTransaction(userId: string = '', tx: {
   type: 'income' | 'expense';
   category: string;
   amount: number;
@@ -12,6 +12,7 @@ export async function recordFinancialTransaction(userId: string, tx: {
   source_table?: string;
   source_id?: string;
 }) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('financial_transactions').insert({
     user_id: userId,
     type: tx.type,
@@ -27,7 +28,8 @@ export async function recordFinancialTransaction(userId: string, tx: {
 }
 
 // ─── Financial Transactions ───
-export async function getTransactions(userId: string, params?: { type?: string; category?: string; cashFlow?: string; dateFrom?: string; dateTo?: string }) {
+export async function getTransactions(userId: string = '', params?: { type?: string; category?: string; cashFlow?: string; dateFrom?: string; dateTo?: string }) {
+  if (!userId) return [];
   let q = supabaseAdmin.from('financial_transactions').select('*, animals(tag_id)').eq('user_id', userId).order('transaction_date', { ascending: false }).limit(100);
   if (params?.type) q = q.eq('type', params.type);
   if (params?.category) q = q.eq('category', params.category);
@@ -39,7 +41,8 @@ export async function getTransactions(userId: string, params?: { type?: string; 
   return data as (FinancialTransaction & { animals: { tag_id: string } | null })[];
 }
 
-export async function getFinanceSummary(userId: string) {
+export async function getFinanceSummary(userId: string = '') {
+  if (!userId) return { income: 0, expense: 0, profit: 0, cashIn: 0, cashOut: 0, netCash: 0, count: 0 };
   const q = supabaseAdmin.from('financial_transactions').select('type, cash_flow, amount')
     .gte('transaction_date', new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0])
     .eq('user_id', userId);
@@ -57,14 +60,16 @@ export async function getFinanceSummary(userId: string) {
 }
 
 // ─── Labor Expenses ───
-export async function getLaborExpenses(userId: string) {
+export async function getLaborExpenses(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('labor_expenses').select('*').eq('user_id', userId);
   const { data, error } = await q.order('expense_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as LaborExpense[];
 }
 
-export async function createLaborExpense(userId: string, expense: Partial<LaborExpense>) {
+export async function createLaborExpense(userId: string = '', expense: Partial<LaborExpense>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('labor_expenses').insert({ ...expense, user_id: userId }).select().single();
   if (error) throw error;
 
@@ -86,14 +91,16 @@ export async function createLaborExpense(userId: string, expense: Partial<LaborE
 }
 
 // ─── Operational Expenses ───
-export async function getOperationalExpenses(userId: string) {
+export async function getOperationalExpenses(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('operational_expenses').select('*').eq('user_id', userId);
   const { data, error } = await q.order('expense_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as OperationalExpense[];
 }
 
-export async function createOperationalExpense(userId: string, expense: Partial<OperationalExpense>) {
+export async function createOperationalExpense(userId: string = '', expense: Partial<OperationalExpense>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('operational_expenses').insert({ ...expense, user_id: userId }).select().single();
   if (error) throw error;
 
@@ -115,16 +122,64 @@ export async function createOperationalExpense(userId: string, expense: Partial<
 }
 
 // ─── Stock Adjustments ───
-export async function getStockAdjustments(userId: string) {
-  const q = supabaseAdmin.from('stock_adjustments').select('*, feeds!left(name), medicines!left(name)').eq('user_id', userId);
-  const { data, error } = await q.order('adjustment_date', { ascending: false }).limit(50);
+export async function getStockAdjustments(userId: string = '') {
+  if (!userId) return [];
+  const { data, error } = await supabaseAdmin.from('stock_adjustments').select('*').eq('user_id', userId).order('adjustment_date', { ascending: false }).limit(50);
   if (error) throw error;
-  return data as (StockAdjustment & { feeds?: { name: string } | null; medicines?: { name: string } | null })[];
+  // Resolve item names manually
+  const result = await Promise.all((data || []).map(async (adj: any) => {
+    let itemName = adj.item_id?.substring(0, 8) || '-';
+    if (adj.item_type === 'feed') {
+      const { data: f } = await supabaseAdmin.from('feeds').select('name').eq('id', adj.item_id).maybeSingle();
+      if (f) itemName = f.name;
+    } else if (adj.item_type === 'medicine') {
+      const { data: m } = await supabaseAdmin.from('medicines').select('name').eq('id', adj.item_id).maybeSingle();
+      if (m) itemName = m.name;
+    }
+    return { ...adj, item_name: itemName };
+  }));
+  return result as (StockAdjustment & { item_name: string })[];
 }
 
-export async function createStockAdjustment(userId: string, adjustment: Partial<StockAdjustment>) {
-  const { data, error } = await supabaseAdmin.from('stock_adjustments').insert({ ...adjustment, user_id: userId }).select().single();
+export async function createStockAdjustment(userId: string = '', adjustment: Partial<StockAdjustment>) {
+  if (!userId) throw new Error('User ID required');
+  const insertData = {
+    adjustment_date: adjustment.adjustment_date,
+    item_type: adjustment.item_type,
+    item_id: adjustment.item_id,
+    quantity_change: adjustment.quantity_change,
+    reason: adjustment.reason,
+    notes: (adjustment as any).notes,
+    cost_per_unit_at_time: (adjustment as any).cost_per_unit_at_time,
+    total_cost_change: (adjustment as any).total_cost_change,
+    recorded_by: (adjustment as any).recorded_by,
+    user_id: userId,
+  };
+  const { data, error } = await supabaseAdmin.from('stock_adjustments').insert(insertData).select().single();
   if (error) throw error;
+
+  // Update inventory
+  if (adjustment.item_type === 'feed') {
+    const inv = await supabaseAdmin.from('feed_inventory').select('*').eq('feed_id', adjustment.item_id).eq('user_id', userId).maybeSingle();
+    if (inv.data) {
+      const change = Number(adjustment.quantity_change) || 0;
+      const newQty = Math.max(0, Number(inv.data.quantity_on_hand) + change);
+      await supabaseAdmin.from('feed_inventory').update({
+        quantity_on_hand: newQty,
+        total_cost: newQty * Number(inv.data.avg_cost_per_unit),
+      }).eq('id', inv.data.id);
+    }
+  } else if (adjustment.item_type === 'medicine') {
+    const inv = await supabaseAdmin.from('medicine_inventory').select('*').eq('medicine_id', adjustment.item_id).eq('user_id', userId).maybeSingle();
+    if (inv.data) {
+      const change = Number(adjustment.quantity_change) || 0;
+      const newQty = Math.max(0, Number(inv.data.quantity_on_hand) + change);
+      await supabaseAdmin.from('medicine_inventory').update({
+        quantity_on_hand: newQty,
+        total_cost: newQty * Number(inv.data.avg_cost_per_unit),
+      }).eq('id', inv.data.id);
+    }
+  }
 
   // Record financial loss
   const lossAmount = Math.abs(Number((adjustment as any).total_cost_change) || 0);
@@ -144,35 +199,50 @@ export async function createStockAdjustment(userId: string, adjustment: Partial<
   return data as StockAdjustment;
 }
 
-export async function updateLaborExpense(userId: string, id: string, expense: Partial<LaborExpense>) {
+export async function updateStockAdjustment(userId: string = '', id: string, adjustment: Partial<StockAdjustment>) {
+  if (!userId) throw new Error('User ID required');
+  const { data, error } = await supabaseAdmin.from('stock_adjustments').update({
+    reason: adjustment.reason,
+    notes: (adjustment as any).notes,
+    adjustment_date: adjustment.adjustment_date,
+    quantity_change: adjustment.quantity_change,
+    cost_per_unit_at_time: (adjustment as any).cost_per_unit_at_time,
+    total_cost_change: (adjustment as any).total_cost_change,
+  }).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as StockAdjustment;
+}
+
+export async function deleteStockAdjustment(userId: string = '', id: string) {
+  if (!userId) return;
+  const { error } = await supabaseAdmin.from('stock_adjustments').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateLaborExpense(userId: string = '', id: string, expense: Partial<LaborExpense>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('labor_expenses').update(expense).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as LaborExpense;
 }
 
-export async function deleteLaborExpense(userId: string, id: string) {
+export async function deleteLaborExpense(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('labor_expenses').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateOperationalExpense(userId: string, id: string, expense: Partial<OperationalExpense>) {
+export async function updateOperationalExpense(userId: string = '', id: string, expense: Partial<OperationalExpense>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('operational_expenses').update(expense).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as OperationalExpense;
 }
 
-export async function deleteOperationalExpense(userId: string, id: string) {
+export async function deleteOperationalExpense(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('operational_expenses').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateStockAdjustment(userId: string, id: string, adjustment: Partial<StockAdjustment>) {
-  const { data, error } = await supabaseAdmin.from('stock_adjustments').update(adjustment).eq('id', id).eq('user_id', userId).select().single();
-  if (error) throw error;
-  return data as StockAdjustment;
-}
 
-export async function deleteStockAdjustment(userId: string, id: string) {
-  const { error } = await supabaseAdmin.from('stock_adjustments').delete().eq('id', id).eq('user_id', userId);
-  if (error) throw error;
-}

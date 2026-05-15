@@ -24,7 +24,8 @@ export async function getCurrentUser() {
   return data.user;
 }
 
-export async function getProfile(userId: string) {
+export async function getProfile(userId: string = '') {
+  if (!userId) return null;
   const { data, error } = await supabaseAdmin.from('users').select('*').eq('id', userId).single();
   if (error) return null;
   return data as User;
@@ -38,10 +39,8 @@ export function onAuthChange(callback: (user: unknown) => void) {
 
 // ─── Admin: User Management ───
 
-export async function getUsers(userId?: string) {
-  let q = supabaseAdmin.from('users').select('*').order('created_at', { ascending: false });
-  if (userId) q = q.eq('id', userId);
-  const { data, error } = await q;
+export async function getUsers(_userId: string = '') {
+  const { data, error } = await supabaseAdmin.from('users').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return data as User[];
 }

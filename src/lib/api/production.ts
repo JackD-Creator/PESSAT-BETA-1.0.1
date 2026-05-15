@@ -3,7 +3,8 @@ import { recordFinancialTransaction } from './finance';
 import type { DailyProduction, ProductSale, AnimalPurchase, AnimalSale } from '../../types';
 
 // ─── Daily Production ───
-export async function getDailyProduction(userId: string, params?: { dateFrom?: string; dateTo?: string; productType?: string }) {
+export async function getDailyProduction(userId: string = '', params?: { dateFrom?: string; dateTo?: string; productType?: string }) {
+  if (!userId) return [];
   let q = supabaseAdmin.from('daily_production').select('*, animals!daily_production_animal_id_fkey(tag_id), herd_groups(name)').eq('user_id', userId).order('production_date', { ascending: false });
   if (params?.dateFrom) q = q.gte('production_date', params.dateFrom);
   if (params?.dateTo) q = q.lte('production_date', params.dateTo);
@@ -13,13 +14,15 @@ export async function getDailyProduction(userId: string, params?: { dateFrom?: s
   return data as (DailyProduction & { animals: { tag_id: string } | null; herd_groups: { name: string } | null })[];
 }
 
-export async function createDailyProduction(userId: string, record: Partial<DailyProduction>) {
+export async function createDailyProduction(userId: string = '', record: Partial<DailyProduction>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('daily_production').insert({ ...record, user_id: userId }).select().single();
   if (error) throw error;
   return data as DailyProduction;
 }
 
-export async function getProductionSummary(userId: string, days: number = 7) {
+export async function getProductionSummary(userId: string = '', days: number = 7) {
+  if (!userId) return [];
   const from = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
   const q = supabaseAdmin.from('daily_production')
     .select('production_date, product_type, quantity, unit')
@@ -31,14 +34,16 @@ export async function getProductionSummary(userId: string, days: number = 7) {
 }
 
 // ─── Product Sales ───
-export async function getProductSales(userId: string) {
+export async function getProductSales(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('product_sales').select('*').eq('user_id', userId);
   const { data, error } = await q.order('sale_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as ProductSale[];
 }
 
-export async function createProductSale(userId: string, sale: Partial<ProductSale>) {
+export async function createProductSale(userId: string = '', sale: Partial<ProductSale>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('product_sales').insert({ ...sale, user_id: userId }).select().single();
   if (error) throw error;
 
@@ -61,14 +66,16 @@ export async function createProductSale(userId: string, sale: Partial<ProductSal
 }
 
 // ─── Animal Purchases ───
-export async function getAnimalPurchases(userId: string) {
+export async function getAnimalPurchases(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('animal_purchases').select('*, animals(tag_id, species, breed)').eq('user_id', userId);
   const { data, error } = await q.order('purchase_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as (AnimalPurchase & { animals: { tag_id: string; species: string; breed: string } })[];
 }
 
-export async function createAnimalPurchase(userId: string, purchase: Partial<AnimalPurchase>) {
+export async function createAnimalPurchase(userId: string = '', purchase: Partial<AnimalPurchase>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('animal_purchases').insert({ ...purchase, user_id: userId }).select().single();
   if (error) throw error;
 
@@ -90,14 +97,16 @@ export async function createAnimalPurchase(userId: string, purchase: Partial<Ani
 }
 
 // ─── Animal Sales ───
-export async function getAnimalSales(userId: string) {
+export async function getAnimalSales(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('animal_sales').select('*, animals(tag_id, species, breed)').eq('user_id', userId);
   const { data, error } = await q.order('sale_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as (AnimalSale & { animals: { tag_id: string; species: string; breed: string } })[];
 }
 
-export async function createAnimalSale(userId: string, sale: Partial<AnimalSale>) {
+export async function createAnimalSale(userId: string = '', sale: Partial<AnimalSale>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('animal_sales').insert({ ...sale, user_id: userId }).select().single();
   if (error) throw error;
 
@@ -118,46 +127,54 @@ export async function createAnimalSale(userId: string, sale: Partial<AnimalSale>
   return data as AnimalSale;
 }
 
-export async function updateDailyProduction(userId: string, id: string, record: Partial<DailyProduction>) {
+export async function updateDailyProduction(userId: string = '', id: string, record: Partial<DailyProduction>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('daily_production').update(record).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as DailyProduction;
 }
 
-export async function deleteDailyProduction(userId: string, id: string) {
+export async function deleteDailyProduction(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('daily_production').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateProductSale(userId: string, id: string, sale: Partial<ProductSale>) {
+export async function updateProductSale(userId: string = '', id: string, sale: Partial<ProductSale>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('product_sales').update(sale).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as ProductSale;
 }
 
-export async function deleteProductSale(userId: string, id: string) {
+export async function deleteProductSale(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('product_sales').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateAnimalPurchase(userId: string, id: string, purchase: Partial<AnimalPurchase>) {
+export async function updateAnimalPurchase(userId: string = '', id: string, purchase: Partial<AnimalPurchase>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('animal_purchases').update(purchase).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as AnimalPurchase;
 }
 
-export async function deleteAnimalPurchase(userId: string, id: string) {
+export async function deleteAnimalPurchase(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('animal_purchases').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateAnimalSale(userId: string, id: string, sale: Partial<AnimalSale>) {
+export async function updateAnimalSale(userId: string = '', id: string, sale: Partial<AnimalSale>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('animal_sales').update(sale).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as AnimalSale;
 }
 
-export async function deleteAnimalSale(userId: string, id: string) {
+export async function deleteAnimalSale(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('animal_sales').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }

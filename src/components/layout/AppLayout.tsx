@@ -49,7 +49,7 @@ export function AppLayout() {
   const title = titleKey ? t(titleKey) : t('app.name');
 
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-50">
+    <div className="flex h-screen overflow-hidden bg-neutral-100">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0 lg:w-64">
         <Sidebar />

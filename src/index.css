@@ -14,7 +14,7 @@
   }
 
   body {
-    @apply font-sans text-neutral-800 bg-neutral-50;
+    @apply font-sans text-neutral-800 bg-neutral-100;
   }
 
   ::-webkit-scrollbar {
@@ -178,16 +178,24 @@
     @apply w-36 h-auto;
   }
 
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    @apply bg-white/20 rounded-full;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
   .sidebar-link {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer;
   }
 
   .sidebar-link-active {
-    @apply sidebar-link bg-primary-50 text-primary-700 font-semibold;
+    @apply sidebar-link bg-white/[0.18] text-white font-semibold;
   }
 
   .sidebar-link-inactive {
-    @apply sidebar-link text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100;
+    @apply sidebar-link text-emerald-100/75 hover:text-white hover:bg-white/[0.09];
   }
 
   .page-container {

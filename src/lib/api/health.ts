@@ -2,7 +2,8 @@ import { supabaseAdmin } from '../supabaseAdmin';
 import type { HealthRecord, Vaccination, BreedingEvent } from '../../types';
 
 // ─── Health Records ───
-export async function getHealthRecords(userId: string, animalId?: string) {
+export async function getHealthRecords(userId: string = '', animalId?: string) {
+  if (!userId) return [];
   let q = supabaseAdmin.from('health_records').select('*, animals!inner(tag_id)').eq('user_id', userId).order('record_date', { ascending: false });
   if (animalId) q = q.eq('animal_id', animalId);
   const { data, error } = await q;
@@ -10,19 +11,22 @@ export async function getHealthRecords(userId: string, animalId?: string) {
   return data as (HealthRecord & { animals: { tag_id: string } })[];
 }
 
-export async function createHealthRecord(userId: string, record: Partial<HealthRecord>) {
+export async function createHealthRecord(userId: string = '', record: Partial<HealthRecord>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('health_records').insert({ ...record, user_id: userId }).select().single();
   if (error) throw error;
   return data as HealthRecord;
 }
 
-export async function resolveHealthRecord(userId: string, id: string, resolved: boolean) {
+export async function resolveHealthRecord(userId: string = '', id: string, resolved: boolean) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('health_records').update({ is_resolved: resolved }).eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
 // ─── Vaccinations ───
-export async function getVaccinations(userId: string, animalId?: string) {
+export async function getVaccinations(userId: string = '', animalId?: string) {
+  if (!userId) return [];
   let q = supabaseAdmin.from('vaccinations').select('*, animals!vaccinations_animal_id_fkey(tag_id), herd_groups(name)').eq('user_id', userId).order('date_administered', { ascending: false });
   if (animalId) q = q.eq('animal_id', animalId);
   const { data, error } = await q;
@@ -30,14 +34,16 @@ export async function getVaccinations(userId: string, animalId?: string) {
   return data as (Vaccination & { animals: { tag_id: string } | null; herd_groups: { name: string } | null })[];
 }
 
-export async function createVaccination(userId: string, vaccination: Partial<Vaccination>) {
+export async function createVaccination(userId: string = '', vaccination: Partial<Vaccination>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('vaccinations').insert({ ...vaccination, user_id: userId }).select().single();
   if (error) throw error;
   return data as Vaccination;
 }
 
 // ─── Breeding Events ───
-export async function getBreedingEvents(userId: string, animalId?: string) {
+export async function getBreedingEvents(userId: string = '', animalId?: string) {
+  if (!userId) return [];
   let q = supabaseAdmin.from('breeding_events').select('*, animals!breeding_events_animal_id_fkey(tag_id), sire:sire_id(tag_id)').eq('user_id', userId).order('event_date', { ascending: false });
   if (animalId) q = q.eq('animal_id', animalId);
   const { data, error } = await q;
@@ -45,41 +51,48 @@ export async function getBreedingEvents(userId: string, animalId?: string) {
   return data as (BreedingEvent & { animals: { tag_id: string }; sire: { tag_id: string } | null })[];
 }
 
-export async function createBreedingEvent(userId: string, event: Partial<BreedingEvent>) {
+export async function createBreedingEvent(userId: string = '', event: Partial<BreedingEvent>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('breeding_events').insert({ ...event, user_id: userId }).select().single();
   if (error) throw error;
   return data as BreedingEvent;
 }
 
-export async function updateHealthRecord(userId: string, id: string, record: Partial<HealthRecord>) {
+export async function updateHealthRecord(userId: string = '', id: string, record: Partial<HealthRecord>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('health_records').update(record).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as HealthRecord;
 }
 
-export async function deleteHealthRecord(userId: string, id: string) {
+export async function deleteHealthRecord(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('health_records').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateVaccination(userId: string, id: string, vaccination: Partial<Vaccination>) {
+export async function updateVaccination(userId: string = '', id: string, vaccination: Partial<Vaccination>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('vaccinations').update(vaccination).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as Vaccination;
 }
 
-export async function deleteVaccination(userId: string, id: string) {
+export async function deleteVaccination(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('vaccinations').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateBreedingEvent(userId: string, id: string, event: Partial<BreedingEvent>) {
+export async function updateBreedingEvent(userId: string = '', id: string, event: Partial<BreedingEvent>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('breeding_events').update(event).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as BreedingEvent;
 }
 
-export async function deleteBreedingEvent(userId: string, id: string) {
+export async function deleteBreedingEvent(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('breeding_events').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }

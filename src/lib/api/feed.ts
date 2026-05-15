@@ -3,41 +3,47 @@ import { recordFinancialTransaction } from './finance';
 import type { Feed, FeedInventory, FeedPurchase, FeedConsumption, FeedFormula, FeedFormulaItem, NutritionRequirement } from '../../types';
 
 // ─── Feeds ───
-export async function getFeeds(userId: string) {
+export async function getFeeds(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('feeds').select('*').eq('user_id', userId);
   const { data, error } = await q.order('name');
   if (error) throw error;
   return data as Feed[];
 }
 
-export async function createFeed(userId: string, feed: Partial<Feed>) {
+export async function createFeed(userId: string = '', feed: Partial<Feed>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feeds').insert({ ...feed, user_id: userId }).select().single();
   if (error) throw error;
   return data as Feed;
 }
 
 // ─── Feed Inventory ───
-export async function getFeedInventory(userId: string) {
+export async function getFeedInventory(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('feed_inventory').select('*, feeds(name, category)').eq('user_id', userId);
   const { data, error } = await q.order('feeds(name)');
   if (error) throw error;
   return data as (FeedInventory & { feeds: { name: string; category: string } })[];
 }
 
-export async function updateFeedThreshold(userId: string, id: string, min_threshold: number) {
+export async function updateFeedThreshold(userId: string = '', id: string, min_threshold: number) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('feed_inventory').update({ min_threshold }).eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
 // ─── Feed Purchases ───
-export async function getFeedPurchases(userId: string) {
+export async function getFeedPurchases(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('feed_purchases').select('*, feeds(name)').eq('user_id', userId);
   const { data, error } = await q.order('purchase_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as (FeedPurchase & { feeds: { name: string } })[];
 }
 
-export async function createFeedPurchase(userId: string, purchase: Partial<FeedPurchase>) {
+export async function createFeedPurchase(userId: string = '', purchase: Partial<FeedPurchase>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feed_purchases').insert({ ...purchase, user_id: userId }).select().single();
   if (error) throw error;
 
@@ -88,14 +94,16 @@ export async function createFeedPurchase(userId: string, purchase: Partial<FeedP
 }
 
 // ─── Feed Consumption ───
-export async function getFeedConsumption(userId: string) {
+export async function getFeedConsumption(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('feed_consumption').select('*, feeds(name)').eq('user_id', userId);
   const { data, error } = await q.order('consumption_date', { ascending: false }).limit(50);
   if (error) throw error;
   return data as (FeedConsumption & { feeds: { name: string } })[];
 }
 
-export async function createFeedConsumption(userId: string, consumption: Partial<FeedConsumption>) {
+export async function createFeedConsumption(userId: string = '', consumption: Partial<FeedConsumption>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feed_consumption').insert({ ...consumption, user_id: userId }).select().single();
   if (error) throw error;
 
@@ -131,34 +139,39 @@ export async function createFeedConsumption(userId: string, consumption: Partial
 }
 
 // ─── Feed Formulas ───
-export async function getFeedFormulas(userId: string) {
+export async function getFeedFormulas(userId: string = '') {
+  if (!userId) return [];
   const q = supabaseAdmin.from('feed_formulas').select('*').eq('user_id', userId);
   const { data, error } = await q.order('name');
   if (error) throw error;
   return data as FeedFormula[];
 }
 
-export async function createFeedFormula(userId: string, formula: Partial<FeedFormula>) {
+export async function createFeedFormula(userId: string = '', formula: Partial<FeedFormula>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feed_formulas').insert({ ...formula, user_id: userId }).select().single();
   if (error) throw error;
   return data as FeedFormula;
 }
 
-export async function getFeedFormulaItems(userId: string, formulaId: string) {
+export async function getFeedFormulaItems(userId: string = '', formulaId: string) {
+  if (!userId) return [];
   const q = supabaseAdmin.from('feed_formula_items').select('*, feeds(name)').eq('formula_id', formulaId).eq('user_id', userId);
   const { data, error } = await q;
   if (error) throw error;
   return data as (FeedFormulaItem & { feeds: { name: string } })[];
 }
 
-export async function createFeedFormulaItem(userId: string, item: Partial<FeedFormulaItem>) {
+export async function createFeedFormulaItem(userId: string = '', item: Partial<FeedFormulaItem>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feed_formula_items').insert({ ...item, user_id: userId }).select().single();
   if (error) throw error;
   return data as FeedFormulaItem;
 }
 
 // ─── Nutrition Requirements ───
-export async function getNutritionRequirements(userId: string, species?: string) {
+export async function getNutritionRequirements(userId: string = '', species?: string) {
+  if (!userId) return [];
   let q = supabaseAdmin.from('nutrition_requirements').select('*').eq('user_id', userId);
   if (species) q = q.eq('species', species);
   const { data, error } = await q;
@@ -167,51 +180,60 @@ export async function getNutritionRequirements(userId: string, species?: string)
 }
 
 // ─── Inventory Summary ───
-export async function updateFeed(userId: string, id: string, feed: Partial<Feed>) {
+export async function updateFeed(userId: string = '', id: string, feed: Partial<Feed>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feeds').update(feed).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as Feed;
 }
 
-export async function deleteFeed(userId: string, id: string) {
+export async function deleteFeed(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('feeds').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateFeedPurchase(userId: string, id: string, purchase: Partial<FeedPurchase>) {
+export async function updateFeedPurchase(userId: string = '', id: string, purchase: Partial<FeedPurchase>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feed_purchases').update(purchase).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as FeedPurchase;
 }
 
-export async function deleteFeedPurchase(userId: string, id: string) {
+export async function deleteFeedPurchase(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('feed_purchases').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateFeedConsumption(userId: string, id: string, consumption: Partial<FeedConsumption>) {
+export async function updateFeedConsumption(userId: string = '', id: string, consumption: Partial<FeedConsumption>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feed_consumption').update(consumption).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as FeedConsumption;
 }
 
-export async function deleteFeedConsumption(userId: string, id: string) {
+export async function deleteFeedConsumption(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('feed_consumption').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function updateFeedFormula(userId: string, id: string, formula: Partial<FeedFormula>) {
+export async function updateFeedFormula(userId: string = '', id: string, formula: Partial<FeedFormula>) {
+  if (!userId) throw new Error('User ID required');
   const { data, error } = await supabaseAdmin.from('feed_formulas').update(formula).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
   return data as FeedFormula;
 }
 
-export async function deleteFeedFormula(userId: string, id: string) {
+export async function deleteFeedFormula(userId: string = '', id: string) {
+  if (!userId) return;
   const { error } = await supabaseAdmin.from('feed_formulas').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-export async function getFeedInventorySummary(userId: string) {
+export async function getFeedInventorySummary(userId: string = '') {
+  if (!userId) return { totalValue: 0, lowStock: 0 };
   const q = supabaseAdmin.from('feed_inventory').select('total_cost, min_threshold, quantity_on_hand').eq('user_id', userId);
   const { data, error } = await q;
   if (error) throw error;
