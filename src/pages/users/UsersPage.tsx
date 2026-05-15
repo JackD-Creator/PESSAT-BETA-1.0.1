@@ -189,12 +189,12 @@ export function UsersPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('user.form.title')} size="md">
-        <UserForm t={t} onCreated={handleCreated} onClose={() => setShowModal(false)} />
+        <UserForm t={t} ownerId={user?.id} onCreated={handleCreated} onClose={() => setShowModal(false)} />
       </Modal>
 
       <Modal open={!!editingUser} onClose={() => setEditingUser(null)} title={t('user.form.edit')} size="md">
         {editingUser && (
-          <UserForm t={t} user={editingUser} onCreated={handleCreated} onClose={() => setEditingUser(null)} />
+          <UserForm t={t} ownerId={user?.id} user={editingUser} onCreated={handleCreated} onClose={() => setEditingUser(null)} />
         )}
       </Modal>
 
@@ -223,7 +223,7 @@ export function UsersPage() {
   );
 }
 
-function UserForm({ t, user, onCreated, onClose }: { t: (key: string) => string; user?: User; onCreated: () => void; onClose: () => void }) {
+function UserForm({ t, user, ownerId, onCreated, onClose }: { t: (key: string) => string; user?: User; ownerId?: string; onCreated: () => void; onClose: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
@@ -249,6 +249,7 @@ function UserForm({ t, user, onCreated, onClose }: { t: (key: string) => string;
           full_name: form.full_name,
           role: form.role as User['role'],
           phone: form.phone || undefined,
+          owner_id: ownerId,
         });
       }
       onCreated();

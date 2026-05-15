@@ -46,7 +46,7 @@ export function LoginPage() {
         setLoading(false);
         return;
       }
-      const err = await signUp(email, password, fullName, role, {
+      const err = await signUp(email, password, fullName, 'owner', {
         farm_name: farmName,
         owner_name: ownerName,
         address: farmAddress,
@@ -192,13 +192,8 @@ export function LoginPage() {
                   <hr className="my-3 border-neutral-200" />
                   <p className="text-xs font-semibold text-neutral-500 mb-2 uppercase tracking-wider">{t('register.farm.data')}</p>
 
-                  <div>
-                    <label className="label">{t('register.role')}</label>
-                    <select className="input" value={role} onChange={e => setRole(e.target.value as UserRole)}>
-                      <option value="owner">{t('role.owner')}</option>
-                      <option value="manager">{t('role.manager')}</option>
-                      <option value="worker">{t('role.worker')}</option>
-                    </select>
+                  <div className="bg-primary-50 border border-primary-200 rounded-xl p-3 text-sm text-primary-700">
+                    Registrasi ini untuk <strong>Pemilik Farm</strong>. Untuk mendaftarkan manajer/staf, login sebagai pemilik lalu buka <strong>Manajemen Pengguna</strong>.
                   </div>
                   <div>
                     <label className="label">{t('register.farm.name')}</label>

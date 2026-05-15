@@ -39,8 +39,9 @@ export function onAuthChange(callback: (user: unknown) => void) {
 
 // ─── Admin: User Management ───
 
-export async function getUsers(_userId: string = '') {
-  const { data, error } = await supabaseAdmin.from('users').select('*').order('created_at', { ascending: false });
+export async function getUsers(userId: string = '') {
+  if (!userId) return [];
+  const { data, error } = await supabaseAdmin.from('users').select('*').eq('owner_id', userId).order('created_at', { ascending: false });
   if (error) throw error;
   return data as User[];
 }
@@ -52,7 +53,7 @@ export async function getAllUsers() {
 }
 
 export async function createUser(input: {
-  email: string; password: string; full_name: string; role: User['role']; phone?: string;
+  email: string; password: string; full_name: string; role: User['role']; phone?: string; owner_id?: string;
 }) {
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: input.email,
@@ -70,6 +71,7 @@ export async function createUser(input: {
     role: input.role,
     phone: input.phone || null,
     is_active: true,
+    owner_id: input.owner_id || null,
   }).select().single();
   if (profileError) throw new Error(profileError.message);
   return profile as User;

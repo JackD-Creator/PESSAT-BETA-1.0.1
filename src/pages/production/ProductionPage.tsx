@@ -248,10 +248,11 @@ function ProductionForm({ onClose }: { onClose: () => void }) {
   });
 
   useEffect(() => {
-    Promise.all([getAnimals(user?.id), getHerdGroups(user?.id)])
+    if (!user?.id) return;
+    Promise.all([getAnimals(user.id), getHerdGroups(user.id)])
       .then(([a, g]) => { setAnimals(a as any[]); setGroups(g as any[]); })
       .catch(() => {});
-  }, []);
+  }, [user?.id]);
 
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 

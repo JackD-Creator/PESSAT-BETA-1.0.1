@@ -99,7 +99,12 @@ export function HerdGroupsPage() {
                         </button>
                         <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
                           if (!window.confirm(`Hapus kelompok ${group.name}?`)) return;
-                          try { await deleteHerdGroup(user?.id, group.id); loadData(); } catch { alert('Gagal menghapus'); }
+                          try {
+                            const locId = group.location_id;
+                            await deleteHerdGroup(user?.id, group.id);
+                            await refreshLocationOccupancy(locId);
+                            loadData();
+                          } catch { alert('Gagal menghapus'); }
                         }}>
                           <Trash2 size={14} />
                         </button>
@@ -257,8 +262,16 @@ export function HerdGroupsPage() {
   );
 }
 
+async function refreshLocationOccupancy(locationId: string | undefined | null) {
+  if (!locationId) return;
+  const { data: groups } = await supabaseAdmin
+    .from('herd_groups').select('member_count').eq('location_id', locationId);
+  const total = (groups || []).reduce((s: number, g: any) => s + Number(g.member_count), 0);
+  await supabaseAdmin.from('locations').update({ current_occupancy: total }).eq('id', locationId);
+}
+
 function MembersManager({ user, group, members, animals }: { user: any; group: any; members: any[]; animals: any[]; onClose?: () => void }) {
-  
+
   const [selectedAnimalId, setSelectedAnimalId] = useState('');
   const [adding, setAdding] = useState(false);
   const unassigned = animals.filter((a: any) => !members.some((m: any) => m.animal_id === a.id));
@@ -273,10 +286,10 @@ function MembersManager({ user, group, members, animals }: { user: any; group: a
         joined_date: new Date().toISOString().split('T')[0],
         user_id: user?.id,
       });
-      const { data: cnt } = await supabaseAdmin.from('herd_group_members').select('id', { count: 'exact', head: true }).eq('herd_group_id', group.id);
-      await supabaseAdmin.from('herd_groups').update({ member_count: cnt?.count || 0 }).eq('id', group.id);
+      const { count } = await supabaseAdmin.from('herd_group_members').select('*', { count: 'exact', head: true }).eq('herd_group_id', group.id);
+      await supabaseAdmin.from('herd_groups').update({ member_count: count || 0 }).eq('id', group.id);
+      await refreshLocationOccupancy(group.location_id);
       setSelectedAnimalId('');
-      // Reload
       getHerdGroupMembers(user?.id, group.id).then(setMembers).catch(() => {});
     } catch { alert('Gagal menambah anggota'); }
     finally { setAdding(false); }
@@ -285,8 +298,9 @@ function MembersManager({ user, group, members, animals }: { user: any; group: a
   const removeMember = async (animalId: string) => {
     try {
       await supabaseAdmin.from('herd_group_members').delete().eq('herd_group_id', group.id).eq('animal_id', animalId);
-      const { data: cnt } = await supabaseAdmin.from('herd_group_members').select('id', { count: 'exact', head: true }).eq('herd_group_id', group.id);
-      await supabaseAdmin.from('herd_groups').update({ member_count: cnt?.count || 0 }).eq('id', group.id);
+      const { count } = await supabaseAdmin.from('herd_group_members').select('*', { count: 'exact', head: true }).eq('herd_group_id', group.id);
+      await supabaseAdmin.from('herd_groups').update({ member_count: count || 0 }).eq('id', group.id);
+      await refreshLocationOccupancy(group.location_id);
       getHerdGroupMembers(user?.id, group.id).then(setMembers).catch(() => {});
     } catch { alert('Gagal menghapus anggota'); }
   };

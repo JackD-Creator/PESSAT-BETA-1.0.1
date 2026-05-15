@@ -64,8 +64,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       );
       const pData = await pRes.json();
-      const profile = pData?.[0] ?? null;
+      let profile = pData?.[0] ?? null;
       if (profile) {
+        // If the fetched profile has no valid role, restore it to 'owner'
+        const validRoles = ['owner', 'manager', 'worker'];
+        if (!validRoles.includes(profile.role)) {
+          profile = { ...profile, role: 'owner' };
+          await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${result.user.id}`, {
+            method: 'PATCH',
+            headers: {
+              apikey: SUPABASE_SERVICE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal',
+            },
+            body: JSON.stringify({ role: 'owner' }),
+          });
+        }
+        // If manager/worker linked to an owner, use owner's ID for data scope
+        if (['manager', 'worker'].includes(profile.role) && profile.owner_id) {
+          profile = { ...profile, id: profile.owner_id };
+        }
         setUser(profile as unknown as User);
         localStorage.setItem('livestock_user', JSON.stringify(profile));
         return null;

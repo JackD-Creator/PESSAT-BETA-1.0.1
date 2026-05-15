@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Bell, CheckCircle, AlertTriangle, Info, XCircle } from 'lucide-react';
-import { getAlerts, resolveAlert } from '../../lib/api';
+import { Bell, CheckCircle, AlertTriangle, Info, XCircle, ClipboardList } from 'lucide-react';
+import { getAlerts, resolveAlert, getTasks } from '../../lib/api';
 import { SeverityBadge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -12,6 +12,7 @@ const typeLabels: Record<string, string> = {
   health_issue: 'alert.type.health',
   breeding_due: 'alert.type.reproduction',
   task_overdue: 'alert.type.task.overdue',
+  task_pending: 'Tugas Aktif',
   weight_loss: 'alert.type.weight.loss',
 };
 
@@ -22,11 +23,35 @@ export function AlertsPage() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = () => {
-    getAlerts(user?.id)
-      .then(data => setAlerts(data as any[]))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const loadData = async () => {
+    if (!user?.id) return;
+    try {
+      const [alertData, taskData] = await Promise.all([
+        getAlerts(user.id),
+        getTasks(user.id),
+      ]);
+      const today = new Date().toISOString().split('T')[0];
+      const taskAlerts = taskData
+        .filter((t: any) => t.status !== 'completed' && t.status !== 'cancelled')
+        .map((t: any) => {
+          const isOverdue = t.due_date && t.due_date < today;
+          return {
+            id: `task-${t.id}`,
+            title: t.title,
+            message: `Ditugaskan kepada: ${t.assigned?.full_name || 'Anda'} ${t.due_date ? `· Tenggat: ${new Date(t.due_date).toLocaleDateString('id-ID')}` : ''}`,
+            type: isOverdue ? 'task_overdue' : 'task_pending',
+            severity: isOverdue ? 'warning' : 'info',
+            is_read: false,
+            is_resolved: false,
+            created_at: t.created_at,
+            _is_task: true,
+          };
+        });
+      setAlerts([...(alertData as any[]), ...taskAlerts]);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { loadData(); }, [user?.id]);
@@ -43,7 +68,8 @@ export function AlertsPage() {
   const criticalCount = alerts.filter(a => a.severity === 'critical' && !a.is_resolved).length;
   const resolvedCount = alerts.filter(a => a.is_resolved).length;
 
-  const getIcon = (severity: string) => {
+  const getIcon = (severity: string, isTask?: boolean) => {
+    if (isTask) return <ClipboardList size={18} className="text-primary-600" />;
     if (severity === 'critical') return <XCircle size={18} className="text-error-600" />;
     if (severity === 'warning') return <AlertTriangle size={18} className="text-warning-600" />;
     return <Info size={18} className="text-info-600" />;
@@ -111,8 +137,8 @@ export function AlertsPage() {
               key={alert.id}
               className={`p-4 flex items-start gap-4 transition-colors hover:bg-neutral-50/50 ${!alert.is_read ? 'bg-neutral-50/50' : ''}`}
             >
-              <div className={`p-2.5 rounded-xl border flex-shrink-0 ${getSeverityBg(alert.severity)}`}>
-                {getIcon(alert.severity)}
+              <div className={`p-2.5 rounded-xl border flex-shrink-0 ${alert._is_task ? 'bg-primary-50 border-primary-100' : getSeverityBg(alert.severity)}`}>
+                {getIcon(alert.severity, alert._is_task)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -138,7 +164,7 @@ export function AlertsPage() {
                   )}
                 </div>
               </div>
-              {!alert.is_resolved && (
+              {!alert.is_resolved && !alert._is_task && (
                 <button className="btn-sm btn-secondary flex-shrink-0" onClick={async () => {
                   try {
                     await resolveAlert(user?.id, alert.id);
@@ -148,6 +174,12 @@ export function AlertsPage() {
                   <CheckCircle size={13} />
                   {t('alert.mark.resolved')}
                 </button>
+              )}
+              {alert._is_task && (
+                <a href="/tasks" className="btn-sm btn-secondary flex-shrink-0 no-underline">
+                  <ClipboardList size={13} />
+                  Lihat Tugas
+                </a>
               )}
             </div>
           ))}

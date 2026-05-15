@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Package, ShoppingCart, Trash2 } from 'lucide-react';
-import { getFeedInventory, getMedicineInventory, getFeeds, createFeed, deleteFeed } from '../../lib/api';
+import { AlertTriangle, Package, ShoppingCart, Trash2, TrendingDown, TrendingUp, Wheat } from 'lucide-react';
+import { getFeedInventory, getFeedPurchases, getFeedConsumption, getFeeds, createFeed, deleteFeed } from '../../lib/api';
 import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,20 +12,14 @@ function formatCurrency(n: number) {
   return `Rp ${n.toLocaleString('id-ID')}`;
 }
 
-function formatDate(d: string) {
-  if (!d) return '-';
-  try { return new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }); }
-  catch { return d; }
-}
-
 export function FeedInventoryPage() {
   const { t } = useTranslation();
   const { hasRole, user } = useAuth();
-  const [activeTab, setActiveTab] = useState('feed');
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showConsumeModal, setShowConsumeModal] = useState(false);
   const [feeds, setFeeds] = useState<any[]>([]);
-  const [medicines, setMedicines] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [consumptions, setConsumptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const seedFeeds = async () => {
@@ -51,13 +45,16 @@ export function FeedInventoryPage() {
   };
 
   const loadData = () => {
+    if (!user?.id) return;
     Promise.all([
-      getFeedInventory(user!.id),
-      getMedicineInventory(user!.id),
+      getFeedInventory(user.id),
+      getFeedPurchases(user.id),
+      getFeedConsumption(user.id),
     ])
-      .then(([feedData, medData]) => {
-        setFeeds(feedData as any[]);
-        setMedicines(medData as any[]);
+      .then(([inv, pur, con]) => {
+        setFeeds(inv as any[]);
+        setPurchases(pur as any[]);
+        setConsumptions(con as any[]);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -75,87 +72,77 @@ export function FeedInventoryPage() {
   };
 
   const lowStockFeeds = feeds.filter((f: any) => f.quantity_on_hand < f.min_threshold);
-  const lowStockMeds = medicines.filter((m: any) => m.quantity_on_hand < m.min_threshold);
-  const totalFeedValue = feeds.reduce((s: number, f: any) => s + Number(f.total_cost), 0);
-  const totalMedValue = medicines.reduce((s: number, m: any) => s + Number(m.total_cost), 0);
+  const totalStockValue = feeds.reduce((s: number, f: any) => s + Number(f.total_cost), 0);
+  const totalPurchaseValue = purchases.reduce((s: number, p: any) => s + Number(p.total_amount), 0);
+  const totalConsumptionValue = consumptions.reduce((s: number, c: any) => s + Number(c.total_cost), 0);
 
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1 className="page-title">{t('feed.title')}</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">
-            {t('feed.total.value').replace('{value}', formatCurrency(totalFeedValue + totalMedValue))}
-          </p>
+          <h1 className="page-title">Stok Pakan</h1>
+          <p className="text-sm text-neutral-500 mt-0.5">{feeds.length} jenis pakan terdaftar</p>
         </div>
         {hasRole(['owner', 'manager']) && (
           <div className="flex gap-2">
             <button className="btn-secondary" onClick={() => setShowConsumeModal(true)}>
-              <Package size={16} /> {t('feed.use')}
+              <Package size={16} /> Catat Pemberian
             </button>
             <button className="btn-primary" onClick={() => setShowPurchaseModal(true)}>
-              <ShoppingCart size={16} /> {t('feed.purchase')}
+              <ShoppingCart size={16} /> Catat Pembelian
             </button>
           </div>
         )}
       </div>
 
-      {(lowStockFeeds.length > 0 || lowStockMeds.length > 0) && (
+      {lowStockFeeds.length > 0 && (
         <div className="bg-error-50 border border-error-200 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle size={16} className="text-error-600" />
-            <span className="font-semibold text-error-700">{t('feed.low.stock.banner')}</span>
+            <span className="font-semibold text-error-700">Stok Pakan Menipis</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {lowStockFeeds.map(f => (
+            {lowStockFeeds.map((f: any) => (
               <span key={f.id} className="text-xs bg-error-100 text-error-700 px-3 py-1 rounded-full font-medium">
                 {f.feeds?.name || '-'}: {f.quantity_on_hand}/{f.min_threshold} kg
-              </span>
-            ))}
-            {lowStockMeds.map(m => (
-              <span key={m.id} className="text-xs bg-error-100 text-error-700 px-3 py-1 rounded-full font-medium">
-                {m.medicines?.name || '-'}: {m.quantity_on_hand}/{m.min_threshold} pcs
               </span>
             ))}
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card p-4">
-          <p className="text-xs text-neutral-500 font-medium">{t('feed.total.feed')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{feeds.length}</p>
-          <p className="text-xs text-neutral-400">{t('feed.types.feed')}</p>
+      {/* Dashboard Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Nilai Stok Pakan</p>
+            <div className="bg-primary-50 p-2 rounded-lg"><Wheat size={16} className="text-primary-600" /></div>
+          </div>
+          <p className="text-2xl font-bold text-neutral-800">{formatCurrency(totalStockValue)}</p>
+          <p className="text-xs text-neutral-400 mt-1">{feeds.length} jenis pakan</p>
         </div>
-        <div className="card p-4">
-          <p className="text-xs text-neutral-500 font-medium">{t('feed.total.feed.value')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{formatCurrency(totalFeedValue)}</p>
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Total Pembelian</p>
+            <div className="bg-blue-50 p-2 rounded-lg"><TrendingUp size={16} className="text-blue-600" /></div>
+          </div>
+          <p className="text-2xl font-bold text-neutral-800">{formatCurrency(totalPurchaseValue)}</p>
+          <p className="text-xs text-neutral-400 mt-1">{purchases.length} transaksi pembelian</p>
         </div>
-        <div className="card p-4">
-          <p className="text-xs text-neutral-500 font-medium">{t('feed.total.medicine')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{medicines.length}</p>
-          <p className="text-xs text-neutral-400">{t('feed.types.medicine')}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs text-neutral-500 font-medium">{t('feed.total.medicine.value')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{formatCurrency(totalMedValue)}</p>
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Total Pemberian</p>
+            <div className="bg-amber-50 p-2 rounded-lg"><TrendingDown size={16} className="text-amber-600" /></div>
+          </div>
+          <p className="text-2xl font-bold text-neutral-800">{formatCurrency(totalConsumptionValue)}</p>
+          <p className="text-xs text-neutral-400 mt-1">{consumptions.length} catatan pemberian</p>
         </div>
       </div>
 
-      <div className="tab-bar w-fit">
-        <button className={activeTab === 'feed' ? 'tab-active' : 'tab-inactive'} onClick={() => setActiveTab('feed')}>
-          {t('feed.tab.feed')} ({feeds.length})
-        </button>
-        <button className={activeTab === 'medicine' ? 'tab-active' : 'tab-inactive'} onClick={() => setActiveTab('medicine')}>
-          {t('feed.tab.medicine')} ({medicines.length})
-        </button>
-      </div>
-
+      {/* Stock Cards */}
       {loading ? (
         <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
       ) : (
-      <>
-      {activeTab === 'feed' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {feeds.length === 0 && (
             <div className="col-span-full card p-12 text-center">
@@ -165,13 +152,13 @@ export function FeedInventoryPage() {
           )}
           {feeds.map((feed: any) => {
             const isLow = feed.quantity_on_hand < feed.min_threshold;
-            const pct = Math.min(100, (feed.quantity_on_hand / Math.max(feed.min_threshold * 3, feed.quantity_on_hand)) * 100);
+            const pct = Math.min(100, (feed.quantity_on_hand / Math.max(feed.min_threshold * 3, feed.quantity_on_hand, 1)) * 100);
             return (
               <div key={feed.id} className={`card p-5 ${isLow ? 'border-error-200' : ''}`}>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
                     <p className="font-semibold text-neutral-800">{feed.feeds?.name || '-'}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{feed.feeds?.category || '-'}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5 capitalize">{feed.feeds?.category || '-'}</p>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {isLow && <span className="badge badge-red">{t('feed.badge.low')}</span>}
@@ -193,15 +180,15 @@ export function FeedInventoryPage() {
                 </div>
                 <div className="space-y-1 text-xs text-neutral-500">
                   <div className="flex justify-between">
-                    <span>{t('feed.card.min')}</span>
+                    <span>Min. Stok</span>
                     <span className="font-medium">{feed.min_threshold} kg</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{t('feed.card.avgcost')}</span>
+                    <span>Harga Rata-rata</span>
                     <span className="font-medium">Rp {Number(feed.avg_cost_per_unit).toLocaleString()}/kg</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{t('feed.card.stockvalue')}</span>
+                    <span>Nilai Stok</span>
                     <span className="font-medium text-neutral-700">{formatCurrency(Number(feed.total_cost))}</span>
                   </div>
                   {(feed.feeds?.crude_protein_pct || feed.feeds?.tdn_pct) && (
@@ -218,63 +205,10 @@ export function FeedInventoryPage() {
         </div>
       )}
 
-      {activeTab === 'medicine' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {medicines.length === 0 && (
-            <div className="col-span-full card p-12 text-center">
-              <p className="text-neutral-500">Belum ada stok obat</p>
-              <p className="text-sm text-neutral-400 mt-1">Lakukan pembelian obat untuk memulai</p>
-            </div>
-          )}
-          {medicines.map((med: any) => {
-            const isLow = med.quantity_on_hand < med.min_threshold;
-            const pct = Math.min(100, (med.quantity_on_hand / Math.max(med.min_threshold * 3, med.quantity_on_hand)) * 100);
-            return (
-              <div key={med.id} className={`card p-5 ${isLow ? 'border-error-200' : ''}`}>
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div>
-                    <p className="font-semibold text-neutral-800">{med.medicines?.name || '-'}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{med.medicines?.type || '-'}</p>
-                  </div>
-                  {isLow && <span className="badge badge-red flex-shrink-0">{t('feed.badge.low')}</span>}
-                </div>
-                <div className="flex items-end justify-between mb-2">
-                  <span className={`text-3xl font-bold ${isLow ? 'text-error-600' : 'text-neutral-800'}`}>
-                    {Number(med.quantity_on_hand)}
-                  </span>
-                  <span className="text-sm text-neutral-500">pcs</span>
-                </div>
-                <div className="h-2 bg-neutral-100 rounded-full overflow-hidden mb-3">
-                  <div className={`h-full rounded-full ${isLow ? 'bg-error-500' : 'bg-primary-500'}`} style={{ width: `${pct}%` }} />
-                </div>
-                <div className="space-y-1 text-xs text-neutral-500">
-                  <div className="flex justify-between">
-                    <span>{t('feed.label.minimum')}</span>
-                    <span className="font-medium">{med.min_threshold} pcs</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>{t('feed.label.stockvalue')}</span>
-                    <span className="font-medium text-neutral-700">{formatCurrency(Number(med.total_cost))}</span>
-                  </div>
-                  {med.expiry_date && (
-                    <div className="flex justify-between">
-                      <span>Kadaluarsa</span>
-                      <span className="font-medium text-warning-600">{formatDate(med.expiry_date)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      </>)}
-
-      <Modal open={showPurchaseModal} onClose={() => setShowPurchaseModal(false)} title={t('feed.purchase.title')} size="md">
-        <FeedPurchaseForm type={activeTab} t={t} onClose={() => { setShowPurchaseModal(false); loadData(); }} />
+      <Modal open={showPurchaseModal} onClose={() => setShowPurchaseModal(false)} title="Catat Pembelian Pakan" size="md">
+        <FeedPurchaseForm type="feed" t={t} onClose={() => { setShowPurchaseModal(false); loadData(); }} />
       </Modal>
-
-      <Modal open={showConsumeModal} onClose={() => setShowConsumeModal(false)} title={t('feed.usage.title')} size="md">
+      <Modal open={showConsumeModal} onClose={() => setShowConsumeModal(false)} title="Catat Pemberian Pakan" size="md">
         <FeedConsumeForm t={t} onClose={() => { setShowConsumeModal(false); loadData(); }} />
       </Modal>
     </div>

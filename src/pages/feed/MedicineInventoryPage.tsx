@@ -1,56 +1,42 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Package, ShoppingCart, Trash2, Plus } from 'lucide-react';
-import { getMedicineInventory, getMedicinePurchases, deleteMedicine, deleteMedicinePurchase, createMedicine } from '../../lib/api';
+import { AlertTriangle, Pill, Leaf, Sparkles, Plus } from 'lucide-react';
+import { getMedicineInventory, createMedicine } from '../../lib/api';
+import { getMedicinePurchases, getMedicineUsages } from '../../lib/api/medicine';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTranslation } from '../../contexts/LanguageContext';
-import { MedicinePurchaseForm } from './MedicinePurchaseForm';
-import { MedicineUsageForm } from './MedicineUsageForm';
 
-function formatCurrency(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
-}
+function formatCurrency(n: number) { return `Rp ${n.toLocaleString('id-ID')}`; }
 
-function formatDate(d: string) {
-  if (!d) return '-';
-  try { return new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }); }
-  catch { return d; }
-}
+const OBAT_TYPES = ['antibiotic', 'antiparasitic', 'hormone', 'anti_inflammatory', 'vaccine'];
+const VITAMIN_TYPES = ['vitamin'];
+const SUPLEMEN_TYPES = ['other'];
+
+const TYPE_LABELS: Record<string, string> = {
+  antibiotic: 'Antibiotik', vitamin: 'Vitamin', vaccine: 'Vaksin',
+  antiparasitic: 'Antiparasit', hormone: 'Hormon', anti_inflammatory: 'Anti Inflamasi', other: 'Suplemen',
+};
 
 export function MedicineInventoryPage() {
-  const { t } = useTranslation();
   const { hasRole, user } = useAuth();
-  const [medicines, setMedicines] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [usages, setUsages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const [showUsageModal, setShowUsageModal] = useState(false);
-  const [showAddMedicineModal, setShowAddMedicineModal] = useState(false);
-  const [newMedicineName, setNewMedicineName] = useState('');
-  const [newMedicineType, setNewMedicineType] = useState('other');
-  const [activeTab, setActiveTab] = useState<'stock' | 'history'>('stock');
-
-  const handleDeleteMedicine = async (med: any) => {
-    if (!window.confirm('Hapus data obat ini?')) return;
-    await deleteMedicine(user!.id, med.medicines?.id).catch(() => {});
-    loadData();
-  };
-
-  const handleDeletePurchase = async (id: string) => {
-    if (!window.confirm('Hapus data pembelian ini?')) return;
-    await deleteMedicinePurchase(user!.id, id).catch(() => {});
-    loadData();
-  };
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newType, setNewType] = useState('antibiotic');
 
   const loadData = () => {
     if (!user?.id) return;
     Promise.all([
       getMedicineInventory(user.id),
       getMedicinePurchases(user.id),
+      getMedicineUsages(user.id),
     ])
-      .then(([inv, pur]) => {
-        setMedicines(inv as any[]);
+      .then(([inv, pur, use]) => {
+        setInventory(inv as any[]);
         setPurchases(pur as any[]);
+        setUsages(use as any[]);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -58,41 +44,38 @@ export function MedicineInventoryPage() {
 
   useEffect(() => { loadData(); }, [user?.id]);
 
-  const lowStock = medicines.filter((m: any) => m.quantity_on_hand < m.min_threshold);
-  const totalValue = medicines.reduce((s: number, m: any) => s + Number(m.total_cost), 0);
+  const obatItems = inventory.filter((m: any) => OBAT_TYPES.includes(m.medicines?.type));
+  const vitaminItems = inventory.filter((m: any) => VITAMIN_TYPES.includes(m.medicines?.type));
+  const suplemenItems = inventory.filter((m: any) => SUPLEMEN_TYPES.includes(m.medicines?.type));
+  const lowStock = inventory.filter((m: any) => m.quantity_on_hand < m.min_threshold);
+
+  const calcValue = (items: any[]) => items.reduce((s: number, m: any) => s + Number(m.total_cost), 0);
+  const calcQty = (items: any[]) => items.reduce((s: number, m: any) => s + Number(m.quantity_on_hand), 0);
+  const totalPurchaseValue = purchases.reduce((s: number, p: any) => s + Number(p.total_amount), 0);
+  const totalUsageValue = usages.reduce((s: number, u: any) => s + Number(u.total_cost), 0);
 
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1 className="page-title">{t('page.medicine.inventory')}</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">
-            {medicines.length} jenis obat &middot; Total nilai: {formatCurrency(totalValue)}
-          </p>
+          <h1 className="page-title">Obat, Vitamin & Suplemen</h1>
+          <p className="text-sm text-neutral-500 mt-0.5">{inventory.length} jenis terdaftar</p>
         </div>
         {hasRole(['owner', 'manager']) && (
-          <div className="flex gap-2">
-            <button className="btn-secondary" onClick={() => setShowUsageModal(true)}>
-              <Package size={16} /> Pakai Obat
-            </button>
-            <button className="btn-secondary" onClick={() => setShowAddMedicineModal(true)}>
-              <Plus size={16} /> Tambah Obat
-            </button>
-            <button className="btn-primary" onClick={() => setShowPurchaseModal(true)}>
-              <ShoppingCart size={16} /> {t('feed.purchase')}
-            </button>
-          </div>
+          <button className="btn-primary" onClick={() => setShowAddModal(true)}>
+            <Plus size={16} /> Tambah Item
+          </button>
         )}
       </div>
 
       {lowStock.length > 0 && (
-        <div className="bg-error-50 border border-error-200 rounded-xl p-4 mb-4">
-          <div className="flex items-center gap-2">
+        <div className="bg-error-50 border border-error-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
             <AlertTriangle size={16} className="text-error-600" />
-            <span className="font-semibold text-error-700">Stok Obat Menipis</span>
+            <span className="font-semibold text-error-700">Stok Menipis</span>
           </div>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {lowStock.map(m => (
+          <div className="flex flex-wrap gap-2">
+            {lowStock.map((m: any) => (
               <span key={m.id} className="text-xs bg-error-100 text-error-700 px-3 py-1 rounded-full font-medium">
                 {m.medicines?.name || '-'}: {m.quantity_on_hand}/{m.min_threshold} pcs
               </span>
@@ -101,156 +84,142 @@ export function MedicineInventoryPage() {
         </div>
       )}
 
-      <div className="tab-bar w-fit">
-        <button className={activeTab === 'stock' ? 'tab-active' : 'tab-inactive'} onClick={() => setActiveTab('stock')}>
-          Stok ({medicines.length})
-        </button>
-        <button className={activeTab === 'history' ? 'tab-active' : 'tab-inactive'} onClick={() => setActiveTab('history')}>
-          Riwayat Pembelian ({purchases.length})
-        </button>
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card p-4">
+          <p className="text-xs text-neutral-500 font-medium">Total Pembelian</p>
+          <p className="text-xl font-bold text-neutral-800 mt-1">{formatCurrency(totalPurchaseValue)}</p>
+          <p className="text-xs text-neutral-400">{purchases.length} transaksi</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-xs text-neutral-500 font-medium">Total Pemberian</p>
+          <p className="text-xl font-bold text-neutral-800 mt-1">{formatCurrency(totalUsageValue)}</p>
+          <p className="text-xs text-neutral-400">{usages.length} catatan</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-xs text-neutral-500 font-medium">Nilai Stok Total</p>
+          <p className="text-xl font-bold text-neutral-800 mt-1">{formatCurrency(calcValue(inventory))}</p>
+          <p className="text-xs text-neutral-400">{inventory.length} jenis</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-xs text-neutral-500 font-medium">Stok Menipis</p>
+          <p className="text-xl font-bold text-error-600 mt-1">{lowStock.length}</p>
+          <p className="text-xs text-neutral-400">jenis perlu restok</p>
+        </div>
       </div>
 
       {loading ? (
-        <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
-      ) : activeTab === 'stock' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {medicines.length === 0 ? (
-            <div className="col-span-full card p-12 text-center">
-              <p className="text-neutral-500">Belum ada stok obat</p>
-              <p className="text-sm text-neutral-400 mt-1">Lakukan pembelian obat untuk memulai</p>
-            </div>
-          ) : medicines.map((med: any) => {
-            const isLow = med.quantity_on_hand < med.min_threshold;
-            const pct = Math.min(100, (med.quantity_on_hand / Math.max(med.min_threshold * 3, med.quantity_on_hand)) * 100);
-            return (
-              <div key={med.id} className={`card p-5 ${isLow ? 'border-error-200' : ''}`}>
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div>
-                    <p className="font-semibold text-neutral-800">{med.medicines?.name || '-'}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{med.medicines?.type || '-'}</p>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {isLow && <span className="badge badge-red">Stok Menipis</span>}
-                    {hasRole(['owner', 'manager']) && (
-                      <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeleteMedicine(med)}>
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-end justify-between mb-2">
-                  <span className={`text-3xl font-bold ${isLow ? 'text-error-600' : 'text-neutral-800'}`}>
-                    {Number(med.quantity_on_hand)}
-                  </span>
-                  <span className="text-sm text-neutral-500">pcs</span>
-                </div>
-                <div className="h-2 bg-neutral-100 rounded-full overflow-hidden mb-3">
-                  <div className={`h-full rounded-full ${isLow ? 'bg-error-500' : 'bg-primary-500'}`} style={{ width: `${pct}%` }} />
-                </div>
-                <div className="space-y-1 text-xs text-neutral-500">
-                  <div className="flex justify-between">
-                    <span>Min. Stok</span>
-                    <span className="font-medium">{med.min_threshold} pcs</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Nilai Stok</span>
-                    <span className="font-medium text-neutral-700">{formatCurrency(Number(med.total_cost))}</span>
-                  </div>
-                  {med.expiry_date && (
-                    <div className="flex justify-between">
-                      <span>Kadaluarsa</span>
-                      <span className="font-medium text-warning-600">{formatDate(med.expiry_date)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <div className="card p-12 text-center"><p className="text-neutral-400">Memuat...</p></div>
       ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                  <tr>
-                    <th>Tanggal</th>
-                    <th>Obat</th>
-                    <th>Jumlah</th>
-                    <th>Harga/Unit</th>
-                    <th>Total</th>
-                    <th>Supplier</th>
-                    <th>Batch</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {purchases.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center text-neutral-400 py-8">{t('common.no.data')}</td></tr>
-                ) : purchases.map((p: any) => (
-                  <tr key={p.id}>
-                    <td className="text-sm">{formatDate(p.purchase_date)}</td>
-                    <td className="font-medium">{p.medicines?.name || '-'}</td>
-                    <td>{Number(p.quantity)} pcs</td>
-                    <td>Rp {Number(p.price_per_unit).toLocaleString()}</td>
-                    <td className="font-medium">{formatCurrency(Number(p.total_amount))}</td>
-                    <td className="text-sm">{p.supplier || '-'}</td>
-                    <td className="text-sm text-neutral-500">{p.batch_number || '-'}</td>
-                    <td>
-                      {hasRole(['owner', 'manager']) && (
-                        <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeletePurchase(p.id)}>
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Obat */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <div className="bg-red-100 p-1.5 rounded-lg"><Pill size={14} className="text-red-600" /></div>
+              <div>
+                <p className="font-semibold text-neutral-800 text-sm">Obat</p>
+                <p className="text-xs text-neutral-400">{obatItems.length} jenis &middot; {calcQty(obatItems)} pcs &middot; {formatCurrency(calcValue(obatItems))}</p>
+              </div>
+            </div>
+            {obatItems.length === 0 ? (
+              <div className="card p-6 text-center text-sm text-neutral-400">Belum ada stok obat</div>
+            ) : obatItems.map((m: any) => <StockCard key={m.id} item={m} />)}
+          </div>
+
+          {/* Vitamin */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <div className="bg-yellow-100 p-1.5 rounded-lg"><Leaf size={14} className="text-yellow-600" /></div>
+              <div>
+                <p className="font-semibold text-neutral-800 text-sm">Vitamin</p>
+                <p className="text-xs text-neutral-400">{vitaminItems.length} jenis &middot; {calcQty(vitaminItems)} pcs &middot; {formatCurrency(calcValue(vitaminItems))}</p>
+              </div>
+            </div>
+            {vitaminItems.length === 0 ? (
+              <div className="card p-6 text-center text-sm text-neutral-400">Belum ada stok vitamin</div>
+            ) : vitaminItems.map((m: any) => <StockCard key={m.id} item={m} />)}
+          </div>
+
+          {/* Suplemen */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <div className="bg-green-100 p-1.5 rounded-lg"><Sparkles size={14} className="text-green-600" /></div>
+              <div>
+                <p className="font-semibold text-neutral-800 text-sm">Suplemen</p>
+                <p className="text-xs text-neutral-400">{suplemenItems.length} jenis &middot; {calcQty(suplemenItems)} pcs &middot; {formatCurrency(calcValue(suplemenItems))}</p>
+              </div>
+            </div>
+            {suplemenItems.length === 0 ? (
+              <div className="card p-6 text-center text-sm text-neutral-400">Belum ada stok suplemen</div>
+            ) : suplemenItems.map((m: any) => <StockCard key={m.id} item={m} />)}
           </div>
         </div>
       )}
 
-      <Modal open={showPurchaseModal} onClose={() => setShowPurchaseModal(false)} title="Catat Pembelian Obat" size="md">
-        <MedicinePurchaseForm t={t} onClose={() => { setShowPurchaseModal(false); loadData(); }} />
-      </Modal>
-
-      <Modal open={showUsageModal} onClose={() => setShowUsageModal(false)} title="Catat Pemakaian Obat" size="md">
-        <MedicineUsageForm t={t} onClose={() => { setShowUsageModal(false); loadData(); }} />
-      </Modal>
-      <Modal open={showAddMedicineModal} onClose={() => setShowAddMedicineModal(false)} title="Tambah Obat Baru" size="sm">
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Tambah Item Baru" size="sm">
         <form onSubmit={async (e) => {
           e.preventDefault();
-          if (!newMedicineName.trim()) { alert('Nama obat harus diisi'); return; }
+          if (!newName.trim()) { alert('Nama harus diisi'); return; }
           try {
-            await createMedicine(user!.id, { name: newMedicineName.trim(), type: newMedicineType as any });
-            setShowAddMedicineModal(false);
-            setNewMedicineName('');
-            setNewMedicineType('other');
+            await createMedicine(user!.id, { name: newName.trim(), type: newType as any, unit: 'pcs', is_active: true });
+            setShowAddModal(false);
+            setNewName('');
+            setNewType('antibiotic');
             loadData();
-          } catch { alert('Gagal menambah obat'); }
+          } catch { alert('Gagal menambah item'); }
         }} className="space-y-4">
           <div>
-            <label className="label">Nama Obat <span className="text-error-500">*</span></label>
-            <input className="input" value={newMedicineName} onChange={e => setNewMedicineName(e.target.value)} placeholder="Contoh: Amoxicillin 500mg" required />
+            <label className="label">Nama <span className="text-error-500">*</span></label>
+            <input className="input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Contoh: Amoxicillin 500mg" required />
           </div>
           <div>
-            <label className="label">Tipe Obat</label>
-            <select className="select" value={newMedicineType} onChange={e => setNewMedicineType(e.target.value)}>
-              <option value="antibiotic">Antibiotik</option>
+            <label className="label">Kategori</label>
+            <select className="select" value={newType} onChange={e => setNewType(e.target.value)}>
+              <option value="antibiotic">Antibiotik (Obat)</option>
+              <option value="antiparasitic">Antiparasit (Obat)</option>
+              <option value="vaccine">Vaksin (Obat)</option>
+              <option value="hormone">Hormon (Obat)</option>
+              <option value="anti_inflammatory">Anti Inflamasi (Obat)</option>
               <option value="vitamin">Vitamin</option>
-              <option value="vaccine">Vaksin</option>
-              <option value="antiparasitic">Antiparasit</option>
-              <option value="hormone">Hormon</option>
-              <option value="anti_inflammatory">Anti Inflamasi</option>
-              <option value="other">Lainnya</option>
+              <option value="other">Suplemen</option>
             </select>
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" className="btn-secondary" onClick={() => setShowAddMedicineModal(false)}>Batal</button>
+            <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>Batal</button>
             <button type="submit" className="btn-primary">Simpan</button>
           </div>
         </form>
       </Modal>
+    </div>
+  );
+}
+
+function StockCard({ item }: { item: any }) {
+  const isLow = item.quantity_on_hand < item.min_threshold;
+  const pct = Math.min(100, (item.quantity_on_hand / Math.max(item.min_threshold * 3, item.quantity_on_hand, 1)) * 100);
+  return (
+    <div className={`card p-4 ${isLow ? 'border-error-200' : ''}`}>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div>
+          <p className="font-semibold text-neutral-800 text-sm">{item.medicines?.name || '-'}</p>
+          <p className="text-xs text-neutral-400 capitalize">{TYPE_LABELS[item.medicines?.type] || item.medicines?.type || '-'}</p>
+        </div>
+        {isLow && <span className="badge badge-red text-xs flex-shrink-0">Menipis</span>}
+      </div>
+      <div className="flex items-end justify-between mb-2">
+        <span className={`text-2xl font-bold ${isLow ? 'text-error-600' : 'text-neutral-800'}`}>{Number(item.quantity_on_hand)}</span>
+        <span className="text-xs text-neutral-500">{item.medicines?.unit || 'pcs'}</span>
+      </div>
+      <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden mb-2">
+        <div className={`h-full rounded-full ${isLow ? 'bg-error-500' : 'bg-primary-500'}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex justify-between text-xs text-neutral-400">
+        <span>Min: {item.min_threshold}</span>
+        <span>{formatCurrency(Number(item.total_cost))}</span>
+      </div>
+      {item.expiry_date && (
+        <p className="text-xs text-warning-600 mt-1">Exp: {new Date(item.expiry_date).toLocaleDateString('id-ID')}</p>
+      )}
     </div>
   );
 }

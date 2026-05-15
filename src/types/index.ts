@@ -72,6 +72,7 @@ export interface User {
   role: UserRole;
   phone?: string;
   is_active: boolean;
+  owner_id?: string;
   created_at: string;
   updated_at?: string;
 }

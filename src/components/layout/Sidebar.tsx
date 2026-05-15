@@ -46,14 +46,18 @@ export function Sidebar(_props?: { onClose?: () => void }) {
       children: [
         { labelKey: 'nav.feed.stock', to: '/feed-inventory', icon: <Package size={16} /> },
         { labelKey: 'nav.feed.purchases', to: '/feed-purchases', icon: <ShoppingCart size={16} /> },
+        { labelKey: 'nav.feed.consumption', to: '/feed-consumption', icon: <ClipboardList size={16} /> },
         { labelKey: 'nav.feed.formulas', to: '/feed-formulas', icon: <ClipboardList size={16} /> },
         { labelKey: 'nav.feed.nutrition', to: '/nutrition-requirements', icon: <ClipboardSignature size={16} /> },
+        { labelKey: 'nav.feed.equipment', to: '/equipment', icon: <Package size={16} /> },
       ]
     },
     {
       labelKey: 'nav.medicine', icon: <Pill size={18} />,
       children: [
         { labelKey: 'nav.medicine.inventory', to: '/medicine-inventory', icon: <Package size={16} /> },
+        { labelKey: 'nav.medicine.purchases', to: '/medicine-purchases', icon: <ShoppingCart size={16} /> },
+        { labelKey: 'nav.medicine.usage', to: '/medicine-usage', icon: <ClipboardList size={16} /> },
       ]
     },
     {
