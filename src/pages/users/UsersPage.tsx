@@ -24,11 +24,11 @@ export function UsersPage() {
   const [showInactive, setShowInactive] = useState(false);
 
   const load = useCallback(() => {
-    (hasRole(['owner', 'manager']) ? getUsers() : getUsers(user?.id))
+    getUsers(user?.id)
       .then(data => setUsers(data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user?.id, hasRole]);
+  }, [user?.id]);
 
   useEffect(() => { load(); }, [load]);
 

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../supabaseAdmin';
+import { recordFinancialTransaction } from './finance';
 import type { Medicine, MedicineInventory, MedicinePurchase, MedicineUsage } from '../../types';
 
 // ─── Medicines ───
@@ -60,6 +61,21 @@ export async function createMedicinePurchase(userId: string, purchase: Partial<M
     });
   }
 
+  // Record financial transaction
+  const medAmount = (Number(purchase.quantity) || 0) * (Number(purchase.price_per_unit) || 0);
+  if (medAmount > 0) {
+    recordFinancialTransaction(userId, {
+      type: 'expense',
+      category: 'medicine_purchase',
+      amount: medAmount,
+      description: 'Pembelian obat',
+      transaction_date: purchase.purchase_date || new Date().toISOString().split('T')[0],
+      cash_flow: 'cash_out',
+      source_table: 'medicine_purchases',
+      source_id: data?.id,
+    });
+  }
+
   return data as MedicinePurchase;
 }
 
@@ -83,6 +99,21 @@ export async function createMedicineUsage(userId: string, usage: Partial<Medicin
       quantity_on_hand: rem,
       total_cost: rem * Number(inv.data.avg_cost_per_unit),
     }).eq('id', inv.data.id);
+  }
+
+  // Record financial transaction (non-cash for medicine usage)
+  const usageAmt = (Number(usage.quantity) || 0) * (Number(inv.data?.avg_cost_per_unit) || 0);
+  if (usageAmt > 0) {
+    recordFinancialTransaction(userId, {
+      type: 'expense',
+      category: 'medicine_usage',
+      amount: usageAmt,
+      description: 'Pemakaian obat',
+      transaction_date: usage.usage_date || new Date().toISOString().split('T')[0],
+      cash_flow: 'non_cash',
+      source_table: 'medicine_usages',
+      source_id: data?.id,
+    });
   }
 
   return data as MedicineUsage;

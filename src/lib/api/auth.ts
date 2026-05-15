@@ -46,6 +46,12 @@ export async function getUsers(userId?: string) {
   return data as User[];
 }
 
+export async function getAllUsers() {
+  const { data, error } = await supabaseAdmin.from('users').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data as User[];
+}
+
 export async function createUser(input: {
   email: string; password: string; full_name: string; role: User['role']; phone?: string;
 }) {

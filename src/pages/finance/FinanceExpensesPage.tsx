@@ -179,21 +179,20 @@ function ExpenseForm({ t, onClose }: { t: (key: string) => string; onClose: () =
 
     try {
       if (form.expense_type === 'labor') {
-        await createLaborExpense({
+        await createLaborExpense(user?.id, {
           expense_date: form.expense_date,
           worker_name: form.worker_name || 'Unknown',
           expense_type: 'salary',
           amount,
           notes: form.description || undefined,
-          recorded_by: user?.id,
         });
       } else {
-        await createOperationalExpense({
+        await createOperationalExpense(user?.id, {
           expense_date: form.expense_date,
           category: form.category as any,
           amount,
           description: form.description || undefined,
-          recorded_by: user?.id,
+          cash_flow: form.cash_flow as any,
         });
       }
       onClose();

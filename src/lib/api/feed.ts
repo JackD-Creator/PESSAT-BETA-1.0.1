@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../supabaseAdmin';
+import { recordFinancialTransaction } from './finance';
 import type { Feed, FeedInventory, FeedPurchase, FeedConsumption, FeedFormula, FeedFormulaItem, NutritionRequirement } from '../../types';
 
 // ─── Feeds ───
@@ -68,6 +69,21 @@ export async function createFeedPurchase(userId: string, purchase: Partial<FeedP
     });
   }
 
+  // Record financial transaction
+  const amount = (Number(purchase.quantity) || 0) * (Number(purchase.price_per_unit) || 0);
+  if (amount > 0) {
+    recordFinancialTransaction(userId, {
+      type: 'expense',
+      category: 'feed_purchase',
+      amount,
+      description: 'Pembelian pakan',
+      transaction_date: purchase.purchase_date || new Date().toISOString().split('T')[0],
+      cash_flow: 'cash_out',
+      source_table: 'feed_purchases',
+      source_id: data?.id,
+    });
+  }
+
   return data as FeedPurchase;
 }
 
@@ -94,6 +110,21 @@ export async function createFeedConsumption(userId: string, consumption: Partial
       quantity_on_hand: remaining,
       total_cost: remaining * avg,
     }).eq('id', inv.data.id);
+  }
+
+  // Record financial transaction (non-cash expense for feed usage)
+  const usageAmount = (Number(consumption.quantity) || 0) * (Number(inv.data?.avg_cost_per_unit) || 0);
+  if (usageAmount > 0) {
+    recordFinancialTransaction(userId, {
+      type: 'expense',
+      category: 'feed_usage',
+      amount: usageAmount,
+      description: 'Pemakaian pakan',
+      transaction_date: consumption.consumption_date || new Date().toISOString().split('T')[0],
+      cash_flow: 'non_cash',
+      source_table: 'feed_consumption',
+      source_id: data?.id,
+    });
   }
 
   return data as FeedConsumption;

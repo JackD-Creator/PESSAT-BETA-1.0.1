@@ -134,7 +134,7 @@ function SaleForm({ onClose }: { onClose: () => void }) {
     const ppu = Number(form.price_per_unit);
     if (!qty || !ppu) { alert('Jumlah dan harga harus diisi'); return; }
     try {
-      await createProductSale({
+      await createProductSale(user?.id, {
         sale_date: form.sale_date,
         product_type: form.product_type as any,
         quantity: qty,
@@ -143,7 +143,6 @@ function SaleForm({ onClose }: { onClose: () => void }) {
         total_amount: qty * ppu,
         buyer_name: form.buyer_name || undefined,
         payment_method: form.payment_method,
-        recorded_by: user?.id,
       });
       onClose();
     } catch { alert('Gagal menyimpan penjualan'); }

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../supabaseAdmin';
+import { recordFinancialTransaction } from './finance';
 import type { DailyProduction, ProductSale, AnimalPurchase, AnimalSale } from '../../types';
 
 // ─── Daily Production ───
@@ -40,6 +41,22 @@ export async function getProductSales(userId: string) {
 export async function createProductSale(userId: string, sale: Partial<ProductSale>) {
   const { data, error } = await supabaseAdmin.from('product_sales').insert({ ...sale, user_id: userId }).select().single();
   if (error) throw error;
+
+  // Record financial transaction
+  const saleAmount = (Number(sale.quantity) || 0) * (Number(sale.unit_price) || 0);
+  if (saleAmount > 0) {
+    recordFinancialTransaction(userId, {
+      type: 'income',
+      category: 'product_sale',
+      amount: saleAmount,
+      description: `Penjualan produk${sale.product_name ? ' - ' + sale.product_name : ''}`,
+      transaction_date: sale.sale_date || new Date().toISOString().split('T')[0],
+      cash_flow: 'cash_in',
+      source_table: 'product_sales',
+      source_id: data?.id,
+    });
+  }
+
   return data as ProductSale;
 }
 
@@ -54,6 +71,21 @@ export async function getAnimalPurchases(userId: string) {
 export async function createAnimalPurchase(userId: string, purchase: Partial<AnimalPurchase>) {
   const { data, error } = await supabaseAdmin.from('animal_purchases').insert({ ...purchase, user_id: userId }).select().single();
   if (error) throw error;
+
+  const apAmount = purchase.total_cost || purchase.purchase_price || 0;
+  if (apAmount > 0) {
+    recordFinancialTransaction(userId, {
+      type: 'expense',
+      category: 'animal_purchase',
+      amount: apAmount,
+      description: 'Pembelian ternak',
+      transaction_date: purchase.purchase_date || new Date().toISOString().split('T')[0],
+      cash_flow: 'cash_out',
+      source_table: 'animal_purchases',
+      source_id: data?.id,
+    });
+  }
+
   return data as AnimalPurchase;
 }
 
@@ -68,5 +100,20 @@ export async function getAnimalSales(userId: string) {
 export async function createAnimalSale(userId: string, sale: Partial<AnimalSale>) {
   const { data, error } = await supabaseAdmin.from('animal_sales').insert({ ...sale, user_id: userId }).select().single();
   if (error) throw error;
+
+  const asAmount = sale.sale_price || 0;
+  if (asAmount > 0) {
+    recordFinancialTransaction(userId, {
+      type: 'income',
+      category: 'animal_sale',
+      amount: asAmount,
+      description: 'Penjualan ternak',
+      transaction_date: sale.sale_date || new Date().toISOString().split('T')[0],
+      cash_flow: 'cash_in',
+      source_table: 'animal_sales',
+      source_id: data?.id,
+    });
+  }
+
   return data as AnimalSale;
 }

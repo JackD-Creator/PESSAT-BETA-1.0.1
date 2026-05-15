@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getTransactions } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 function formatCurrency(n: number) {
@@ -8,6 +9,7 @@ function formatCurrency(n: number) {
 
 export function FinancePage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [filter, setFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0]; });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0]);
