@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Heart, Wheat, DollarSign,
   Milk, CheckSquare, Bell, LogOut, Building2,
   Users, MapPin, Package, ShoppingCart, ClipboardList, Beef,
+  ClipboardSignature, Scale,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -47,6 +48,7 @@ export function Sidebar(_props?: { onClose?: () => void }) {
         { labelKey: 'nav.feed.purchases', to: '/feed-purchases', icon: <ShoppingCart size={16} /> },
         { labelKey: 'nav.feed.formulas', to: '/feed-formulas', icon: <ClipboardList size={16} /> },
         { labelKey: 'nav.feed.medicine', to: '/medicine-inventory', icon: <Package size={16} /> },
+        { labelKey: 'nav.feed.nutrition', to: '/nutrition-requirements', icon: <ClipboardSignature size={16} /> },
       ]
     },
     {
@@ -63,6 +65,7 @@ export function Sidebar(_props?: { onClose?: () => void }) {
         { labelKey: 'nav.finance.transactions', to: '/finance/transactions', icon: <ClipboardList size={16} /> },
         { labelKey: 'nav.finance.reports', to: '/finance/reports', icon: <DollarSign size={16} /> },
         { labelKey: 'nav.finance.expenses', to: '/finance/expenses', icon: <Package size={16} /> },
+        { labelKey: 'nav.finance.adjustments', to: '/finance/adjustments', icon: <Scale size={16} /> },
       ]
     },
     { labelKey: 'nav.tasks', to: '/tasks', icon: <CheckSquare size={18} /> },

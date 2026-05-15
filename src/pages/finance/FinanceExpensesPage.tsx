@@ -34,7 +34,7 @@ export function FinanceExpensesPage() {
 
   const [txs, setTxs] = useState<any[]>([]);
   const loadData = () => { getFinancialTransactions(user?.id).then(setTxs); };
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
   const expenses = txs.filter((tr: any) => tr.type === 'expense');
   const filtered = expenses.filter((tr: any) => categoryFilter === 'all' || tr.category === categoryFilter);
@@ -159,7 +159,7 @@ export function FinanceExpensesPage() {
 function ExpenseForm({ t, onClose }: { t: (key: string) => string; onClose: () => void }) {
   const { user } = useAuth();
   const [form, setForm] = useState({
-    expense_type: 'labor', category: 'labor', amount: '', expense_date: '2026-05-14',
+    expense_type: 'labor', category: 'labor', amount: '', expense_date: new Date().toISOString().split('T')[0],
     cash_flow: 'cash_out', description: '', worker_name: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));

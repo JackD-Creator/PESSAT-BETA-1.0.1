@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { getAnimals } from '../../lib/db';
-import { createAnimalSale, createAnimalPurchase } from '../../lib/api/production';
+import { getAnimalSales, getAnimalPurchases, createAnimalSale, createAnimalPurchase } from '../../lib/api/production';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -18,29 +18,47 @@ export function AnimalTransactionsPage() {
   const [txType, setTxType] = useState<'sale' | 'purchase'>('sale');
   const [filter, setFilter] = useState('all');
   const [animals, setAnimals] = useState<any[]>([]);
+  const [sales, setSales] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
 
-  const loadData = () => { getAnimals(user?.id).then(setAnimals); };
+  const loadData = () => {
+    getAnimals(user?.id).then(setAnimals);
+    getAnimalSales(user?.id).then(setSales).catch(() => {});
+    getAnimalPurchases(user?.id).then(setPurchases).catch(() => {});
+  };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
-  const mockAnimalTransactions = animals
-    .filter((a: any) => a.acquisition_type === 'purchased' || a.status === 'sold')
-    .map((a: any) => ({
-      id: a.id,
-      transaction_date: a.acquisition_date || a.created_at?.split('T')[0] || '',
-      type: a.status === 'sold' ? 'sale' as const : 'purchase' as const,
-      animal_tag: a.tag_id,
-      species: a.species as 'cattle' | 'sheep' | 'goat',
-      breed: a.breed,
-      weight_kg: a.current_weight_kg || 0,
-      price: a.acquisition_cost || 0,
-      party: '-',
-      notes: a.notes || '',
-    }));
+  const combined = [
+    ...sales.map((s: any) => ({
+      id: s.id,
+      transaction_date: s.sale_date,
+      type: 'sale' as const,
+      animal_tag: s.animals?.tag_id || '-',
+      species: s.animals?.species || 'cattle',
+      breed: s.animals?.breed || '-',
+      weight_kg: s.weight_at_sale_kg || 0,
+      price: s.sale_price || 0,
+      party: s.buyer_name || '-',
+      notes: s.notes || '',
+    })),
+    ...purchases.map((p: any) => ({
+      id: p.id,
+      transaction_date: p.purchase_date,
+      type: 'purchase' as const,
+      animal_tag: p.animals?.tag_id || '-',
+      species: p.animals?.species || 'cattle',
+      breed: p.animals?.breed || '-',
+      weight_kg: p.weight_at_purchase_kg || 0,
+      price: p.purchase_price || p.total_cost || 0,
+      party: p.seller_name || '-',
+      notes: p.notes || '',
+    })),
+  ].sort((a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime());
 
-  const filtered = mockAnimalTransactions.filter(t => filter === 'all' || t.type === filter);
-  const totalSales = mockAnimalTransactions.filter(t => t.type === 'sale').reduce((s, t) => s + t.price, 0);
-  const totalPurchases = mockAnimalTransactions.filter(t => t.type === 'purchase').reduce((s, t) => s + t.price, 0);
+  const filtered = combined.filter(t => filter === 'all' || t.type === filter);
+  const totalSales = sales.reduce((s: number, t: any) => s + Number(t.sale_price || 0), 0);
+  const totalPurchasesVal = purchases.reduce((s: number, p: any) => s + Number(p.purchase_price || p.total_cost || 0), 0);
 
   return (
     <div className="page-container">
@@ -79,7 +97,7 @@ export function AnimalTransactionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-neutral-500 font-medium">{t('transaction.total.purchases')}</p>
-              <p className="text-2xl font-bold text-error-700 mt-1">{formatCurrency(totalPurchases)}</p>
+              <p className="text-2xl font-bold text-error-700 mt-1">{formatCurrency(totalPurchasesVal)}</p>
             </div>
             <div className="bg-error-50 p-3 rounded-xl">
               <ArrowDownLeft size={22} className="text-error-600" />
@@ -159,7 +177,7 @@ function AnimalTransactionForm({ animals, type, onClose }: { animals: any[]; typ
   const { t } = useTranslation();
   const { user } = useAuth();
   const [form, setForm] = useState({
-    animal_id: '', party: '', price: '', transaction_date: '2026-05-14',
+    animal_id: '', party: '', price: '', transaction_date: new Date().toISOString().split('T')[0],
     new_tag_id: '', species: 'cattle', weight: '', notes: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -172,7 +190,7 @@ function AnimalTransactionForm({ animals, type, onClose }: { animals: any[]; typ
     try {
       if (type === 'sale') {
         if (!form.animal_id) { alert('Pilih ternak'); return; }
-        await createAnimalSale({
+        await createAnimalSale(user?.id, {
           animal_id: form.animal_id,
           sale_date: form.transaction_date,
           buyer_name: form.party || undefined,
@@ -183,7 +201,7 @@ function AnimalTransactionForm({ animals, type, onClose }: { animals: any[]; typ
         });
       } else {
         if (!form.new_tag_id) { alert('Tag ID harus diisi'); return; }
-        await createAnimalPurchase({
+        await createAnimalPurchase(user?.id, {
           animal_id: form.new_tag_id,
           purchase_date: form.transaction_date,
           seller_name: form.party || undefined,

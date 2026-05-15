@@ -63,10 +63,9 @@ function SparkleIcon() {
   );
 }
 
-const todayStr = new Date().toISOString().split('T')[0];
-const todayObj = new Date();
-
 export function DashboardPage() {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayObj = new Date();
   const { user } = useAuth();
   const { t, lang } = useTranslation();
   const navigate = useNavigate();
@@ -94,7 +93,7 @@ export function DashboardPage() {
     getTasks(user?.id).then(setTasks);
     getAlerts(user?.id).then(setAlerts);
     getFeedInventory(user?.id).then(setFeedInventory);
-  }, []);
+  }, [user?.id]);
 
   const cattleCount = animals.filter(a => a.species === 'cattle').length;
   const sheepCount = animals.filter(a => a.species === 'sheep').length;
@@ -529,7 +528,7 @@ export function DashboardPage() {
             </div>
             <div className="space-y-2.5">
               {todayTasks.slice(0, 5).map(task => {
-                const overdue = task.due_date && task.due_date < '2026-05-14';
+                const overdue = task.due_date && task.due_date < todayStr;
                 return (
                   <div key={task.id} className={`p-3.5 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md ${
                     overdue ? 'border-red-200 bg-gradient-to-r from-red-50/80 to-transparent hover:from-red-100' :

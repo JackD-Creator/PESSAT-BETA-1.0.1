@@ -107,11 +107,23 @@ export async function getFeedFormulas(userId: string) {
   return data as FeedFormula[];
 }
 
+export async function createFeedFormula(userId: string, formula: Partial<FeedFormula>) {
+  const { data, error } = await supabaseAdmin.from('feed_formulas').insert({ ...formula, user_id: userId }).select().single();
+  if (error) throw error;
+  return data as FeedFormula;
+}
+
 export async function getFeedFormulaItems(userId: string, formulaId: string) {
   let q = supabaseAdmin.from('feed_formula_items').select('*, feeds(name)').eq('formula_id', formulaId).eq('user_id', userId);
   const { data, error } = await q;
   if (error) throw error;
   return data as (FeedFormulaItem & { feeds: { name: string } })[];
+}
+
+export async function createFeedFormulaItem(userId: string, item: Partial<FeedFormulaItem>) {
+  const { data, error } = await supabaseAdmin.from('feed_formula_items').insert({ ...item, user_id: userId }).select().single();
+  if (error) throw error;
+  return data as FeedFormulaItem;
 }
 
 // ─── Nutrition Requirements ───

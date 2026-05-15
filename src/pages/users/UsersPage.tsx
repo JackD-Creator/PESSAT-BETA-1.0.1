@@ -14,7 +14,7 @@ const roleConfig = {
 
 export function UsersPage() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -24,11 +24,11 @@ export function UsersPage() {
   const [showInactive, setShowInactive] = useState(false);
 
   const load = useCallback(() => {
-    getUsers(user?.id)
+    (hasRole(['owner', 'manager']) ? getUsers() : getUsers(user?.id))
       .then(data => setUsers(data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user?.id]);
+  }, [user?.id, hasRole]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -41,10 +41,12 @@ export function UsersPage() {
           <h1 className="page-title">{t('user.title')}</h1>
           <p className="text-sm text-neutral-500 mt-0.5">{t('user.count').replace('{count}', String(users.filter(u => u.is_active).length))}</p>
         </div>
+        {hasRole(['owner', 'manager']) && (
         <button className="btn-primary" onClick={() => setShowModal(true)}>
           <Plus size={16} />
           {t('user.add')}
         </button>
+        )}
       </div>
 
       {/* Role summary */}
@@ -119,6 +121,8 @@ export function UsersPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
+                        {hasRole(['owner', 'manager']) && (
+                        <>
                         <button
                           className="text-xs text-primary-600 hover:text-primary-700 font-medium"
                           onClick={() => setEditingUser(u)}
@@ -147,6 +151,8 @@ export function UsersPage() {
                           >
                             {t('user.action.activate')}
                           </button>
+                        )}
+                        </>
                         )}
                       </div>
                     </td>

@@ -28,7 +28,7 @@ export function HealthPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
   const filtered = records.filter(r => {
     const tag = (r as any).animals?.tag_id || '';
@@ -107,7 +107,7 @@ export function HealthPage() {
                     <td>Rp {r.cost.toLocaleString('id-ID')}</td>
                     <td>
                       {r.follow_up_date ? (
-                        <span className={new Date(r.follow_up_date) <= new Date('2026-05-17') ? 'text-error-600 font-medium' : ''}>
+                        <span className=                          {new Date(r.follow_up_date) <= new Date(new Date().toISOString().split('T')[0]) ? 'text-error-600 font-medium' : ''}>
                           {new Date(r.follow_up_date).toLocaleDateString('id-ID')}
                         </span>
                       ) : '-'}
@@ -155,7 +155,7 @@ function AddHealthForm({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const [animals, setAnimals] = useState<any[]>([]);
   const [form, setForm] = useState({
-    animal_id: '', record_date: '2026-05-14', type: 'checkup',
+    animal_id: '', record_date: new Date().toISOString().split('T')[0], type: 'checkup',
     diagnosis: '', treatment: '', vet_name: '', cost: '', follow_up_date: '', notes: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));

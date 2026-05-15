@@ -107,3 +107,10 @@ export async function getAnimalCounts(userId: string) {
   }
   return { species, status, total: data.length };
 }
+
+// ─── Animal Attributes ───
+export async function getAnimalAttributes(userId: string, animalId: string) {
+  const { data, error } = await supabaseAdmin.from('animal_attributes').select('*').eq('animal_id', animalId).eq('user_id', userId);
+  if (error) throw error;
+  return data as any[];
+}

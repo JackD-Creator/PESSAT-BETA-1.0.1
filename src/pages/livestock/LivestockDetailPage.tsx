@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard as Edit, Scale, Heart, Syringe, Baby, Tag, Activity } from 'lucide-react';
 import { StatusBadge, SpeciesBadge } from '../../components/ui/Badge';
-import { getAnimal, getWeightRecords, createWeightRecord } from '../../lib/api';
+import { getAnimal, getWeightRecords, createWeightRecord, getAnimalAttributes } from '../../lib/api';
 import { getHealthRecords, getVaccinations, getBreedingEvents } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -29,6 +29,7 @@ export function LivestockDetailPage() {
   const [healthHistory, setHealthHistory] = useState<(HealthRecord & { animals: { tag_id: string } })[]>([]);
   const [vaccinations, setVaccinations] = useState<(Vaccination & { animals: { tag_id: string } | null })[]>([]);
   const [breedingEvents, setBreedingEvents] = useState<(BreedingEvent & { animals: { tag_id: string }; sire: { tag_id: string } | null })[]>([]);
+  const [attributes, setAttributes] = useState<any[]>([]);
 
   const loadData = () => {
     if (!id) return;
@@ -38,13 +39,15 @@ export function LivestockDetailPage() {
       getHealthRecords(user?.id, id),
       getVaccinations(user?.id, id),
       getBreedingEvents(user?.id, id),
+      getAnimalAttributes(user?.id, id).catch(() => []),
     ])
-      .then(([animalData, weights, health, vax, breeding]) => {
+      .then(([animalData, weights, health, vax, breeding, attrs]) => {
         setAnimal(animalData);
         setWeightHistory(weights);
         setHealthHistory(health as any);
         setVaccinations(vax as any);
         setBreedingEvents(breeding as any);
+        setAttributes(attrs as any[]);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -75,7 +78,7 @@ export function LivestockDetailPage() {
 
   function getAge() {
     const birth = new Date(animal!.birth_date!);
-    const now = new Date('2026-05-14');
+    const now = new Date();
     const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
     if (months < 12) return `${months} ${t('livestock.detail.age.month')}`;
     return `${Math.floor(months / 12)} ${t('livestock.detail.age.year')} ${months % 12} ${t('livestock.detail.age.month')}`;
@@ -319,7 +322,7 @@ export function LivestockDetailPage() {
                         <td>{v.batch_number || '-'}</td>
                         <td>
                           {v.next_due_date ? (
-                            <span className={`text-sm ${new Date(v.next_due_date) <= new Date('2026-05-17') ? 'text-error-600 font-medium' : ''}`}>
+                            <span className={`text-sm ${new Date(v.next_due_date) <= new Date(new Date().toISOString().split('T')[0]) ? 'text-error-600 font-medium' : ''}`}>
                               {new Date(v.next_due_date).toLocaleDateString('id-ID')}
                             </span>
                           ) : '-'}
@@ -403,6 +406,15 @@ export function LivestockDetailPage() {
                   <InfoRow label={t('livestock.detail.info.acquisition_date')} value={new Date(animal.acquisition_date).toLocaleDateString('id-ID')} />
                 )}
                 {animal.notes && <InfoRow label={t('livestock.form.notes')} value={animal.notes} />}
+                {attributes.length > 0 && (
+                  <>
+                    <div className="border-t border-neutral-100 pt-3 mt-3" />
+                    <h3 className="font-semibold text-neutral-700 mb-2">Atribut Spesifik</h3>
+                    {attributes.map(a => (
+                      <InfoRow key={a.id} label={a.attribute_key.replace(/_/g, ' ')} value={a.attribute_value} />
+                    ))}
+                  </>
+                )}
               </div>
             </div>
           )}

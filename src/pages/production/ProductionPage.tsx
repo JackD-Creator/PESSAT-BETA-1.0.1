@@ -28,6 +28,7 @@ export function ProductionPage() {
   const [period, setPeriod] = useState(7);
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [productFilter, setProductFilter] = useState('milk');
 
   const loadData = () => {
     setLoading(true);
@@ -37,14 +38,16 @@ export function ProductionPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
-  const recentData = records.slice(0, period).reverse();
-  const totalMilk = recentData.reduce((s, d) => s + d.quantity, 0);
-  const avgMilk = totalMilk / recentData.length;
-  const lastMilk = recentData[recentData.length - 1]?.quantity || 0;
-  const prevMilk = recentData[recentData.length - 2]?.quantity || lastMilk;
-  const trend = ((lastMilk - prevMilk) / prevMilk * 100).toFixed(1);
+  const filtered = records.filter(r => r.product_type === productFilter || !r.product_type);
+  const recentData = filtered.slice(0, period).reverse();
+  const totalQty = recentData.reduce((s, d) => s + d.quantity, 0);
+  const avgQty = recentData.length > 0 ? totalQty / recentData.length : 0;
+  const lastQty = recentData[recentData.length - 1]?.quantity || 0;
+  const prevQty = recentData[recentData.length - 2]?.quantity || lastQty;
+  const trend = prevQty > 0 ? ((lastQty - prevQty) / prevQty * 100).toFixed(1) : '0';
+  const unit = productFilter === 'wool' ? 'kg' : 'L';
 
   return (
     <div className="page-container">
@@ -54,6 +57,10 @@ export function ProductionPage() {
           <p className="text-sm text-neutral-500 mt-0.5">{t('production.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex gap-1 bg-neutral-50 rounded-lg p-0.5">
+            <button onClick={() => setProductFilter('milk')} className={`px-3 py-1 text-xs font-medium rounded-md ${productFilter === 'milk' ? 'bg-white shadow-sm text-primary-700' : 'text-neutral-500 hover:text-neutral-700'}`}>Susu</button>
+            <button onClick={() => setProductFilter('wool')} className={`px-3 py-1 text-xs font-medium rounded-md ${productFilter === 'wool' ? 'bg-white shadow-sm text-primary-700' : 'text-neutral-500 hover:text-neutral-700'}`}>Wol</button>
+          </div>
           <div className="tab-bar">
             {[7, 14, 30].map(d => (
               <button
@@ -80,7 +87,7 @@ export function ProductionPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-neutral-500 font-medium">{t('production.today')}</p>
-              <p className="text-3xl font-bold text-blue-700 mt-1">{lastMilk} L</p>
+              <p className="text-3xl font-bold text-blue-700 mt-1">{lastQty} {unit}</p>
               <p className={`text-xs font-medium mt-1 ${Number(trend) >= 0 ? 'text-primary-600' : 'text-error-600'}`}>
                 {Number(trend) >= 0 ? '+' : ''}{trend}% {t('production.trend').replace('+/-{trend}%', '').trim()}
               </p>
@@ -92,14 +99,14 @@ export function ProductionPage() {
         </div>
         <div className="card p-5">
           <p className="text-xs text-neutral-500 font-medium">{t('production.avg').replace('{period}', String(period))}</p>
-          <p className="text-3xl font-bold text-neutral-800 mt-1">{avgMilk.toFixed(0)} L/hari</p>
+          <p className="text-3xl font-bold text-neutral-800 mt-1">{avgQty.toFixed(0)} {unit}/hari</p>
           <MiniSparkline data={recentData.map(d => d.quantity)} />
         </div>
         <div className="card p-5">
           <p className="text-xs text-neutral-500 font-medium">{t('production.total').replace('{period}', String(period))}</p>
-          <p className="text-3xl font-bold text-neutral-800 mt-1">{totalMilk} L</p>
+          <p className="text-3xl font-bold text-neutral-800 mt-1">{totalQty} {unit}</p>
           <p className="text-xs text-neutral-400 mt-1">
-            {t('production.value').replace('{value}', 'Rp ' + (totalMilk * 20000).toLocaleString('id-ID'))}
+            {t('production.value').replace('{value}', 'Rp ' + (totalQty * 20000).toLocaleString('id-ID'))}
           </p>
         </div>
       </div>
@@ -188,7 +195,7 @@ function ProductionForm({ onClose }: { onClose: () => void }) {
   const [groups, setGroups] = useState<any[]>([]);
   const [form, setForm] = useState({
     targetType: 'group', targetId: '', productType: 'milk',
-    quantity: '', shift: 'morning', productionDate: '2026-05-14',
+    quantity: '', shift: 'morning', productionDate: new Date().toISOString().split('T')[0],
   });
 
   useEffect(() => {
@@ -201,13 +208,14 @@ function ProductionForm({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const unit = form.productType === 'wool' ? 'kg' : 'L';
     const record: any = {
       production_date: form.productionDate,
       product_type: form.productType,
       quantity: Number(form.quantity),
-      unit: 'L',
+      unit,
       shift: form.shift,
-        recorded_by: user?.id,
+      recorded_by: user?.id,
     };
     if (form.targetType === 'individual') record.animal_id = form.targetId;
     else record.herd_group_id = form.targetId || undefined;
@@ -239,6 +247,7 @@ function ProductionForm({ onClose }: { onClose: () => void }) {
           <label className="label">{t('production.form.product')}</label>
           <select name="productType" className="select" value={form.productType} onChange={change}>
             <option value="milk">{t('production.form.product.milk')}</option>
+            <option value="wool">Wol (kg)</option>
           </select>
         </div>
         <div>

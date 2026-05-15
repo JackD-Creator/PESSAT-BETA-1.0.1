@@ -41,7 +41,7 @@ export function LivestockListPage() {
   function getAge(birthDate?: string) {
     if (!birthDate) return '-';
     const birth = new Date(birthDate);
-    const now = new Date('2026-05-14');
+    const now = new Date();
     const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
     if (months < 12) return `${months} bln`;
     return `${Math.floor(months / 12)} th ${months % 12 > 0 ? `${months % 12} bln` : ''}`;

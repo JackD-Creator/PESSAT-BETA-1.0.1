@@ -27,7 +27,7 @@ export function BreedingPage() {
   const [breedingEvents, setBreedingEvents] = useState<any[]>([]);
   const [allAnimals, setAllAnimals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const today = new Date('2026-05-14');
+  const today = new Date();
 
   const loadData = () => {
     Promise.all([
@@ -42,7 +42,7 @@ export function BreedingPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
   const pregnantAnimals = allAnimals.filter((a: any) => a.status === 'pregnant');
 
@@ -157,7 +157,7 @@ function BreedingForm({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const [animals, setAnimals] = useState<any[]>([]);
   const [form, setForm] = useState({
-    animal_id: '', event_type: 'insemination', event_date: '2026-05-14',
+    animal_id: '', event_type: 'insemination', event_date: new Date().toISOString().split('T')[0],
     expected_due_date: '', offspring_count: '', cost: '', notes: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));

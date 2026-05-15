@@ -25,7 +25,7 @@ export function ProductSalesPage() {
     getProductSales(user?.id).then(setSales);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
   const salesTxs = txs.filter((t: any) => t.category === 'product_sale');
   const totalRevenue = salesTxs.reduce((s: number, t: any) => s + t.amount, 0);
@@ -123,7 +123,7 @@ function SaleForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [form, setForm] = useState({
-    product_type: 'milk', sale_date: '2026-05-14', quantity: '',
+    product_type: 'milk', sale_date: new Date().toISOString().split('T')[0], quantity: '',
     unit: 'L', price_per_unit: '', buyer_name: '', payment_method: 'cash',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));

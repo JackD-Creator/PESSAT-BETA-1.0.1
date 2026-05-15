@@ -29,7 +29,7 @@ export function LocationsPage() {
       .then(data => setLocations(data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -76,6 +76,8 @@ export function LocationsPage() {
                     <td>{loc.current_occupancy || 0}</td>
                     <td>
                       <div className="flex items-center gap-2">
+                        {hasRole(['owner', 'manager']) && (
+                        <>
                         <button
                           className="text-xs text-primary-600 hover:text-primary-700 font-medium"
                           onClick={() => setEditingLocation(loc)}
@@ -90,6 +92,8 @@ export function LocationsPage() {
                         >
                           <Trash2 size={14} />
                         </button>
+                        </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -117,6 +121,7 @@ export function LocationsPage() {
             <div className="flex justify-end gap-3">
               <button className="btn-secondary" onClick={() => setDeletingLocation(null)}>{t('common.cancel')}</button>
               <button className="btn-danger" onClick={async () => {
+                if (!hasRole(['owner', 'manager'])) return;
                 await deleteLocation(user?.id, deletingLocation.id);
                 setDeletingLocation(null);
                 load();

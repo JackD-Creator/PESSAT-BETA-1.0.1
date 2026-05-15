@@ -29,7 +29,7 @@ export function AlertsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
   const filtered = alerts.filter(a => {
     if (filter === 'unread') return !a.is_read;

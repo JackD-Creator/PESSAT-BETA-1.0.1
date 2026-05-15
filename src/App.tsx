@@ -12,12 +12,14 @@ import { HealthPage } from './pages/health/HealthPage';
 import { VaccinationPage } from './pages/health/VaccinationPage';
 import { BreedingPage } from './pages/health/BreedingPage';
 import { FeedInventoryPage } from './pages/feed/FeedInventoryPage';
+import { NutritionRequirementsPage } from './pages/feed/NutritionRequirementsPage';
 import { ProductionPage } from './pages/production/ProductionPage';
 import { ProductSalesPage } from './pages/production/ProductSalesPage';
 import { AnimalTransactionsPage } from './pages/production/AnimalTransactionsPage';
 import { FinancePage } from './pages/finance/FinancePage';
 import { FinanceReportsPage } from './pages/finance/FinanceReportsPage';
 import { FinanceExpensesPage } from './pages/finance/FinanceExpensesPage';
+import { StockAdjustmentsPage } from './pages/finance/StockAdjustmentsPage';
 import { TasksPage } from './pages/tasks/TasksPage';
 import { AlertsPage } from './pages/alerts/AlertsPage';
 import { UsersPage } from './pages/users/UsersPage';
@@ -56,9 +58,11 @@ function AppRoutes() {
         <Route path="production" element={<ProductionPage />} />
         <Route path="product-sales" element={<ProductSalesPage />} />
         <Route path="animal-transactions" element={<AnimalTransactionsPage />} />
-        <Route path="finance/transactions" element={<FinancePage />} />
+        <Route path="finance/transactions" element={<ProtectedRoute roles={['owner', 'manager']}><FinancePage /></ProtectedRoute>} />
         <Route path="finance/reports" element={<ProtectedRoute roles={['owner', 'manager']}><FinanceReportsPage /></ProtectedRoute>} />
         <Route path="finance/expenses" element={<ProtectedRoute roles={['owner', 'manager']}><FinanceExpensesPage /></ProtectedRoute>} />
+        <Route path="finance/adjustments" element={<ProtectedRoute roles={['owner', 'manager']}><StockAdjustmentsPage /></ProtectedRoute>} />
+        <Route path="nutrition-requirements" element={<ProtectedRoute roles={['owner', 'manager']}><NutritionRequirementsPage /></ProtectedRoute>} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="users" element={<ProtectedRoute roles={['owner']}><UsersPage /></ProtectedRoute>} />

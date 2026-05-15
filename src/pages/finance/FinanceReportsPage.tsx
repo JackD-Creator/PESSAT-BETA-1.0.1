@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, BarChart2, Users, Milk } from 'lucide-react';
 import { getFinancialTransactions } from '../../lib/db';
+import { getAnimals, getDailyProduction } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
@@ -32,13 +33,25 @@ export function FinanceReportsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [txs, setTxs] = useState<any[]>([]);
-  useEffect(() => { getFinancialTransactions(user?.id).then(setTxs); }, []);
+  const [animals, setAnimals] = useState<any[]>([]);
+  const [production, setProduction] = useState<any[]>([]);
+  useEffect(() => {
+    getFinancialTransactions(user?.id).then(setTxs);
+    getAnimals(user?.id).then(setAnimals).catch(() => {});
+    getDailyProduction(user?.id).then(p => setProduction((p as any[]).filter(r => r.product_type === 'milk'))).catch(() => {});
+  }, [user?.id]);
 
   const income = txs.filter(tr => tr.type === 'income').reduce((s, tr) => s + tr.amount, 0);
   const expenseCash = txs.filter(tr => tr.type === 'expense' && tr.cash_flow === 'cash_out').reduce((s, tr) => s + tr.amount, 0);
   const expenseNonCash = txs.filter(tr => tr.type === 'expense' && tr.cash_flow === 'non_cash').reduce((s, tr) => s + tr.amount, 0);
   const grossProfit = income - expenseCash - expenseNonCash;
   const cashFlow = income - expenseCash;
+
+  const totalExpenses = expenseCash + expenseNonCash;
+  const activeAnimals = animals.filter((a: any) => a.status === 'active' || a.status === 'pregnant').length;
+  const totalMilk30d = (production as any[]).slice(0, 30).reduce((s: number, d: any) => s + d.quantity, 0);
+  const costPerHead = activeAnimals > 0 ? totalExpenses / activeAnimals : 0;
+  const costPerLiter = totalMilk30d > 0 ? totalExpenses / totalMilk30d : 0;
 
   const byCategoryGroup = Object.entries(categoryGroups).map(([key, group]) => {
     const amount = txs
@@ -82,6 +95,30 @@ export function FinanceReportsPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Cost efficiency */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-neutral-500 font-medium">Biaya Per Ekor (30 hari)</p>
+              <p className="text-2xl font-bold text-neutral-800 mt-1">{formatCurrency(costPerHead)}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">{activeAnimals} ekor aktif</p>
+            </div>
+            <div className="bg-blue-50 p-2.5 rounded-xl"><Users size={20} className="text-blue-600" /></div>
+          </div>
+        </div>
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-neutral-500 font-medium">Biaya Per Liter (30 hari)</p>
+              <p className="text-2xl font-bold text-neutral-800 mt-1">{formatCurrency(costPerLiter)}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">{totalMilk30d.toFixed(0)} L total</p>
+            </div>
+            <div className="bg-green-50 p-2.5 rounded-xl"><Milk size={20} className="text-green-600" /></div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

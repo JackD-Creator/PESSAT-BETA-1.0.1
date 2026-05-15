@@ -22,7 +22,7 @@ export function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const today = '2026-05-14';
+  const today = new Date().toISOString().split('T')[0];
 
   const loadData = () => {
     getTasks(user?.id)
@@ -31,7 +31,7 @@ export function TasksPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
   const filtered = tasks.filter(task => {
     const matchStatus = statusFilter === 'all' || task.status === statusFilter;

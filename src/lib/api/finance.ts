@@ -47,6 +47,13 @@ export async function createOperationalExpense(userId: string, expense: Partial<
 }
 
 // ─── Stock Adjustments ───
+export async function getStockAdjustments(userId: string) {
+  let q = supabaseAdmin.from('stock_adjustments').select('*').eq('user_id', userId);
+  const { data, error } = await q.order('adjustment_date', { ascending: false }).limit(50);
+  if (error) throw error;
+  return data as StockAdjustment[];
+}
+
 export async function createStockAdjustment(userId: string, adjustment: Partial<StockAdjustment>) {
   const { data, error } = await supabaseAdmin.from('stock_adjustments').insert({ ...adjustment, user_id: userId }).select().single();
   if (error) throw error;

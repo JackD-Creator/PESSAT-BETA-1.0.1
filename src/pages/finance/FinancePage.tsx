@@ -9,17 +9,17 @@ function formatCurrency(n: number) {
 export function FinancePage() {
   const { t } = useTranslation();
   const [filter, setFilter] = useState('all');
-  const [dateFrom, setDateFrom] = useState('2026-05-01');
-  const [dateTo, setDateTo] = useState('2026-05-14');
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0]; });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getTransactions()
+    getTransactions(user?.id)
       .then(data => setTransactions(data as any[]))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   const filtered = transactions.filter(tr => {
     const matchType = filter === 'all' || tr.type === filter || tr.cash_flow === filter;

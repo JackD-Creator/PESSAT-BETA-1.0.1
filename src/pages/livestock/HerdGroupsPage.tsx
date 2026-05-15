@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Users, MapPin, MapPinned, Loader } from 'lucide-react';
-import { getHerdGroups, getAnimals, getLocations, createHerdGroup } from '../../lib/api';
+import { Plus, Users, MapPin, MapPinned, Loader, UserPlus, UserX } from 'lucide-react';
+import { getHerdGroups, getAnimals, getLocations, createHerdGroup, getHerdGroupMembers } from '../../lib/api';
 import { createLocation } from '../../lib/api';
+import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -14,6 +15,8 @@ export function HerdGroupsPage() {
   const [herdGroups, setHerdGroups] = useState<any[]>([]);
   const [animals, setAnimals] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
+  const [membersGroup, setMembersGroup] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
 
   const loadData = () => {
     getHerdGroups(user?.id).then(setHerdGroups);
@@ -21,7 +24,7 @@ export function HerdGroupsPage() {
     getLocations(user?.id).then(setLocations);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
   return (
     <div className="page-container">
@@ -92,6 +95,10 @@ export function HerdGroupsPage() {
                   <p className="text-xs text-neutral-400">{t('status.pregnant')}</p>
                 </div>
               </div>
+              <button className="btn-ghost btn-sm text-primary-600 w-full mt-3 text-xs font-medium" onClick={() => {
+                getHerdGroupMembers(user?.id, group.id).then(setMembers).catch(() => {});
+                setMembersGroup(group);
+              }}>Kelola Anggota ({group.member_count})</button>
             </div>
           );
         })}
@@ -164,11 +171,92 @@ export function HerdGroupsPage() {
       <Modal open={showLocationModal} onClose={() => setShowLocationModal(false)} title={t('herd.location.add')} size="md">
         <LocationForm user={user} onClose={() => { setShowLocationModal(false); loadData(); }} />
       </Modal>
+
+      <Modal open={!!membersGroup} onClose={() => setMembersGroup(null)} title={`Anggota: ${membersGroup?.name}`} size="lg">
+        {membersGroup && (
+          <MembersManager user={user} group={membersGroup} members={members} animals={animals} onClose={() => {
+            setMembersGroup(null);
+            loadData();
+          }} />
+        )}
+      </Modal>
     </div>
   );
 }
 
-function LocationForm({ onClose }: { onClose: () => void }) {
+function MembersManager({ user, group, members, animals, onClose }: { user: any; group: any; members: any[]; animals: any[]; onClose: () => void }) {
+  const { t } = useTranslation();
+  const [selectedAnimalId, setSelectedAnimalId] = useState('');
+  const [adding, setAdding] = useState(false);
+  const unassigned = animals.filter((a: any) => !members.some((m: any) => m.animal_id === a.id));
+
+  const addMember = async () => {
+    if (!selectedAnimalId) return;
+    setAdding(true);
+    try {
+      await supabaseAdmin.from('herd_group_members').insert({
+        herd_group_id: group.id,
+        animal_id: selectedAnimalId,
+        joined_date: new Date().toISOString().split('T')[0],
+        user_id: user?.id,
+      });
+      const { data: cnt } = await supabaseAdmin.from('herd_group_members').select('id', { count: 'exact', head: true }).eq('herd_group_id', group.id);
+      await supabaseAdmin.from('herd_groups').update({ member_count: cnt?.count || 0 }).eq('id', group.id);
+      setSelectedAnimalId('');
+      // Reload
+      getHerdGroupMembers(user?.id, group.id).then(setMembers).catch(() => {});
+    } catch { alert('Gagal menambah anggota'); }
+    finally { setAdding(false); }
+  };
+
+  const removeMember = async (animalId: string) => {
+    try {
+      await supabaseAdmin.from('herd_group_members').delete().eq('herd_group_id', group.id).eq('animal_id', animalId);
+      const { data: cnt } = await supabaseAdmin.from('herd_group_members').select('id', { count: 'exact', head: true }).eq('herd_group_id', group.id);
+      await supabaseAdmin.from('herd_groups').update({ member_count: cnt?.count || 0 }).eq('id', group.id);
+      getHerdGroupMembers(user?.id, group.id).then(setMembers).catch(() => {});
+    } catch { alert('Gagal menghapus anggota'); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <select className="select flex-1" value={selectedAnimalId} onChange={e => setSelectedAnimalId(e.target.value)}>
+          <option value="">Pilih ternak untuk ditambahkan...</option>
+          {unassigned.map((a: any) => (
+            <option key={a.id} value={a.id}>{a.tag_id} - {a.breed} ({a.species})</option>
+          ))}
+        </select>
+        <button className="btn-primary btn-sm" onClick={addMember} disabled={!selectedAnimalId || adding}>
+          <UserPlus size={14} /> Tambah
+        </button>
+      </div>
+
+      <div className="divide-y divide-neutral-50 max-h-80 overflow-y-auto">
+        {members.length === 0 ? (
+          <p className="text-sm text-neutral-400 text-center py-8">Belum ada anggota</p>
+        ) : members.map((m: any) => (
+          <div key={m.id} className="flex items-center justify-between py-2.5">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary-50 rounded-full flex items-center justify-center text-primary-600 font-semibold text-sm">
+                {m.animals?.tag_id?.charAt(0) || '?'}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-800">{m.animals?.tag_id || '-'}</p>
+                <p className="text-xs text-neutral-400">{m.animals?.species} · {m.animals?.breed} · {m.animals?.status}</p>
+              </div>
+            </div>
+            <button className="btn-ghost text-error-500 p-1" onClick={() => removeMember(m.animal_id)} title="Hapus">
+              <UserX size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LocationForm({ user, onClose }: { user: any; onClose: () => void }) {
   const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');

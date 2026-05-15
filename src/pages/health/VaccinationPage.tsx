@@ -12,7 +12,7 @@ export function VaccinationPage() {
   const [showModal, setShowModal] = useState(false);
   const [vaccinations, setVaccinations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const today = new Date('2026-05-14');
+  const today = new Date();
 
   const loadData = () => {
     getVaccinations(user?.id)
@@ -21,7 +21,7 @@ export function VaccinationPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [user?.id]);
 
   const upcoming = vaccinations.filter(v => {
     if (!v.next_due_date) return false;
@@ -145,7 +145,7 @@ function VaccinationForm({ onClose }: { onClose: () => void }) {
   const [groups, setGroups] = useState<any[]>([]);
   const [form, setForm] = useState({
     target: 'individual', animal_id: '', herd_group_id: '',
-    vaccine_name: '', batch_number: '', date_administered: '2026-05-14',
+    vaccine_name: '', batch_number: '', date_administered: new Date().toISOString().split('T')[0],
     next_due_date: '', cost: '', administered_by: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
