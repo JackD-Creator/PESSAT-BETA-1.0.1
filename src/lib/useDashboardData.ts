@@ -19,6 +19,7 @@ export function useDashboardData(today = '2026-05-14') {
   useEffect(() => {
     async function load() {
       try {
+        if (!supabase) { setLoading(false); return; }
         const todayObj = new Date(today);
         const sevenDaysAgo = new Date(todayObj.getTime() - 7 * 86400000).toISOString().split('T')[0];
         const monthStart = today.slice(0, 7) + '-01';
