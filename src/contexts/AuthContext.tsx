@@ -85,9 +85,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const expectedPassword = DEMO_CREDENTIALS[email];
+    if (expectedPassword && expectedPassword === password) {
+      const found = DEMO_USERS.find(u => u.email === email);
+      if (found) {
+        setUser(found);
+        localStorage.setItem('livestock_user', JSON.stringify(found));
+        return true;
+      }
+    }
+
     try {
       const { data: authData } = await supabase.auth.signInWithPassword({ email, password });
-      if (authData.session) {
+      if (authData?.session) {
         const profile = await getUserProfile(authData.session.user.id);
         if (profile) {
           setUser(profile);
@@ -97,16 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch {
-      // supabase unavailable, fall through to demo
+      // supabase unavailable
     }
-
-    const expectedPassword = DEMO_CREDENTIALS[email];
-    if (!expectedPassword || expectedPassword !== password) return false;
-    const found = DEMO_USERS.find(u => u.email === email);
-    if (!found) return false;
-    setUser(found);
-    localStorage.setItem('livestock_user', JSON.stringify(found));
-    return true;
+    return false;
   }, []);
 
   const logout = useCallback(async () => {
