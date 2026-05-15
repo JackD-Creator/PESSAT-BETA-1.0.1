@@ -138,12 +138,12 @@ BEGIN
   INSERT INTO vaccinations (id, animal_id, herd_group_id, vaccine_name, batch_number, date_administered,
                              next_due_date, cost, administered_by, notes, user_id)
   VALUES
-    (gen_random_uuid(), NULL, _grp_dairy, 'Anthrax + Brucellosis', 'BT-2024-01', NOW()::date - 60,
-     NOW()::date + 305, 250000, 'drh. Wibowo', 'Vaksinasi massal kelompok perah', _uid),
-    (gen_random_uuid(), _a6,  NULL,       'Orf (Ecthyma)',         'OF-2024-03', NOW()::date - 30,
-     NOW()::date + 335, 75000,  'drh. Sari',   'Vaksinasi domba individu',        _uid),
-    (gen_random_uuid(), NULL, _grp_beef,  'FMD (PMK)',             'FD-2024-02', NOW()::date - 14,
-     NOW()::date + 169, 300000, 'drh. Wibowo', 'Vaksinasi wajib PMK sapi potong', _uid)
+    (gen_random_uuid(), NULL, _grp_dairy, 'Anthrax + Brucellosis', 'BT-2024-01', NOW()::date - 365,
+     NOW()::date + 2, 250000, 'drh. Wibowo', 'Vaksinasi massal kelompok perah', _uid),
+    (gen_random_uuid(), _a6,  NULL,       'Orf (Ecthyma)',         'OF-2024-03', NOW()::date - 180,
+     NOW()::date + 4, 75000,  'drh. Sari',   'Vaksinasi domba individu',        _uid),
+    (gen_random_uuid(), NULL, _grp_beef,  'FMD (PMK)',             'FD-2024-02', NOW()::date - 180,
+     NOW()::date + 6, 300000, 'drh. Wibowo', 'Vaksinasi wajib PMK sapi potong', _uid)
   ON CONFLICT DO NOTHING;
 
   -- ── Breeding Events ───────────────────────────────────────────────────────

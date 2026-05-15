@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ClipboardList, Plus, ShoppingCart, Package, Trash2 } from 'lucide-react';
+import { ClipboardList, Plus, ShoppingCart, Package, Trash2, Pencil } from 'lucide-react';
 import { getFeeds } from '../../lib/api';
-import { getFeedFormulas, getFeedFormulaItems, createFeedFormula, createFeedFormulaItem, deleteFeedFormula } from '../../lib/api/feed';
+import { getFeedFormulas, getFeedFormulaItems, createFeedFormula, createFeedFormulaItem, deleteFeedFormula, updateFeedFormula } from '../../lib/api/feed';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -17,6 +17,7 @@ export function FeedFormulasPage() {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showConsumeModal, setShowConsumeModal] = useState(false);
   const [showFormulaModal, setShowFormulaModal] = useState(false);
+  const [editingFormula, setEditingFormula] = useState<any | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleDeleteFormula = async (id: string) => {
@@ -95,9 +96,14 @@ export function FeedFormulasPage() {
                       {f.is_active ? 'Aktif' : 'Nonaktif'}
                     </span>
                     {hasRole(['owner', 'manager']) && (
-                      <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeleteFormula(f.id)}>
-                        <Trash2 size={14} />
-                      </button>
+                      <>
+                        <button className="btn-ghost text-neutral-400 hover:text-primary-600 p-1" title="Edit" onClick={() => setEditingFormula(f)}>
+                          <Pencil size={14} />
+                        </button>
+                        <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeleteFormula(f.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -152,7 +158,98 @@ export function FeedFormulasPage() {
       <Modal open={showFormulaModal} onClose={() => setShowFormulaModal(false)} title="Buat Formula Ransum Baru" size="lg">
         <FormulaForm t={t} onClose={() => { setShowFormulaModal(false); loadData(); }} />
       </Modal>
+
+      <Modal open={!!editingFormula} onClose={() => setEditingFormula(null)} title="Edit Formula Ransum" size="md">
+        {editingFormula && (
+          <FormulaEditForm
+            formula={editingFormula}
+            onClose={() => { setEditingFormula(null); loadData(); }}
+          />
+        )}
+      </Modal>
     </div>
+  );
+}
+
+function FormulaEditForm({ formula, onClose }: { formula: any; onClose: () => void }) {
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    name: formula.name || '',
+    target_species: formula.target_species || 'cattle',
+    target_purpose: formula.target_purpose || 'dairy',
+    target_phase: formula.target_phase || '',
+    notes: formula.notes || '',
+    is_active: formula.is_active ?? true,
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const change = (e: React.ChangeEvent<any>) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setForm(f => ({ ...f, [e.target.name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name) { alert('Nama formula harus diisi'); return; }
+    setSubmitting(true);
+    try {
+      await updateFeedFormula(user!.id, formula.id, {
+        name: form.name,
+        target_species: form.target_species as any,
+        target_purpose: form.target_purpose as any,
+        target_phase: form.target_phase,
+        notes: form.notes || undefined,
+        is_active: form.is_active,
+      });
+      onClose();
+    } catch (err: any) { alert('Gagal: ' + (err?.message || err)); }
+    finally { setSubmitting(false); }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="form-grid-2">
+        <div className="col-span-2">
+          <label className="label">Nama Formula <span className="text-error-500">*</span></label>
+          <input name="name" className="input" value={form.name} onChange={change} required />
+        </div>
+        <div>
+          <label className="label">Spesies Target</label>
+          <select name="target_species" className="select" value={form.target_species} onChange={change}>
+            <option value="cattle">Sapi</option>
+            <option value="sheep">Domba</option>
+            <option value="goat">Kambing</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Tujuan</label>
+          <select name="target_purpose" className="select" value={form.target_purpose} onChange={change}>
+            <option value="dairy">Perah</option>
+            <option value="beef">Potong</option>
+            <option value="dual">Dwifungsi</option>
+            <option value="wool">Wol</option>
+          </select>
+        </div>
+        <div className="col-span-2">
+          <label className="label">Fase Target</label>
+          <input name="target_phase" className="input" placeholder="Laktasi, Penggemukan..." value={form.target_phase} onChange={change} />
+        </div>
+        <div className="col-span-2">
+          <label className="label">Catatan</label>
+          <input name="notes" className="input" value={form.notes} onChange={change} />
+        </div>
+        <div className="col-span-2 flex items-center gap-2">
+          <input type="checkbox" id="is_active" name="is_active" checked={form.is_active} onChange={change} className="w-4 h-4" />
+          <label htmlFor="is_active" className="text-sm font-medium text-neutral-700">Formula Aktif</label>
+        </div>
+      </div>
+      <div className="flex justify-end gap-3">
+        <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Batal</button>
+        <button type="submit" className="btn-primary" disabled={submitting}>
+          {submitting ? <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Pencil size={14} />}
+          Simpan Perubahan
+        </button>
+      </div>
+    </form>
   );
 }
 
