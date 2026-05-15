@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, TrendingUp, ShoppingBag, Pencil, Trash2 } from 'lucide-react';
-import { getTransactions } from '../../lib/api/finance';
-import { getDailyProduction, getProductSales, createProductSale, updateProductSale, deleteProductSale } from '../../lib/api/production';
+import { Plus, TrendingUp, ShoppingBag, Pencil, Trash2, DollarSign, Package, Users } from 'lucide-react';
+import { getProductSales, createProductSale, updateProductSale, deleteProductSale } from '../../lib/api/production';
 import type { ProductSale } from '../../types';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,24 +14,34 @@ export function ProductSalesPage() {
   const { hasRole, user } = useAuth();
   const { t, locale } = useTranslation();
   const [showModal, setShowModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [txs, setTxs] = useState<any[]>([]);
-  const [production, setProduction] = useState<any[]>([]);
+  const [editingItem, setEditingItem] = useState<ProductSale | null>(null);
   const [sales, setSales] = useState<ProductSale[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const loadData = () => {
     if (!user?.id) return;
-    getTransactions(user.id).then(setTxs);
-    getDailyProduction(user.id, 30).then(setProduction);
-    getProductSales(user.id).then(setSales);
+    setLoading(true);
+    getProductSales(user.id)
+      .then(setSales)
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { loadData(); }, [user?.id]);
 
-  const salesTxs = txs.filter((t: any) => t.category === 'product_sale');
-  const totalRevenue = salesTxs.reduce((s: number, t: any) => s + t.amount, 0);
-  const totalLiters = production.reduce((s: number, d: any) => s + d.quantity, 0);
-  const avgPricePerLiter = totalLiters > 0 ? totalRevenue / totalLiters : 20000;
+  // Compute stats from sales data directly
+  const totalRevenue = sales.reduce((s, r) => s + r.total_amount, 0);
+  const totalQty = sales.reduce((s, r) => s + r.quantity, 0);
+  const uniqueBuyers = new Set(sales.map(r => r.buyer_name).filter(Boolean)).size;
+
+  // Group by product type
+  const byProduct: Record<string, { qty: number; revenue: number; count: number }> = {};
+  for (const r of sales) {
+    if (!byProduct[r.product_type]) byProduct[r.product_type] = { qty: 0, revenue: 0, count: 0 };
+    byProduct[r.product_type].qty += r.quantity;
+    byProduct[r.product_type].revenue += r.total_amount;
+    byProduct[r.product_type].count += 1;
+  }
 
   return (
     <div className="page-container">
@@ -49,35 +58,79 @@ export function ProductSalesPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-neutral-500 font-medium">{t('sales.total.revenue')}</p>
               <p className="text-2xl font-bold text-primary-700 mt-1">{formatCurrency(totalRevenue)}</p>
-              <p className="text-xs text-neutral-400 mt-0.5">{salesTxs.length} transaksi</p>
+              <p className="text-xs text-neutral-400 mt-0.5">{sales.length} transaksi</p>
             </div>
-            <div className="bg-primary-50 p-3 rounded-xl">
-              <TrendingUp size={22} className="text-primary-600" />
-            </div>
+            <div className="bg-primary-50 p-3 rounded-xl"><TrendingUp size={22} className="text-primary-600" /></div>
           </div>
         </div>
         <div className="card p-5">
-          <p className="text-xs text-neutral-500 font-medium">{t('sales.total.volume')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{totalLiters.toLocaleString()} L</p>
-          <p className="text-xs text-neutral-400 mt-0.5">{t('sales.milk.sold')}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-neutral-500 font-medium">{t('sales.total.volume')}</p>
+              <p className="text-2xl font-bold text-neutral-800 mt-1">{totalQty.toLocaleString()}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">total unit terjual</p>
+            </div>
+            <div className="bg-info-50 p-3 rounded-xl"><Package size={22} className="text-info-600" /></div>
+          </div>
         </div>
         <div className="card p-5">
-          <p className="text-xs text-neutral-500 font-medium">{t('sales.avg.price')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{formatCurrency(Math.round(avgPricePerLiter))}/L</p>
-          <p className="text-xs text-neutral-400 mt-0.5">{t('sales.per.liter')}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-neutral-500 font-medium">{t('sales.avg.price')}</p>
+              <p className="text-2xl font-bold text-neutral-800 mt-1">
+                {formatCurrency(totalQty > 0 ? Math.round(totalRevenue / totalQty) : 0)}
+              </p>
+              <p className="text-xs text-neutral-400 mt-0.5">rata-rata per unit</p>
+            </div>
+            <div className="bg-warning-50 p-3 rounded-xl"><DollarSign size={22} className="text-warning-600" /></div>
+          </div>
+        </div>
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-neutral-500 font-medium">Pembeli</p>
+              <p className="text-2xl font-bold text-neutral-800 mt-1">{uniqueBuyers}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">pembeli unik</p>
+            </div>
+            <div className="bg-earth-50 p-3 rounded-xl"><Users size={22} className="text-earth-600" /></div>
+          </div>
         </div>
       </div>
 
+      {/* Breakdown by product */}
+      {Object.keys(byProduct).length > 0 && (
+        <div className="card p-5">
+          <h2 className="section-header mb-4">Ringkasan per Produk</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {Object.entries(byProduct).map(([type, data]) => (
+              <div key={type} className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
+                <p className="font-semibold text-neutral-700 capitalize mb-2">{type}</p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span className="text-neutral-500">Volume</span><span className="font-medium">{data.qty.toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500">Pendapatan</span><span className="font-medium text-primary-700">{formatCurrency(data.revenue)}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500">Transaksi</span><span className="font-medium">{data.count}x</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Sales table */}
       <div className="card">
         <div className="p-4 border-b border-neutral-100">
           <h2 className="section-header">{t('sales.history.title')}</h2>
         </div>
+        {loading ? (
+          <div className="p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="table">
             <thead>
@@ -96,9 +149,7 @@ export function ProductSalesPage() {
               {sales.map(s => (
                 <tr key={s.id}>
                   <td>{new Date(s.sale_date).toLocaleDateString(locale)}</td>
-                  <td>
-                    <span className="badge badge-blue">{s.product_type}</span>
-                  </td>
+                  <td><span className="badge badge-blue">{s.product_type}</span></td>
                   <td className="font-semibold">{s.quantity.toLocaleString()} {s.unit}</td>
                   <td>{formatCurrency(s.price_per_unit)}/{s.unit}</td>
                   <td className="font-semibold text-primary-700">{formatCurrency(s.total_amount)}</td>
@@ -110,23 +161,32 @@ export function ProductSalesPage() {
                   </td>
                   <td>
                     <div className="flex items-center gap-1">
-                      <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(s)}><Pencil size={14} /></button>
-                      <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
-                        if (!window.confirm('Hapus data ini?')) return;
-                        try { await deleteProductSale(user?.id, s.id); loadData(); } catch { alert('Gagal menghapus'); }
-                      }}><Trash2 size={14} /></button>
+                      {hasRole(['owner', 'manager']) && (
+                        <>
+                          <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(s)}><Pencil size={14} /></button>
+                          <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                            if (!window.confirm('Hapus data ini?')) return;
+                            try { await deleteProductSale(user?.id, s.id); loadData(); } catch { alert('Gagal menghapus'); }
+                          }}><Trash2 size={14} /></button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
+              {sales.length === 0 && (
+                <tr><td colSpan={8} className="text-center text-neutral-400 py-8">Belum ada data penjualan</td></tr>
+              )}
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('sales.form.title')} size="md">
         <SaleForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
+
       <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Penjualan" size="sm">
         {editingItem && (
           <form onSubmit={async (e) => {
@@ -209,6 +269,9 @@ function SaleForm({ onClose }: { onClose: () => void }) {
           <label className="label">{t('sales.form.product')}</label>
           <select name="product_type" className="select" value={form.product_type} onChange={change}>
             <option value="milk">{t('sales.product.freshmilk')}</option>
+            <option value="meat">Daging</option>
+            <option value="egg">Telur</option>
+            <option value="other">Lainnya</option>
           </select>
         </div>
         <div>
@@ -218,6 +281,10 @@ function SaleForm({ onClose }: { onClose: () => void }) {
         <div>
           <label className="label">{t('sales.form.amount')}</label>
           <input name="quantity" type="number" step="0.1" className="input" placeholder={t('sales.form.amount.placeholder')} value={form.quantity} onChange={change} required />
+        </div>
+        <div>
+          <label className="label">Unit</label>
+          <input name="unit" className="input" placeholder="L, kg, ekor..." value={form.unit} onChange={change} />
         </div>
         <div>
           <label className="label">{t('sales.form.unitprice')}</label>

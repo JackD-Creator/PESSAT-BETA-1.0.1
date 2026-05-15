@@ -64,8 +64,13 @@ export function Sidebar(_props?: { onClose?: () => void }) {
       labelKey: 'nav.production', icon: <Milk size={18} />,
       children: [
         { labelKey: 'nav.production.daily', to: '/production', icon: <Milk size={16} /> },
-        { labelKey: 'nav.production.sales', to: '/product-sales', icon: <ShoppingCart size={16} /> },
-        { labelKey: 'nav.production.transactions', to: '/animal-transactions', icon: <DollarSign size={16} /> },
+      ]
+    },
+    {
+      labelKey: 'nav.sales', icon: <ShoppingCart size={18} />,
+      children: [
+        { labelKey: 'nav.sales.product', to: '/product-sales', icon: <ShoppingCart size={16} /> },
+        { labelKey: 'nav.sales.transactions', to: '/animal-transactions', icon: <DollarSign size={16} /> },
       ]
     },
     {
@@ -97,19 +102,19 @@ export function Sidebar(_props?: { onClose?: () => void }) {
         <div className="pt-4 pb-1.5 px-1">
           <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Ternak &amp; Kesehatan</span>
         </div>
-        {navItems.slice(1, 6).map(item => (
+        {navItems.slice(1, 7).map(item => (
           <NavGroup key={item.to || item.labelKey} item={item} user={user} t={t} />
         ))}
 
         <div className="pt-4 pb-1.5 px-1">
           <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Keuangan</span>
         </div>
-        <NavGroup key="finance" item={navItems[6]} user={user} t={t} />
+        <NavGroup key="finance" item={navItems[7]} user={user} t={t} />
 
         <div className="pt-4 pb-1.5 px-1">
           <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Operasional</span>
         </div>
-        {navItems.slice(7).map(item => (
+        {navItems.slice(8).map(item => (
           <NavGroup key={item.to || item.labelKey} item={item} user={user} t={t} />
         ))}
       </nav>
