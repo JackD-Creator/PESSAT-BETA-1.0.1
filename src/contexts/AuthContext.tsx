@@ -17,11 +17,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const safetyTimer = setTimeout(() => { if (!cancelled) setIsLoading(false); }, 8000);
     const init = async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -34,9 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {
         // ignore
-      } finally {
-        clearTimeout(safetyTimer);
-        if (!cancelled) setIsLoading(false);
       }
     };
     init();
