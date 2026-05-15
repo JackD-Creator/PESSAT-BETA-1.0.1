@@ -52,7 +52,12 @@ export function EquipmentPage() {
   const [editingPurchase, setEditingPurchase] = useState<any>(null);
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [editingUsage, setEditingUsage] = useState<any>(null);
-  const [dbReady, setDbReady] = useState(true);
+  const [dbReady, setDbReady] = useState<'checking' | 'ready' | 'missing'>('checking');
+
+  const isMissingTable = (err: any) =>
+    err?.code === '42P01' ||
+    err?.message?.toLowerCase().includes('does not exist') ||
+    err?.message?.toLowerCase().includes('relation');
 
   const loadData = async () => {
     if (!user?.id) return;
@@ -60,11 +65,12 @@ export function EquipmentPage() {
       supabaseAdmin.from('equipment_purchases').select('*').eq('user_id', user.id).order('purchase_date', { ascending: false }),
       supabaseAdmin.from('equipment_usages').select('*').eq('user_id', user.id).order('usage_date', { ascending: false }),
     ]);
-    if (pRes.error?.code === '42P01' || uRes.error?.code === '42P01') {
-      setDbReady(false);
+    if (isMissingTable(pRes.error) || isMissingTable(uRes.error)) {
+      setDbReady('missing');
     } else {
       setPurchases(pRes.data || []);
       setUsages(uRes.data || []);
+      setDbReady('ready');
     }
     setLoading(false);
   };
@@ -95,14 +101,23 @@ export function EquipmentPage() {
   const totalPurchaseValue = purchases.reduce((s, p) => s + Number(p.total_amount || 0), 0);
   const totalStockValue = inventory.reduce((s, i) => s + i.total_value, 0);
 
-  if (!dbReady) {
+  if (dbReady === 'checking') {
+    return (
+      <div className="page-container">
+        <div className="page-header"><h1 className="page-title">Peralatan & Perlengkapan</h1></div>
+        <div className="card p-12 text-center"><p className="text-neutral-400">Memeriksa database...</p></div>
+      </div>
+    );
+  }
+
+  if (dbReady === 'missing') {
     return (
       <div className="page-container">
         <div className="page-header"><h1 className="page-title">Peralatan & Perlengkapan</h1></div>
         <div className="card p-8 text-center space-y-4">
           <Wrench size={40} className="mx-auto text-neutral-300" />
           <p className="text-neutral-600 font-medium">Tabel database belum dibuat</p>
-          <p className="text-sm text-neutral-400">Salin dan jalankan SQL berikut di Supabase SQL Editor:</p>
+          <p className="text-sm text-neutral-400">Salin dan jalankan SQL berikut di Supabase SQL Editor, lalu refresh halaman:</p>
           <pre className="bg-neutral-50 text-left text-xs p-4 rounded-lg border overflow-x-auto whitespace-pre-wrap text-neutral-700">{SQL_SETUP}</pre>
         </div>
       </div>
