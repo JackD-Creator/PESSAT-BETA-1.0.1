@@ -19,6 +19,7 @@ export function UsersPage() {
   const [deleteError, setDeleteError] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
 
   const load = useCallback(() => {
     getUsers()
@@ -70,8 +71,12 @@ export function UsersPage() {
         <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
       ) : (
       <div className="card">
-        <div className="p-4 border-b border-neutral-100">
+        <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
           <h2 className="section-header">{t('user.list.title')}</h2>
+          <label className="flex items-center gap-2 text-sm text-neutral-500 cursor-pointer">
+            <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} className="rounded" />
+            Tampilkan non-aktif
+          </label>
         </div>
         <div className="overflow-x-auto">
           <table className="table">
@@ -86,7 +91,7 @@ export function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map(u => {
+              {(showInactive ? users : users.filter(u => u.is_active)).map(u => {
                 const cfg = roleConfig[u.role];
                 return (
                   <tr key={u.id}>
