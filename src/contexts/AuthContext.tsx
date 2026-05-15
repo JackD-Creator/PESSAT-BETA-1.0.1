@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { getUserProfile } from '../lib/db';
 import type { User, UserRole } from '../types';
 
@@ -55,29 +56,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const withTimeout = <T,>(promise: Promise<T>, ms: number) =>
+    Promise.race([
+      promise,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+    ]);
+
   const login = useCallback(async (email: string, password: string): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await withTimeout(supabase.auth.signInWithPassword({ email, password }), 15000);
       if (error) return error.message;
       if (!data.session) return 'Login failed';
-      const profile = await getUserProfile(data.session.user.id);
+      const profile = await withTimeout(getUserProfile(data.session.user.id), 10000);
       if (profile) {
         setUser(profile as unknown as User);
         localStorage.setItem('livestock_user', JSON.stringify(profile));
         return null;
       }
       return 'User profile not found';
-    } catch {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === 'timeout') return 'Koneksi ke server lambat, coba lagi';
       return 'Unable to connect to server';
     }
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, fullName: string): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await withTimeout(supabase.auth.signUp({ email, password }), 15000);
       if (error) return error.message;
       if (data.user) {
-        const { error: profileError } = await supabase.from('users').insert({
+        const { error: profileError } = await supabaseAdmin.from('users').insert({
           id: data.user.id,
           full_name: fullName,
           email,
@@ -87,7 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profileError) return profileError.message;
       }
       return null;
-    } catch {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === 'timeout') return 'Koneksi ke server lambat, coba lagi';
       return 'Unable to connect to server';
     }
   }, []);

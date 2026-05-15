@@ -36,7 +36,10 @@ export function LoginPage() {
       const err = await signUp(email, password, fullName);
       setLoading(false);
       if (err) {
-        setError(err);
+        if (err.includes('rate_limit') || err.includes('rate limit') || err.includes('Rate limit'))
+          setError('Terlalu banyak pendaftaran. Coba lagi dalam beberapa menit.');
+        else
+          setError(err);
       } else {
         setMode('login');
         setError('Akun berhasil dibuat. Silakan masuk.');
