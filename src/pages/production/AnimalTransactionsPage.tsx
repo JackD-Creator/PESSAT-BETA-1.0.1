@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-import { mockAnimals } from '../../lib/mockData';
+import { getAnimals } from '../../lib/db';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -10,18 +10,30 @@ function formatCurrency(n: number) {
   return `Rp ${n.toLocaleString('id-ID')}`;
 }
 
-const mockAnimalTransactions = [
-  { id: 1, transaction_date: '2026-05-01', type: 'sale', animal_tag: 'SB-008', species: 'cattle' as const, breed: 'Brahman', weight_kg: 450, price: 15000000, party: 'H. Sunardi', notes: 'Dijual untuk konsumsi Idul Adha' },
-  { id: 2, transaction_date: '2026-03-15', type: 'purchase', animal_tag: 'KB-001', species: 'goat' as const, breed: 'Boer', weight_kg: 62, price: 4000000, party: 'Peternak Pak Hadi', notes: 'Pembelian pejantan unggul' },
-  { id: 3, transaction_date: '2026-02-10', type: 'purchase', animal_tag: 'SB-007', species: 'cattle' as const, breed: 'Simmental', weight_kg: 280, price: 11000000, party: 'Pasar Hewan Wonosobo', notes: 'Bakalan penggemukan' },
-];
-
 export function AnimalTransactionsPage() {
   const { hasRole } = useAuth();
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [txType, setTxType] = useState<'sale' | 'purchase'>('sale');
   const [filter, setFilter] = useState('all');
+  const [animals, setAnimals] = useState<any[]>([]);
+
+  useEffect(() => { getAnimals().then(setAnimals); }, []);
+
+  const mockAnimalTransactions = animals
+    .filter((a: any) => a.acquisition_type === 'purchased' || a.status === 'sold')
+    .map((a: any) => ({
+      id: a.id,
+      transaction_date: a.acquisition_date || a.created_at?.split('T')[0] || '',
+      type: a.status === 'sold' ? 'sale' as const : 'purchase' as const,
+      animal_tag: a.tag_id,
+      species: a.species as 'cattle' | 'sheep' | 'goat',
+      breed: a.breed,
+      weight_kg: a.current_weight_kg || 0,
+      price: a.acquisition_cost || 0,
+      party: '-',
+      notes: a.notes || '',
+    }));
 
   const filtered = mockAnimalTransactions.filter(t => filter === 'all' || t.type === filter);
   const totalSales = mockAnimalTransactions.filter(t => t.type === 'sale').reduce((s, t) => s + t.price, 0);
@@ -73,7 +85,7 @@ export function AnimalTransactionsPage() {
         </div>
         <div className="card p-5">
           <p className="text-xs text-neutral-500 font-medium">{t('transaction.current.population')}</p>
-          <p className="text-2xl font-bold text-neutral-800 mt-1">{mockAnimals.length}</p>
+          <p className="text-2xl font-bold text-neutral-800 mt-1">{animals.length}</p>
           <p className="text-xs text-neutral-400 mt-0.5">{t('transaction.population.label')}</p>
         </div>
       </div>
@@ -149,7 +161,7 @@ function AnimalTransactionForm({ type, onClose }: { type: 'sale' | 'purchase'; o
           <div>
             <label className="label">{t('transaction.form.animal')}</label>
             <select className="select">
-              {mockAnimals.map(a => <option key={a.id} value={a.id}>{a.tag_id} - {a.breed}</option>)}
+              {animals.map(a => <option key={a.id} value={a.id}>{a.tag_id} - {a.breed}</option>)}
             </select>
           </div>
         ) : (

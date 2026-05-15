@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
-import { mockLocations } from '../../lib/mockData';
+import { getLocations } from '../../lib/db';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 export function LivestockFormPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [locations, setLocations] = useState<any[]>([]);
+  useEffect(() => { getLocations().then(setLocations); }, []);
+
   const [form, setForm] = useState({
     tag_id: '', rfid: '', species: 'cattle', breed: '', gender: 'female',
     birth_date: '', birth_weight_kg: '', current_weight_kg: '', color: '',
@@ -133,7 +136,7 @@ export function LivestockFormPage() {
               <label className="label">{t('livestock.form.location')}</label>
               <select name="current_location_id" className="select" value={form.current_location_id} onChange={change}>
                 <option value="">{t('livestock.form.location.placeholder')}</option>
-                {mockLocations.filter(l => l.type !== 'storage' && l.type !== 'office').map(loc => (
+                {locations.filter((l: any) => l.type !== 'storage' && l.type !== 'office').map((loc: any) => (
                   <option key={loc.id} value={loc.id}>{loc.name}</option>
                 ))}
               </select>

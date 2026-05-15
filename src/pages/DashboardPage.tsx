@@ -8,12 +8,12 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../components/ui/StatCard';
 import { PriorityBadge } from '../components/ui/Badge';
-import * as api from '../lib/api';
 import {
-  getDashboardStats, mockDailyProduction, mockFinancialTransactions,
-  mockLocations, mockBreedingEvents, mockVaccinations,
-  mockFeedInventory, mockTasks, mockAlerts,
-} from '../lib/mockData';
+  getDailyProduction, getFinancialTransactions,
+  getLocations, getBreedingEvents, getVaccinations,
+  getFeedInventory, getTasks, getAlerts,
+  getAnimals,
+} from '../lib/db';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 
@@ -63,8 +63,8 @@ function SparkleIcon() {
   );
 }
 
-const todayStr = '2026-05-14';
-const todayObj = new Date(todayStr);
+const todayStr = new Date().toISOString().split('T')[0];
+const todayObj = new Date();
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -73,37 +73,92 @@ export function DashboardPage() {
   const locale = lang === 'id' ? 'id-ID' : 'en-US';
   const dateStr = todayObj.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  const stats = getDashboardStats();
+  const [animals, setAnimals] = useState<any[]>([]);
+  const [production, setProduction] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [vaccinations, setVaccinations] = useState<any[]>([]);
+  const [breedingEvents, setBreedingEvents] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [feedInventory, setFeedInventory] = useState<any[]>([]);
+
+  useEffect(() => {
+    getAnimals().then(setAnimals);
+    getDailyProduction(14).then(d => setProduction(d));
+    getFinancialTransactions().then(setTransactions);
+    getLocations().then(setLocations);
+    getVaccinations().then(setVaccinations);
+    getBreedingEvents().then(setBreedingEvents);
+    getTasks().then(setTasks);
+    getAlerts().then(setAlerts);
+    getFeedInventory().then(setFeedInventory);
+  }, []);
+
+  const cattleCount = animals.filter(a => a.species === 'cattle').length;
+  const sheepCount = animals.filter(a => a.species === 'sheep').length;
+  const goatCount = animals.filter(a => a.species === 'goat').length;
+  const totalAnimals = animals.length;
+  const healthyCount = animals.filter(a => a.status === 'healthy').length;
+  const sickCount = animals.filter(a => a.status === 'sick').length;
+  const pregnantCount = animals.filter(a => a.status === 'pregnant').length;
+  const lactatingCount = animals.filter(a => a.status === 'lactating').length;
+  const dryCount = animals.filter(a => a.status === 'dry').length;
+  const avgMilkToday = production[0]?.quantity || 0;
+
+  const monthlyIncome = transactions
+    .filter(t => t.type === 'income' && t.transaction_date?.startsWith(todayStr.slice(0, 7)))
+    .reduce((s: number, t: any) => s + t.amount, 0);
+  const monthlyExpense = transactions
+    .filter(t => t.type === 'expense' && t.transaction_date?.startsWith(todayStr.slice(0, 7)))
+    .reduce((s: number, t: any) => s + t.amount, 0);
 
   const milkData = useMemo(() =>
-    mockDailyProduction.slice(0, 7).map(d => d.quantity).reverse(), []
+    production.slice(0, 7).map((d: any) => d.quantity).reverse(), [production]
   );
 
   const upcomingVaccinations = useMemo(() =>
-    mockVaccinations.filter(v => v.next_due_date).filter(v => {
-      const days = Math.ceil((new Date(v.next_due_date!).getTime() - todayObj.getTime()) / 86400000);
+    vaccinations.filter((v: any) => v.next_due_date).filter((v: any) => {
+      const days = Math.ceil((new Date(v.next_due_date).getTime() - todayObj.getTime()) / 86400000);
       return days <= 7 && days >= 0;
-    }), []
+    }), [vaccinations]
   );
 
   const upcomingBirths = useMemo(() =>
-    mockBreedingEvents.filter(e => e.event_type === 'insemination' && e.expected_due_date).filter(e => {
-      const days = Math.ceil((new Date(e.expected_due_date!).getTime() - todayObj.getTime()) / 86400000);
+    breedingEvents.filter((e: any) => e.event_type === 'insemination' && e.expected_due_date).filter((e: any) => {
+      const days = Math.ceil((new Date(e.expected_due_date).getTime() - todayObj.getTime()) / 86400000);
       return days <= 30 && days >= 0;
-    }), []
+    }), [breedingEvents]
   );
 
   const todayTasks = useMemo(() =>
-    mockTasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled' && t.due_date && t.due_date <= todayStr), []
+    tasks.filter((t: any) => t.status !== 'completed' && t.status !== 'cancelled' && t.due_date && t.due_date <= todayStr), [tasks]
   );
 
-  const monthlyIncome = useMemo(() =>
-    mockFinancialTransactions.filter(t => t.type === 'income' && t.transaction_date.startsWith('2026-05')).reduce((s, t) => s + t.amount, 0), []
-  );
+  const totalIncome = transactions
+    .filter((t: any) => t.type === 'income' && t.cash_flow === 'cash_in')
+    .reduce((s: number, t: any) => s + t.amount, 0);
+  const totalExpense = transactions
+    .filter((t: any) => t.type === 'expense' && t.cash_flow !== 'non_cash')
+    .reduce((s: number, t: any) => s + t.amount, 0);
 
-  const monthlyExpense = useMemo(() =>
-    mockFinancialTransactions.filter(t => t.type === 'expense' && t.transaction_date.startsWith('2026-05')).reduce((s, t) => s + t.amount, 0), []
-  );
+  const unreadAlerts = alerts.filter((a: any) => !a.is_read).length;
+  const criticalAlerts = alerts.filter((a: any) => a.severity === 'critical' && !a.is_resolved).length;
+
+  const lowStockCount = feedInventory.filter((f: any) => f.quantity_on_hand < f.min_threshold).length;
+
+  const stats = {
+    totalAnimals, cattleCount, sheepCount, goatCount,
+    healthyCount, sickCount, pregnantCount, lactatingCount, dryCount,
+    totalIncome, totalExpense,
+    netProfit: totalIncome - totalExpense,
+    avgMilkToday, unreadAlerts, criticalAlerts, lowStockCount,
+    totalFeedValue: feedInventory.reduce((s: number, f: any) => s + f.total_cost, 0),
+    totalMedValue: 0,
+    totalInventoryValue: feedInventory.reduce((s: number, f: any) => s + f.total_cost, 0),
+    pendingTasks: tasks.filter((t: any) => t.status === 'pending' || t.status === 'in_progress').length,
+    overdueTasks: tasks.filter((t: any) => t.due_date && new Date(t.due_date) < todayObj && t.status !== 'completed' && t.status !== 'cancelled').length,
+  };
 
   const quickActions = [
     {
@@ -296,7 +351,7 @@ export function DashboardPage() {
             <div className="relative bg-neutral-50/50 rounded-2xl p-3 md:p-4">
               <MiniChart data={milkData} color="#3b82f6" />
               <div className="flex justify-between mt-3">
-                {mockDailyProduction.slice(0, 7).reverse().map((d, i) => (
+                  {production.slice(0, 7).reverse().map((d: any, i: number) => (
                   <div key={i} className="text-center flex-1">
                     <p className="text-xs font-bold text-neutral-700">{d.quantity}</p>
                     <p className="text-[10px] font-semibold text-neutral-400 mt-0.5 uppercase tracking-wider">
@@ -326,7 +381,7 @@ export function DashboardPage() {
                       <p className="text-sm font-bold text-neutral-800 truncate">{v.vaccine_name}</p>
                       <p className="text-xs text-neutral-400 font-medium">{v.animal_tag || v.herd_group_name}</p>
                     </div>
-                    <span className="text-xs font-extrabold text-blue-600 bg-blue-100 px-2.5 py-1 rounded-lg">{Math.ceil((new Date(v.next_due_date!).getTime() - today.getTime()) / 86400000)}d</span>
+                    <span className="text-xs font-extrabold text-blue-600 bg-blue-100 px-2.5 py-1 rounded-lg">{Math.ceil((new Date(v.next_due_date!).getTime() - todayObj.getTime()) / 86400000)}d</span>
                   </div>
                 ))}
                 {upcomingVaccinations.length === 0 && <p className="text-sm text-neutral-400 text-center py-4 font-medium">{t('no.upcoming')}</p>}
@@ -349,7 +404,7 @@ export function DashboardPage() {
                       <p className="text-sm font-bold text-neutral-800 truncate">{e.animal_tag}</p>
                       <p className="text-xs text-neutral-400 font-medium">{t('dashboard.due')} {new Date(e.expected_due_date!).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</p>
                     </div>
-                    <span className="text-xs font-extrabold text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg">{Math.ceil((new Date(e.expected_due_date!).getTime() - today.getTime()) / 86400000)}d</span>
+                    <span className="text-xs font-extrabold text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg">{Math.ceil((new Date(e.expected_due_date!).getTime() - todayObj.getTime()) / 86400000)}d</span>
                   </div>
                 ))}
                 {upcomingBirths.length === 0 && <p className="text-sm text-neutral-400 text-center py-4 font-medium">{t('dashboard.no.upcoming.births')}</p>}
@@ -392,7 +447,7 @@ export function DashboardPage() {
               <div>
                 <p className="text-xs font-bold text-neutral-400 uppercase tracking-[0.15em] mb-3">{t('finance.recent.transactions')}</p>
                 <div className="space-y-1">
-                  {mockFinancialTransactions.slice(0, 5).map(tx => (
+                  {transactions.slice(0, 5).map((tx: any) => (
                     <div key={tx.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${tx.type === 'income' ? 'bg-emerald-50' : 'bg-red-50'}`}>
@@ -428,7 +483,7 @@ export function DashboardPage() {
               </Link>
             </div>
             <div className="space-y-3">
-              {mockAlerts.filter(a => !a.is_resolved).slice(0, 5).map(alert => (
+              {alerts.filter((a: any) => !a.is_resolved).slice(0, 5).map((alert: any) => (
                 <div key={alert.id} className={`p-3.5 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md ${
                   alert.severity === 'critical' ? 'bg-gradient-to-r from-red-50 to-red-50/50 border-red-200 hover:from-red-100 hover:to-red-50' :
                   alert.severity === 'warning' ? 'bg-gradient-to-r from-amber-50 to-amber-50/50 border-amber-200 hover:from-amber-100 hover:to-amber-50' :
@@ -451,7 +506,7 @@ export function DashboardPage() {
                   </div>
                 </div>
               ))}
-              {mockAlerts.filter(a => !a.is_resolved).length === 0 && (
+              {alerts.filter((a: any) => !a.is_resolved).length === 0 && (
                 <div className="text-center py-6">
                   <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3"><CheckCircle size={24} className="text-emerald-500" /></div>
                   <p className="text-sm font-bold text-neutral-600">{t('dashboard.no.alerts')}</p>
@@ -513,7 +568,7 @@ export function DashboardPage() {
               </Link>
             </div>
             <div className="space-y-3.5">
-              {mockFeedInventory.slice(0, 5).map(feed => {
+              {feedInventory.slice(0, 5).map((feed: any) => {
                 const pct = Math.min(100, (feed.quantity_on_hand / (feed.min_threshold * 3)) * 100);
                 const isLow = feed.quantity_on_hand < feed.min_threshold;
                 return (
@@ -550,7 +605,7 @@ export function DashboardPage() {
               </Link>
             </div>
             <div className="space-y-2.5">
-              {mockLocations.filter(l => l.type !== 'storage' && l.type !== 'office').map(loc => {
+              {locations.filter((l: any) => l.type !== 'storage' && l.type !== 'office').map((loc: any) => {
                 const pct = loc.capacity > 0 ? (loc.current_occupancy / loc.capacity) * 100 : 0;
                 const isNearFull = pct > 85;
                 return (

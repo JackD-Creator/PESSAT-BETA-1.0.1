@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Users, MapPin } from 'lucide-react';
-import { mockHerdGroups, mockAnimals, mockLocations } from '../../lib/mockData';
+import { getHerdGroups, getAnimals, getLocations } from '../../lib/db';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -9,13 +9,22 @@ export function HerdGroupsPage() {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [herdGroups, setHerdGroups] = useState<any[]>([]);
+  const [animals, setAnimals] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+
+  useEffect(() => {
+    getHerdGroups().then(setHerdGroups);
+    getAnimals().then(setAnimals);
+    getLocations().then(setLocations);
+  }, []);
 
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">{t('herd.title')}</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">{t('herd.count').replace('{count}', String(mockHerdGroups.length))}</p>
+          <p className="text-sm text-neutral-500 mt-0.5">{t('herd.count').replace('{count}', String(herdGroups.length))}</p>
         </div>
         {hasRole(['owner', 'manager']) && (
           <button className="btn-primary" onClick={() => setShowModal(true)}>
@@ -26,8 +35,8 @@ export function HerdGroupsPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5">
-        {mockHerdGroups.map(group => {
-          const members = mockAnimals.filter(() => true); // would filter by group in real app
+        {herdGroups.map((group: any) => {
+          const members = animals.filter(() => true); // would filter by group in real app
           const healthyCount = members.filter(a => a.status === 'healthy').length;
           const sickCount = members.filter(a => a.status === 'sick').length;
           const pregnantCount = members.filter(a => a.status === 'pregnant').length;
@@ -102,7 +111,7 @@ export function HerdGroupsPage() {
               </tr>
             </thead>
             <tbody>
-              {mockLocations.map(loc => {
+              {locations.map((loc: any) => {
                 const pct = loc.capacity > 0 ? Math.round((loc.current_occupancy / loc.capacity) * 100) : 0;
                 return (
                   <tr key={loc.id}>
@@ -158,7 +167,7 @@ function HerdGroupForm({ onClose }: { onClose: () => void }) {
           <label className="label">{t('herd.form.location')}</label>
           <select className="select">
             <option value="">{t('herd.form.location.placeholder')}</option>
-            {mockLocations.filter(l => l.type !== 'storage' && l.type !== 'office').map(l => (
+            {locations.filter((l: any) => l.type !== 'storage' && l.type !== 'office').map((l: any) => (
               <option key={l.id} value={l.id}>{l.name}</option>
             ))}
           </select>

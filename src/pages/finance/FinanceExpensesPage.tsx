@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, DollarSign } from 'lucide-react';
-import { mockFinancialTransactions } from '../../lib/mockData';
+import { getFinancialTransactions } from '../../lib/db';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -31,8 +31,11 @@ export function FinanceExpensesPage() {
     stock_loss: t('finance.category.stock.loss'),
   };
 
-  const expenses = mockFinancialTransactions.filter(tr => tr.type === 'expense');
-  const filtered = expenses.filter(tr => categoryFilter === 'all' || tr.category === categoryFilter);
+  const [txs, setTxs] = useState<any[]>([]);
+  useEffect(() => { getFinancialTransactions().then(setTxs); }, []);
+
+  const expenses = txs.filter((tr: any) => tr.type === 'expense');
+  const filtered = expenses.filter((tr: any) => categoryFilter === 'all' || tr.category === categoryFilter);
 
   const cashExpenses = expenses.filter(tr => tr.cash_flow === 'cash_out').reduce((s, tr) => s + tr.amount, 0);
   const nonCashExpenses = expenses.filter(tr => tr.cash_flow === 'non_cash').reduce((s, tr) => s + tr.amount, 0);

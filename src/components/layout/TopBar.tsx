@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Bell, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { mockAlerts } from '../../lib/mockData';
 import { useAuth } from '../../contexts/AuthContext';
+import { getAlerts } from '../../lib/db';
 
 interface TopBarProps {
   onMenuToggle: () => void;
@@ -12,8 +13,15 @@ interface TopBarProps {
 export function TopBar({ onMenuToggle, title }: TopBarProps) {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const unread = mockAlerts.filter(a => !a.is_read).length;
-  const critical = mockAlerts.filter(a => a.severity === 'critical' && !a.is_resolved).length;
+  const [unread, setUnread] = useState(0);
+  const [critical, setCritical] = useState(0);
+
+  useEffect(() => {
+    getAlerts().then(alerts => {
+      setUnread(alerts.filter(a => !a.is_read).length);
+      setCritical(alerts.filter(a => a.severity === 'critical' && !a.is_resolved).length);
+    });
+  }, []);
 
   return (
     <header className="h-14 bg-white/80 backdrop-blur-xl border-b border-neutral-100 px-4 flex items-center gap-4 flex-shrink-0 sticky top-0 z-30">

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, TrendingUp, ShoppingBag } from 'lucide-react';
-import { mockFinancialTransactions, mockDailyProduction } from '../../lib/mockData';
+import { getFinancialTransactions, getDailyProduction, getProductSales } from '../../lib/db';
+import type { ProductSale } from '../../lib/db';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -13,18 +14,20 @@ export function ProductSalesPage() {
   const { hasRole } = useAuth();
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [txs, setTxs] = useState<any[]>([]);
+  const [production, setProduction] = useState<any[]>([]);
+  const [sales, setSales] = useState<ProductSale[]>([]);
 
-  const salesTxs = mockFinancialTransactions.filter(t => t.category === 'product_sale');
-  const totalRevenue = salesTxs.reduce((s, t) => s + t.amount, 0);
-  const totalLiters = mockDailyProduction.reduce((s, d) => s + d.quantity, 0);
+  useEffect(() => {
+    getFinancialTransactions().then(setTxs);
+    getDailyProduction(30).then(setProduction);
+    getProductSales().then(setSales);
+  }, []);
+
+  const salesTxs = txs.filter((t: any) => t.category === 'product_sale');
+  const totalRevenue = salesTxs.reduce((s: number, t: any) => s + t.amount, 0);
+  const totalLiters = production.reduce((s: number, d: any) => s + d.quantity, 0);
   const avgPricePerLiter = totalLiters > 0 ? totalRevenue / totalLiters : 20000;
-
-  const mockProductSales = [
-    { id: 1, sale_date: '2026-05-10', product_type: 'Susu Segar', quantity: 160, unit: 'liter', price_per_unit: 20000, total: 3200000, buyer: 'Koperasi Susu Jaya', payment: 'Tunai' },
-    { id: 2, sale_date: '2026-05-09', product_type: 'Susu Segar', quantity: 159, unit: 'liter', price_per_unit: 20000, total: 3180000, buyer: 'Koperasi Susu Jaya', payment: 'Transfer' },
-    { id: 3, sale_date: '2026-05-07', product_type: 'Susu Segar', quantity: 170, unit: 'liter', price_per_unit: 20000, total: 3400000, buyer: 'Koperasi Susu Jaya', payment: 'Transfer' },
-    { id: 4, sale_date: '2026-05-04', product_type: 'Susu Segar', quantity: 165, unit: 'liter', price_per_unit: 20000, total: 3300000, buyer: 'Pasar Segar Indah', payment: 'Tunai' },
-  ];
 
   return (
     <div className="page-container">
@@ -84,7 +87,7 @@ export function ProductSalesPage() {
               </tr>
             </thead>
             <tbody>
-              {mockProductSales.map(s => (
+              {sales.map(s => (
                 <tr key={s.id}>
                   <td>{new Date(s.sale_date).toLocaleDateString('id-ID')}</td>
                   <td>
@@ -92,11 +95,11 @@ export function ProductSalesPage() {
                   </td>
                   <td className="font-semibold">{s.quantity.toLocaleString()} {s.unit}</td>
                   <td>{formatCurrency(s.price_per_unit)}/{s.unit}</td>
-                  <td className="font-semibold text-primary-700">{formatCurrency(s.total)}</td>
-                  <td>{s.buyer}</td>
+                  <td className="font-semibold text-primary-700">{formatCurrency(s.total_amount)}</td>
+                  <td>{s.buyer_name || '-'}</td>
                   <td>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.payment === 'Tunai' ? 'bg-primary-100 text-primary-700' : 'bg-info-100 text-info-700'}`}>
-                      {s.payment === 'Tunai' ? t('sales.payment.cash') : t('sales.payment.transfer')}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.payment_method === 'cash' ? 'bg-primary-100 text-primary-700' : 'bg-info-100 text-info-700'}`}>
+                      {s.payment_method === 'cash' ? t('sales.payment.cash') : s.payment_method === 'transfer' ? t('sales.payment.transfer') : s.payment_method || '-'}
                     </span>
                   </td>
                 </tr>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { type User, type UserRole, mockUsers } from '../lib/mockData';
+import { type User, type UserRole } from '../lib/mockData';
 import { supabase } from '../lib/supabase';
+import { getUserProfile } from '../lib/db';
 
 interface AuthContextValue {
   user: User | null;
@@ -12,13 +13,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const DEMO_CREDENTIALS: Record<string, string> = {
-  'budi@farm.id': 'owner123',
-  'dewi@farm.id': 'manager123',
-  'andi@farm.id': 'worker123',
-  'siti@farm.id': 'worker123',
-};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -35,13 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         setIsSupabase(true);
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.session.user.id)
-          .single();
+        const profile = await getUserProfile(data.session.user.id);
         if (profile) {
-          setUser(profile as unknown as User);
+          setUser(profile);
           localStorage.setItem('livestock_user', JSON.stringify(profile));
         }
       }
@@ -51,13 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         setIsSupabase(true);
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        const profile = await getUserProfile(session.user.id);
         if (profile) {
-          setUser(profile as unknown as User);
+          setUser(profile);
           localStorage.setItem('livestock_user', JSON.stringify(profile));
         }
       } else {
@@ -70,30 +56,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    // Try Supabase Auth first
     const { data: authData } = await supabase.auth.signInWithPassword({ email, password });
     if (authData.session) {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authData.session.user.id)
-        .single();
+      const profile = await getUserProfile(authData.session.user.id);
       if (profile) {
-        setUser(profile as unknown as User);
+        setUser(profile);
         localStorage.setItem('livestock_user', JSON.stringify(profile));
         setIsSupabase(true);
         return true;
       }
     }
-
-    // Fallback to demo accounts
-    const expectedPassword = DEMO_CREDENTIALS[email];
-    if (!expectedPassword || expectedPassword !== password) return false;
-    const found = mockUsers.find(u => u.email === email);
-    if (!found) return false;
-    setUser(found);
-    localStorage.setItem('livestock_user', JSON.stringify(found));
-    return true;
+    return false;
   }, []);
 
   const logout = useCallback(async () => {

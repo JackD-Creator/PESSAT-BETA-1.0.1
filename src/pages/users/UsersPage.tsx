@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Shield, User, UserCheck, Loader } from 'lucide-react';
+import { Plus, Shield, User as UserIcon, UserCheck, Loader } from 'lucide-react';
 import { getUsers, createUser, deactivateUser, activateUser } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -8,7 +8,7 @@ import type { User } from '../../types';
 const roleConfig = {
   owner: { labelKey: 'user.role.owner', color: 'bg-earth-100 text-earth-700', icon: Shield },
   manager: { labelKey: 'user.role.manager', color: 'bg-primary-100 text-primary-700', icon: UserCheck },
-  worker: { labelKey: 'user.role.worker', color: 'bg-neutral-100 text-neutral-600', icon: User },
+  worker: { labelKey: 'user.role.worker', color: 'bg-neutral-100 text-neutral-600',   icon: UserIcon },
 };
 
 export function UsersPage() {
