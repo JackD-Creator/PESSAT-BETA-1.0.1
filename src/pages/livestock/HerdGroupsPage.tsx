@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Users, MapPin, MapPinPlus, Loader } from 'lucide-react';
-import { getHerdGroups, getAnimals, getLocations } from '../../lib/db';
-import { createHerdGroup } from '../../lib/api/animals';
+import { Plus, Users, MapPin, MapPinned, Loader } from 'lucide-react';
+import { getHerdGroups, getAnimals, getLocations, createHerdGroup } from '../../lib/api';
 import { createLocation } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -41,7 +40,7 @@ export function HerdGroupsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5">
         {herdGroups.map((group: any) => {
-          const members = animals.filter(() => true); // would filter by group in real app
+          const members = animals.filter(() => true);
           const healthyCount = members.filter(a => a.status === 'healthy').length;
           const sickCount = members.filter(a => a.status === 'sick').length;
           const pregnantCount = members.filter(a => a.status === 'pregnant').length;
@@ -50,10 +49,10 @@ export function HerdGroupsPage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="font-semibold text-neutral-800">{group.name}</h3>
-                  {group.location_name && (
+                  {(group.locations?.name) && (
                     <div className="flex items-center gap-1 mt-1 text-xs text-neutral-500">
                       <MapPin size={12} />
-                      <span>{group.location_name}</span>
+                      <span>{group.locations.name}</span>
                     </div>
                   )}
                 </div>
@@ -104,7 +103,7 @@ export function HerdGroupsPage() {
           <h2 className="section-header">{t('herd.capacity.title')}</h2>
           {hasRole(['owner', 'manager']) && (
             <button className="btn-secondary text-sm" onClick={() => setShowLocationModal(true)}>
-              <MapPinPlus size={16} />
+              <MapPinned size={16} />
               {t('herd.location.add')}
             </button>
           )}
@@ -246,6 +245,8 @@ function LocationForm({ onClose }: { onClose: () => void }) {
 
 function HerdGroupForm({ locations, onClose }: { locations: any[]; onClose: () => void }) {
   const { t } = useTranslation();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     name: '', location_id: '', supervisor_name: '', notes: '',
   });
@@ -254,19 +255,27 @@ function HerdGroupForm({ locations, onClose }: { locations: any[]; onClose: () =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name) { alert('Nama kelompok harus diisi'); return; }
+    setError('');
+    setSubmitting(true);
     try {
       await createHerdGroup({
         name: form.name,
         location_id: form.location_id || undefined,
+        supervisor_name: form.supervisor_name || undefined,
         notes: form.notes || undefined,
         member_count: 0,
       } as any);
       onClose();
-    } catch { alert('Gagal menyimpan kelompok'); }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="text-sm text-error-600 bg-error-50 p-3 rounded-lg">{error}</div>}
       <div>
         <label className="label">{t('herd.form.name')} <span className="text-error-500">*</span></label>
         <input name="name" className="input" placeholder="e.g. Kandang D - Sapi Perah Muda" value={form.name} onChange={change} required />
@@ -291,8 +300,11 @@ function HerdGroupForm({ locations, onClose }: { locations: any[]; onClose: () =
         <textarea name="notes" className="input h-20 resize-none" placeholder={t('herd.form.notes.placeholder')} value={form.notes} onChange={change} />
       </div>
       <div className="flex justify-end gap-3">
-        <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-        <button type="submit" className="btn-primary">{t('common.save')}</button>
+        <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
+        <button type="submit" className="btn-primary" disabled={submitting}>
+          {submitting ? <Loader size={14} className="animate-spin" /> : <Plus size={14} />}
+          {t('common.save')}
+        </button>
       </div>
     </form>
   );

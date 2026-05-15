@@ -85,6 +85,8 @@ export async function activateUser(id: string) {
 }
 
 export async function deleteUser(id: string) {
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+  if (authError) throw new Error(authError.message);
   const { error } = await supabaseAdmin.from('users').delete().eq('id', id);
   if (error) throw error;
 }

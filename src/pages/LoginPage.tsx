@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, UserPlus, Shield, BarChart3, Wheat, Heart, Globe, Building2, MapPin, Phone, Globe2, Scale } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus, Shield, BarChart3, Wheat, Heart, Globe } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserRole, FarmScale } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';

@@ -7,6 +7,7 @@ import { LivestockListPage } from './pages/livestock/LivestockListPage';
 import { LivestockDetailPage } from './pages/livestock/LivestockDetailPage';
 import { LivestockFormPage } from './pages/livestock/LivestockFormPage';
 import { HerdGroupsPage } from './pages/livestock/HerdGroupsPage';
+import { LocationsPage } from './pages/livestock/LocationsPage';
 import { HealthPage } from './pages/health/HealthPage';
 import { VaccinationPage } from './pages/health/VaccinationPage';
 import { BreedingPage } from './pages/health/BreedingPage';
@@ -44,7 +45,7 @@ function AppRoutes() {
         <Route path="livestock/:id" element={<LivestockDetailPage />} />
         <Route path="livestock/:id/edit" element={<LivestockFormPage />} />
         <Route path="herd-groups" element={<HerdGroupsPage />} />
-        <Route path="locations" element={<HerdGroupsPage />} />
+        <Route path="locations" element={<LocationsPage />} />
         <Route path="health" element={<HealthPage />} />
         <Route path="vaccinations" element={<VaccinationPage />} />
         <Route path="breeding" element={<BreedingPage />} />

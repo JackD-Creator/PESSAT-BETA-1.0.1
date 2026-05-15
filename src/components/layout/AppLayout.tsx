@@ -25,6 +25,7 @@ const pageTitleKeys: Record<string, string> = {
   '/tasks': 'page.tasks',
   '/alerts': 'page.alerts',
   '/users': 'page.users',
+  '/profile': 'page.profile',
 };
 
 export function AppLayout() {
