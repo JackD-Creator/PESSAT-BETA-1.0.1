@@ -87,8 +87,25 @@ export function Sidebar(_props?: { onClose?: () => void }) {
         </div>
       </div>
 
-      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        {navItems.map(item => (
+      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+        <NavGroup key="dashboard" item={navItems[0]} user={user} t={t} />
+
+        <div className="pt-4 pb-1.5 px-1">
+          <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Ternak &amp; Kesehatan</span>
+        </div>
+        {navItems.slice(1, 6).map(item => (
+          <NavGroup key={item.to || item.labelKey} item={item} user={user} t={t} />
+        ))}
+
+        <div className="pt-4 pb-1.5 px-1">
+          <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Keuangan</span>
+        </div>
+        <NavGroup key="finance" item={navItems[6]} user={user} t={t} />
+
+        <div className="pt-4 pb-1.5 px-1">
+          <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Operasional</span>
+        </div>
+        {navItems.slice(7).map(item => (
           <NavGroup key={item.to || item.labelKey} item={item} user={user} t={t} />
         ))}
       </nav>

@@ -25,7 +25,7 @@ export function TopBar({ onMenuToggle, title }: TopBarProps) {
   }, []);
 
   return (
-    <header className="h-14 bg-white/80 backdrop-blur-xl border-b border-neutral-100 px-4 flex items-center gap-4 flex-shrink-0 sticky top-0 z-30">
+    <header className="h-14 bg-white/90 backdrop-blur-xl border-b border-neutral-100/80 shadow-sm px-4 flex items-center gap-4 flex-shrink-0 sticky top-0 z-30">
       <button onClick={onMenuToggle} className="lg:hidden btn-ghost p-2 rounded-lg">
         <Menu size={20} />
       </button>

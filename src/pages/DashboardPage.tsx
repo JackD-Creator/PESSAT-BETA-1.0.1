@@ -64,6 +64,97 @@ function SparkleIcon() {
   );
 }
 
+function DonutChart({ data, size = 148 }: { data: { label: string; value: number; color: string }[]; size?: number }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return (
+    <div style={{ width: size, height: size }} className="flex items-center justify-center rounded-full bg-neutral-50 border-4 border-neutral-100">
+      <span className="text-xs text-neutral-300 font-semibold">—</span>
+    </div>
+  );
+  const r = size * 0.36;
+  const cx = size / 2, cy = size / 2;
+  const circ = 2 * Math.PI * r;
+  const strokeW = r * 0.48;
+  let accumulated = 0;
+  const segs = data.filter(d => d.value > 0).map(d => {
+    const len = (d.value / total) * circ;
+    const offset = -accumulated;
+    accumulated += len;
+    return { ...d, len, offset };
+  });
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth={strokeW} />
+      {segs.map((s, i) => (
+        <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+          stroke={s.color} strokeWidth={strokeW}
+          strokeDasharray={`${s.len} ${circ - s.len}`}
+          strokeDashoffset={s.offset}
+          style={{ transform: 'rotate(-90deg)', transformOrigin: `${cx}px ${cy}px` }}
+        />
+      ))}
+      <text x={cx} y={cy - 7} textAnchor="middle" dominantBaseline="middle"
+        fontSize={size * 0.2} fontWeight="800" fill="#1e293b">{total}</text>
+      <text x={cx} y={cy + size * 0.13} textAnchor="middle" dominantBaseline="middle"
+        fontSize={size * 0.085} fill="#94a3b8" fontWeight="700">EKOR</text>
+    </svg>
+  );
+}
+
+function MonthlyBarChart({ transactions }: { transactions: any[] }) {
+  const now = new Date();
+  const months = 6;
+  const data = Array.from({ length: months }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
+    const key = d.toISOString().slice(0, 7);
+    const income = transactions
+      .filter(t => t.type === 'income' && t.transaction_date?.startsWith(key))
+      .reduce((s: number, t: any) => s + Number(t.amount), 0);
+    const expense = transactions
+      .filter(t => t.type === 'expense' && t.cash_flow !== 'non_cash' && t.transaction_date?.startsWith(key))
+      .reduce((s: number, t: any) => s + Number(t.amount), 0);
+    return { label: d.toLocaleDateString('id-ID', { month: 'short' }), income, expense };
+  });
+  const maxVal = Math.max(...data.flatMap(d => [d.income, d.expense]), 1);
+  const H = 80, barW = 14, barGap = 3, groupPad = 12;
+  const groupW = barW * 2 + barGap + groupPad;
+  const W = groupW * months;
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H + 28}`} className="w-full" preserveAspectRatio="none">
+        {[0.25, 0.5, 0.75, 1].map(t => (
+          <line key={t} x1={0} y1={H - t * H} x2={W} y2={H - t * H} stroke="#f1f5f9" strokeWidth={1} />
+        ))}
+        {data.map((d, i) => {
+          const x = i * groupW + groupPad / 2;
+          const incH = Math.max(3, (d.income / maxVal) * H);
+          const expH = Math.max(3, (d.expense / maxVal) * H);
+          return (
+            <g key={i}>
+              <rect x={x} y={H - incH} width={barW} height={incH} rx={3} fill="#10b981" opacity="0.85" />
+              <rect x={x + barW + barGap} y={H - expH} width={barW} height={expH} rx={3} fill="#ef4444" opacity="0.7" />
+              <text x={x + barW + barGap / 2} y={H + 16} textAnchor="middle" fontSize="9" fill="#94a3b8" fontWeight="600">
+                {d.label}
+              </text>
+            </g>
+          );
+        })}
+        <line x1={0} y1={H} x2={W} y2={H} stroke="#e2e8f0" strokeWidth={1} />
+      </svg>
+      <div className="flex items-center gap-5 mt-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-2 rounded bg-emerald-500 opacity-85" />
+          <span className="text-xs text-neutral-400 font-semibold">Pemasukan</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-2 rounded bg-red-500 opacity-70" />
+          <span className="text-xs text-neutral-400 font-semibold">Pengeluaran</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardPage() {
   const todayStr = new Date().toISOString().split('T')[0];
   const todayObj = new Date();
@@ -331,23 +422,38 @@ export function DashboardPage() {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-2.5">
-              {[
-                { label: t('status.healthy'), count: stats.healthyCount, bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                { label: t('status.sick'), count: stats.sickCount, bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
-                { label: t('status.pregnant'), count: stats.pregnantCount, bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
-                { label: t('status.lactating'), count: stats.lactatingCount, bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
-                { label: t('status.dry'), count: stats.dryCount, bg: 'bg-stone-50', text: 'text-stone-700', dot: 'bg-stone-500' },
-                { label: t('status.other'), count: Math.max(0, otherCount), bg: 'bg-neutral-50', text: 'text-neutral-600', dot: 'bg-neutral-400' },
-              ].map(s => (
-                <div key={s.label} className={`${s.bg} ${s.text} rounded-xl p-2.5 md:p-3 text-center hover:shadow-md hover:scale-105 transition-all duration-200 cursor-pointer`}>
-                  <div className="flex justify-center mb-1">
-                    <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+            <div className="flex flex-col sm:flex-row gap-5 items-center">
+              <div className="flex-shrink-0 flex flex-col items-center">
+                <DonutChart
+                  size={148}
+                  data={[
+                    { label: t('status.healthy'), value: stats.healthyCount, color: '#10b981' },
+                    { label: t('status.sick'), value: stats.sickCount, color: '#ef4444' },
+                    { label: t('status.pregnant'), value: stats.pregnantCount, color: '#f59e0b' },
+                    { label: t('status.lactating'), value: stats.lactatingCount, color: '#3b82f6' },
+                    { label: t('status.dry'), value: stats.dryCount, color: '#a8a29e' },
+                    { label: t('status.other'), value: Math.max(0, otherCount), color: '#94a3b8' },
+                  ]}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2 flex-1 w-full">
+                {[
+                  { label: t('status.healthy'), count: stats.healthyCount, bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+                  { label: t('status.sick'), count: stats.sickCount, bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+                  { label: t('status.pregnant'), count: stats.pregnantCount, bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
+                  { label: t('status.lactating'), count: stats.lactatingCount, bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
+                  { label: t('status.dry'), count: stats.dryCount, bg: 'bg-stone-50', text: 'text-stone-700', dot: 'bg-stone-500' },
+                  { label: t('status.other'), count: Math.max(0, otherCount), bg: 'bg-neutral-50', text: 'text-neutral-600', dot: 'bg-neutral-400' },
+                ].map(s => (
+                  <div key={s.label} className={`${s.bg} ${s.text} rounded-xl p-2.5 md:p-3 text-center hover:shadow-md hover:scale-105 transition-all duration-200 cursor-pointer`}>
+                    <div className="flex justify-center mb-1">
+                      <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+                    </div>
+                    <p className="text-base md:text-lg font-extrabold">{s.count}</p>
+                    <p className="text-[9px] md:text-[11px] font-bold mt-0.5 uppercase tracking-wider opacity-80">{s.label}</p>
                   </div>
-                  <p className="text-base md:text-lg font-extrabold">{s.count}</p>
-                  <p className="text-[9px] md:text-[11px] font-bold mt-0.5 uppercase tracking-wider opacity-80">{s.label}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
@@ -486,6 +592,10 @@ export function DashboardPage() {
                     </div>
                   ) : null}
                 </div>
+              </div>
+              <div className="mb-6">
+                <p className="text-xs font-bold text-neutral-400 uppercase tracking-[0.15em] mb-3">Tren Keuangan 6 Bulan</p>
+                <MonthlyBarChart transactions={transactions} />
               </div>
               <div>
                 <p className="text-xs font-bold text-neutral-400 uppercase tracking-[0.15em] mb-3">{t('finance.recent.transactions')}</p>
