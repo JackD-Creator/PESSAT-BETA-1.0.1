@@ -20,6 +20,7 @@ import { FinanceExpensesPage } from './pages/finance/FinanceExpensesPage';
 import { TasksPage } from './pages/tasks/TasksPage';
 import { AlertsPage } from './pages/alerts/AlertsPage';
 import { UsersPage } from './pages/users/UsersPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -60,6 +61,7 @@ function AppRoutes() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="users" element={<ProtectedRoute roles={['owner']}><UsersPage /></ProtectedRoute>} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

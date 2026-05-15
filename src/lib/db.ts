@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabaseAdmin } from './supabaseAdmin';
 import type {
   User, Location, Animal, HerdGroup, FinancialTransaction,
   DailyProduction, Vaccination, BreedingEvent, Task, Alert,
@@ -14,26 +14,26 @@ function mapRows<T>(rows: Record<string, unknown>[]): T[] {
 }
 
 export async function getLocations(): Promise<Location[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('locations').select('*').order('name');
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('locations').select('*').order('name');
   return mapRows<Location>(data ?? []);
 }
 
 export async function getAnimals(): Promise<Animal[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('animals').select('*').order('tag_id');
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('animals').select('*').order('tag_id');
   return mapRows<Animal>(data ?? []);
 }
 
 export async function getAnimalsBySpecies(species: string): Promise<Animal[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('animals').select('*').eq('species', species).order('tag_id');
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('animals').select('*').eq('species', species).order('tag_id');
   return mapRows<Animal>(data ?? []);
 }
 
 export async function getAnimalCountBySpecies(): Promise<{ species: string; count: number }[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('animals').select('species');
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('animals').select('species');
   if (!data) return [];
   const map: Record<string, number> = {};
   for (const row of data) {
@@ -44,20 +44,20 @@ export async function getAnimalCountBySpecies(): Promise<{ species: string; coun
 }
 
 export async function getHerdGroups(): Promise<HerdGroup[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('herd_groups').select('*').order('name');
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('herd_groups').select('*').order('name');
   return mapRows<HerdGroup>(data ?? []);
 }
 
 export async function getFinancialTransactions(): Promise<FinancialTransaction[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('financial_transactions').select('*').order('transaction_date', { ascending: false });
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('financial_transactions').select('*').order('transaction_date', { ascending: false });
   return mapRows<FinancialTransaction>(data ?? []);
 }
 
 export async function getFinancialTransactionsByMonth(yearMonth: string): Promise<FinancialTransaction[]> {
-  if (!supabase) return [];
-  const { data } = await supabase
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin
     .from('financial_transactions')
     .select('*')
     .gte('transaction_date', `${yearMonth}-01`)
@@ -67,8 +67,8 @@ export async function getFinancialTransactionsByMonth(yearMonth: string): Promis
 }
 
 export async function getDailyProduction(limit = 14): Promise<DailyProduction[]> {
-  if (!supabase) return [];
-  const { data } = await supabase
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin
     .from('daily_production')
     .select('*')
     .order('production_date', { ascending: false })
@@ -77,8 +77,8 @@ export async function getDailyProduction(limit = 14): Promise<DailyProduction[]>
 }
 
 export async function getVaccinations(): Promise<Vaccination[]> {
-  if (!supabase) return [];
-  const { data } = await supabase
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin
     .from('vaccinations')
     .select('*')
     .order('date_administered', { ascending: false });
@@ -86,8 +86,8 @@ export async function getVaccinations(): Promise<Vaccination[]> {
 }
 
 export async function getBreedingEvents(): Promise<BreedingEvent[]> {
-  if (!supabase) return [];
-  const { data } = await supabase
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin
     .from('breeding_events')
     .select('*')
     .order('event_date', { ascending: false });
@@ -95,20 +95,20 @@ export async function getBreedingEvents(): Promise<BreedingEvent[]> {
 }
 
 export async function getTasks(): Promise<Task[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('tasks').select('*').order('created_at', { ascending: false });
   return mapRows<Task>(data ?? []);
 }
 
 export async function getAlerts(): Promise<Alert[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('alerts').select('*').order('created_at', { ascending: false });
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('alerts').select('*').order('created_at', { ascending: false });
   return mapRows<Alert>(data ?? []);
 }
 
 export async function getUnresolvedAlerts(): Promise<Alert[]> {
-  if (!supabase) return [];
-  const { data } = await supabase
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin
     .from('alerts')
     .select('*')
     .eq('is_resolved', false)
@@ -117,8 +117,8 @@ export async function getUnresolvedAlerts(): Promise<Alert[]> {
 }
 
 export async function getFeedInventory(): Promise<FeedInventory[]> {
-  if (!supabase) return [];
-  const { data } = await supabase
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin
     .from('feed_inventory')
     .select('*, feeds(name, category)')
     .order('feed_id');
@@ -142,14 +142,14 @@ export async function getFeedInventory(): Promise<FeedInventory[]> {
 }
 
 export async function getUsers(): Promise<User[]> {
-  if (!supabase) return [];
-  const { data } = await supabase.from('users').select('*').order('full_name');
+  if (!supabaseAdmin) return [];
+  const { data } = await supabaseAdmin.from('users').select('*').order('full_name');
   return mapRows<User>(data ?? []);
 }
 
 export async function getUserProfile(userId: string): Promise<User | null> {
-  if (!supabase) return null;
-  const { data } = await supabase.from('users').select('*').eq('id', userId).single();
+  if (!supabaseAdmin) return null;
+  const { data } = await supabaseAdmin.from('users').select('*').eq('id', userId).single();
   return mapRow<User>(data);
 }
 
@@ -166,7 +166,7 @@ export interface ProductSale {
 }
 
 export async function getProductSales(): Promise<ProductSale[]> {
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from('product_sales')
     .select('*')
     .order('sale_date', { ascending: false });

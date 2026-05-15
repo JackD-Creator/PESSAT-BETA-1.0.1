@@ -1,38 +1,37 @@
-import { supabase } from '../supabase';
 import { supabaseAdmin } from '../supabaseAdmin';
 import type { User } from '../../types';
 
 export async function loginWithEmail(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
   if (error) return { error: error.message };
   return { user: data.user };
 }
 
 export async function signUp(email: string, password: string, fullName: string) {
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
+  const { data, error } = await supabaseAdmin.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
   if (error) return { error: error.message };
   return { user: data.user };
 }
 
 export async function logout() {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabaseAdmin.auth.signOut();
   if (error) return { error: error.message };
   return {};
 }
 
 export async function getCurrentUser() {
-  const { data } = await supabase.auth.getUser();
+  const { data } = await supabaseAdmin.auth.getUser();
   return data.user;
 }
 
 export async function getProfile(userId: string) {
-  const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+  const { data, error } = await supabaseAdmin.from('users').select('*').eq('id', userId).single();
   if (error) return null;
   return data as User;
 }
 
 export function onAuthChange(callback: (user: unknown) => void) {
-  return supabase.auth.onAuthStateChange((_event, session) => {
+  return supabaseAdmin.auth.onAuthStateChange((_event, session) => {
     callback(session?.user ?? null);
   });
 }
@@ -40,7 +39,7 @@ export function onAuthChange(callback: (user: unknown) => void) {
 // ─── Admin: User Management ───
 
 export async function getUsers() {
-  const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabaseAdmin.from('users').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return data as User[];
 }
@@ -72,7 +71,7 @@ export async function createUser(input: {
 export async function updateUser(id: string, input: {
   full_name?: string; role?: User['role']; phone?: string; is_active?: boolean;
 }) {
-  const { data, error } = await supabase.from('users').update(input).eq('id', id).select().single();
+  const { data, error } = await supabaseAdmin.from('users').update(input).eq('id', id).select().single();
   if (error) throw error;
   return data as User;
 }
@@ -83,4 +82,9 @@ export async function deactivateUser(id: string) {
 
 export async function activateUser(id: string) {
   return updateUser(id, { is_active: true });
+}
+
+export async function deleteUser(id: string) {
+  const { error } = await supabaseAdmin.from('users').delete().eq('id', id);
+  if (error) throw error;
 }

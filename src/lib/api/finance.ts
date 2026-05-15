@@ -1,10 +1,9 @@
-import { supabase } from '../supabase';
 import { supabaseAdmin } from '../supabaseAdmin';
 import type { FinancialTransaction, LaborExpense, OperationalExpense, StockAdjustment } from '../../types';
 
 // ─── Financial Transactions ───
 export async function getTransactions(params?: { type?: string; category?: string; cashFlow?: string; dateFrom?: string; dateTo?: string }) {
-  let q = supabase.from('financial_transactions').select('*, animals(tag_id)').order('transaction_date', { ascending: false }).limit(100);
+  let q = supabaseAdmin.from('financial_transactions').select('*, animals(tag_id)').order('transaction_date', { ascending: false }).limit(100);
   if (params?.type) q = q.eq('type', params.type);
   if (params?.category) q = q.eq('category', params.category);
   if (params?.cashFlow) q = q.eq('cash_flow', params.cashFlow);
@@ -16,7 +15,7 @@ export async function getTransactions(params?: { type?: string; category?: strin
 }
 
 export async function getFinanceSummary() {
-  const { data, error } = await supabase.from('financial_transactions')
+  const { data, error } = await supabaseAdmin.from('financial_transactions')
     .select('type, cash_flow, amount')
     .gte('transaction_date', new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]);
   if (error) throw error;

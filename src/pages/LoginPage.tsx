@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, UserPlus, Shield, BarChart3, Wheat, Heart, Globe } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus, Shield, BarChart3, Wheat, Heart, Globe, Building2, MapPin, Phone, Globe2, Scale } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import type { UserRole, FarmScale } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 
 export function LoginPage() {
@@ -16,6 +17,17 @@ export function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Registration extra fields
+  const [role, setRole] = useState<UserRole>('owner');
+  const [farmName, setFarmName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [farmAddress, setFarmAddress] = useState('');
+  const [farmScale, setFarmScale] = useState<FarmScale>('kecil');
+  const [farmPhone, setFarmPhone] = useState('');
+  const [farmEmail, setFarmEmail] = useState('');
+  const [farmWebsite, setFarmWebsite] = useState('');
+  const [farmSocial, setFarmSocial] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +45,16 @@ export function LoginPage() {
         setLoading(false);
         return;
       }
-      const err = await signUp(email, password, fullName);
+      const err = await signUp(email, password, fullName, role, {
+        farm_name: farmName,
+        owner_name: ownerName,
+        address: farmAddress,
+        farm_scale: farmScale,
+        phone: farmPhone,
+        email: farmEmail,
+        website: farmWebsite,
+        social_media: farmSocial,
+      });
       setLoading(false);
       if (err) {
         if (err.includes('rate_limit') || err.includes('rate limit') || err.includes('Rate limit'))
@@ -163,6 +184,58 @@ export function LoginPage() {
                     required
                   />
                 </div>
+              )}
+
+              {mode === 'register' && (
+                <>
+                  <hr className="my-3 border-neutral-200" />
+                  <p className="text-xs font-semibold text-neutral-500 mb-2 uppercase tracking-wider">Data Peternakan</p>
+
+                  <div>
+                    <label className="label">Role</label>
+                    <select className="input" value={role} onChange={e => setRole(e.target.value as UserRole)}>
+                      <option value="owner">Pemilik (Owner)</option>
+                      <option value="manager">Manajer (Manager)</option>
+                      <option value="worker">Pekerja (Worker)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Nama Peternakan</label>
+                    <input type="text" className="input" placeholder="Cth. Peternakan Maju Jaya" value={farmName} onChange={e => setFarmName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Nama Pemilik</label>
+                    <input type="text" className="input" placeholder="Nama lengkap pemilik" value={ownerName} onChange={e => setOwnerName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Alamat / Lokasi Peternakan</label>
+                    <textarea className="input" rows={2} placeholder="Alamat lengkap" value={farmAddress} onChange={e => setFarmAddress(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Skala Ternak</label>
+                    <select className="input" value={farmScale} onChange={e => setFarmScale(e.target.value as FarmScale)}>
+                      <option value="kecil">Kecil</option>
+                      <option value="sedang">Sedang</option>
+                      <option value="besar">Besar</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">No. Telefon</label>
+                    <input type="tel" className="input" placeholder="08123456789" value={farmPhone} onChange={e => setFarmPhone(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Email Peternakan</label>
+                    <input type="email" className="input" placeholder="peternakan@email.com" value={farmEmail} onChange={e => setFarmEmail(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Website</label>
+                    <input type="url" className="input" placeholder="https://" value={farmWebsite} onChange={e => setFarmWebsite(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">Media Sosial</label>
+                    <input type="text" className="input" placeholder="Instagram, Facebook, dll." value={farmSocial} onChange={e => setFarmSocial(e.target.value)} />
+                  </div>
+                </>
               )}
 
               {error && (

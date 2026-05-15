@@ -1,10 +1,9 @@
-import { supabase } from '../supabase';
 import { supabaseAdmin } from '../supabaseAdmin';
 import type { Medicine, MedicineInventory, MedicinePurchase, MedicineUsage } from '../../types';
 
 // ─── Medicines ───
 export async function getMedicines() {
-  const { data, error } = await supabase.from('medicines').select('*').order('name');
+  const { data, error } = await supabaseAdmin.from('medicines').select('*').order('name');
   if (error) throw error;
   return data as Medicine[];
 }
@@ -17,7 +16,7 @@ export async function createMedicine(medicine: Partial<Medicine>) {
 
 // ─── Medicine Inventory ───
 export async function getMedicineInventory() {
-  const { data, error } = await supabase.from('medicine_inventory').select('*, medicines(name, type)').order('medicines(name)');
+  const { data, error } = await supabaseAdmin.from('medicine_inventory').select('*, medicines(name, type)').order('medicines(name)');
   if (error) throw error;
   return data as (MedicineInventory & { medicines: { name: string; type: string } })[];
 }
@@ -38,7 +37,7 @@ export async function createMedicineUsage(usage: Partial<MedicineUsage>) {
 
 // ─── Inventory Summary ───
 export async function getMedicineInventorySummary() {
-  const { data, error } = await supabase.from('medicine_inventory').select('total_cost, min_threshold, quantity_on_hand');
+  const { data, error } = await supabaseAdmin.from('medicine_inventory').select('total_cost, min_threshold, quantity_on_hand');
   if (error) throw error;
   return {
     totalValue: data.reduce((s, i) => s + Number(i.total_cost), 0),

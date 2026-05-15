@@ -1,10 +1,9 @@
-import { supabase } from '../supabase';
 import { supabaseAdmin } from '../supabaseAdmin';
 import type { Task, Alert } from '../../types';
 
 // ─── Tasks ───
 export async function getTasks(params?: { assignedTo?: string; status?: string }) {
-  let q = supabase.from('tasks').select('*, assigned:assigned_to(full_name), animals!tasks_related_animal_id_fkey(tag_id)').order('created_at', { ascending: false });
+  let q = supabaseAdmin.from('tasks').select('*, assigned:assigned_to(full_name), animals!tasks_related_animal_id_fkey(tag_id)').order('created_at', { ascending: false });
   if (params?.assignedTo) q = q.eq('assigned_to', params.assignedTo);
   if (params?.status) q = q.eq('status', params.status);
   const { data, error } = await q;
@@ -26,7 +25,7 @@ export async function updateTaskStatus(id: string, status: string) {
 }
 
 export async function getTaskSummary() {
-  const { data, error } = await supabase.from('tasks').select('status, due_date');
+  const { data, error } = await supabaseAdmin.from('tasks').select('status, due_date');
   if (error) throw error;
   const now = new Date().toISOString().split('T')[0];
   let pending = 0, inProgress = 0, overdue = 0;
@@ -40,7 +39,7 @@ export async function getTaskSummary() {
 
 // ─── Alerts ───
 export async function getAlerts(unresolvedOnly?: boolean) {
-  let q = supabase.from('alerts').select('*, animals(tag_id)').order('created_at', { ascending: false }).limit(50);
+  let q = supabaseAdmin.from('alerts').select('*, animals(tag_id)').order('created_at', { ascending: false }).limit(50);
   if (unresolvedOnly) q = q.eq('is_resolved', false);
   const { data, error } = await q;
   if (error) throw error;
@@ -58,7 +57,7 @@ export async function markAlertRead(id: string) {
 }
 
 export async function getAlertSummary() {
-  const { data, error } = await supabase.from('alerts').select('severity, is_resolved, is_read');
+  const { data, error } = await supabaseAdmin.from('alerts').select('severity, is_resolved, is_read');
   if (error) throw error;
   return {
     total: data.length,

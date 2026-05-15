@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Heart, Wheat, DollarSign,
-  Milk, CheckSquare, Bell, LogOut,
+  Milk, CheckSquare, Bell, LogOut, Building2,
   Users, MapPin, Package, ShoppingCart, ClipboardList, Beef,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -68,6 +68,7 @@ export function Sidebar(_props?: { onClose?: () => void }) {
     { labelKey: 'nav.tasks', to: '/tasks', icon: <CheckSquare size={18} /> },
     { labelKey: 'nav.alerts', to: '/alerts', icon: <Bell size={18} /> },
     { labelKey: 'nav.users', to: '/users', icon: <Users size={18} />, roles: ['owner'] },
+    { labelKey: 'nav.profile', to: '/profile', icon: <Building2 size={18} /> },
   ];
 
   return (

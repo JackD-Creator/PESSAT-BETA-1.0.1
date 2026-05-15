@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Users, MapPin } from 'lucide-react';
+import { Plus, Users, MapPin, MapPinPlus, Loader } from 'lucide-react';
 import { getHerdGroups, getAnimals, getLocations } from '../../lib/db';
 import { createHerdGroup } from '../../lib/api/animals';
+import { createLocation } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -10,6 +11,7 @@ export function HerdGroupsPage() {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [herdGroups, setHerdGroups] = useState<any[]>([]);
   const [animals, setAnimals] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
@@ -98,8 +100,14 @@ export function HerdGroupsPage() {
 
       {/* Locations overview */}
       <div className="card">
-        <div className="p-4 border-b border-neutral-100">
+        <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
           <h2 className="section-header">{t('herd.capacity.title')}</h2>
+          {hasRole(['owner', 'manager']) && (
+            <button className="btn-secondary text-sm" onClick={() => setShowLocationModal(true)}>
+              <MapPinPlus size={16} />
+              {t('herd.location.add')}
+            </button>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="table">
@@ -153,7 +161,86 @@ export function HerdGroupsPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('herd.form.title')} size="md">
         <HerdGroupForm locations={locations} onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
+
+      <Modal open={showLocationModal} onClose={() => setShowLocationModal(false)} title={t('herd.location.add')} size="md">
+        <LocationForm onClose={() => { setShowLocationModal(false); loadData(); }} />
+      </Modal>
     </div>
+  );
+}
+
+function LocationForm({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    name: '', type: 'shed', capacity: 0, area_sqm: 0, notes: '',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name) { alert('Nama lokasi harus diisi'); return; }
+    setError('');
+    setSubmitting(true);
+    try {
+      await createLocation({
+        name: form.name,
+        type: form.type,
+        capacity: Number(form.capacity) || 0,
+        area_sqm: Number(form.area_sqm) || undefined,
+        notes: form.notes || undefined,
+        current_occupancy: 0,
+        is_active: true,
+      } as any);
+      onClose();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="text-sm text-error-600 bg-error-50 p-3 rounded-lg">{error}</div>}
+      <div>
+        <label className="label">{t('herd.form.name')} <span className="text-error-500">*</span></label>
+        <input name="name" className="input" placeholder="e.g. Kandang A" value={form.name} onChange={change} required />
+      </div>
+      <div className="form-grid-2">
+        <div>
+          <label className="label">{t('herd.table.type')}</label>
+          <select name="type" className="select" value={form.type} onChange={change}>
+            <option value="shed">Shed</option>
+            <option value="paddock">Paddock</option>
+            <option value="quarantine">Quarantine</option>
+            <option value="storage">Storage</option>
+            <option value="office">Office</option>
+            <option value="milking_parlor">Milking Parlor</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">{t('herd.table.capacity')}</label>
+          <input name="capacity" type="number" min="0" className="input" value={form.capacity} onChange={change} />
+        </div>
+        <div>
+          <label className="label">Area (m²)</label>
+          <input name="area_sqm" type="number" min="0" className="input" value={form.area_sqm} onChange={change} />
+        </div>
+      </div>
+      <div>
+        <label className="label">{t('herd.form.notes')}</label>
+        <textarea name="notes" className="input h-20 resize-none" placeholder={t('herd.form.notes.placeholder')} value={form.notes} onChange={change} />
+      </div>
+      <div className="flex justify-end gap-3">
+        <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
+        <button type="submit" className="btn-primary" disabled={submitting}>
+          {submitting ? <Loader size={14} className="animate-spin" /> : <Plus size={14} />}
+          {t('common.save')}
+        </button>
+      </div>
+    </form>
   );
 }
 

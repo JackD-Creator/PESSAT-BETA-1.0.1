@@ -9,13 +9,17 @@ function getClient(): SupabaseClient {
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY env vars');
     }
-    _client = createClient(supabaseUrl, supabaseAnonKey);
+    _client = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, storageKey: 'sb-anon-auth-token' },
+    });
   }
   return _client;
 }
 
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop) {
-    return getClient()[prop as keyof SupabaseClient];
+    const target = getClient();
+    const val = target[prop as keyof SupabaseClient];
+    return typeof val === 'function' ? val.bind(target) : val;
   },
 });

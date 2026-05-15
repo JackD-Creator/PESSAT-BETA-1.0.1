@@ -44,6 +44,23 @@ export type DataType = 'text' | 'number' | 'date' | 'boolean';
 
 export type AdjustmentItemType = 'feed' | 'medicine';
 
+export type FarmScale = 'kecil' | 'sedang' | 'besar';
+
+export interface FarmProfile {
+  id: string;
+  user_id: string;
+  farm_name: string;
+  owner_name: string;
+  address: string;
+  farm_scale: FarmScale;
+  phone: string;
+  email: string;
+  website: string;
+  social_media: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 // ============================================================
 // TABLE 1: users
 // ============================================================

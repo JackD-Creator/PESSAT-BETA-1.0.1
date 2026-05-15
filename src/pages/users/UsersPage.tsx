@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Shield, User as UserIcon, UserCheck, Loader } from 'lucide-react';
-import { getUsers, createUser, deactivateUser, activateUser } from '../../lib/api';
+import { Plus, Shield, User as UserIcon, UserCheck, Loader, Pencil, Trash2 } from 'lucide-react';
+import { getUsers, createUser, updateUser, deactivateUser, activateUser, deleteUser } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useTranslation } from '../../contexts/LanguageContext';
 import type { User } from '../../types';
@@ -14,6 +14,8 @@ const roleConfig = {
 export function UsersPage() {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +28,7 @@ export function UsersPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleCreated = () => { setShowModal(false); load(); };
+  const handleCreated = () => { setShowModal(false); setEditingUser(null); load(); };
 
   return (
     <div className="page-container">
@@ -109,9 +111,23 @@ export function UsersPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
+                        <button
+                          className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                          onClick={() => setEditingUser(u)}
+                          title={t('common.edit')}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          className="text-xs text-error-500 hover:text-error-600 font-medium"
+                          onClick={() => setDeletingUser(u)}
+                          title={t('common.delete')}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                         {u.is_active ? (
                           <button
-                            className="text-xs text-error-500 hover:text-error-600 font-medium"
+                            className="text-xs text-warning-600 hover:text-warning-700 font-medium"
                             onClick={async () => { await deactivateUser(u.id); load(); }}
                           >
                             {t('user.action.deactivate')}
@@ -161,15 +177,37 @@ export function UsersPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('user.form.title')} size="md">
         <UserForm t={t} onCreated={handleCreated} onClose={() => setShowModal(false)} />
       </Modal>
+
+      <Modal open={!!editingUser} onClose={() => setEditingUser(null)} title={t('user.form.edit')} size="md">
+        {editingUser && (
+          <UserForm t={t} user={editingUser} onCreated={handleCreated} onClose={() => setEditingUser(null)} />
+        )}
+      </Modal>
+
+      <Modal open={!!deletingUser} onClose={() => setDeletingUser(null)} title={t('common.delete')} size="sm">
+        {deletingUser && (
+          <div className="space-y-4">
+            <p className="text-neutral-600 text-sm">{t('user.delete.confirm').replace('{name}', deletingUser.full_name)}</p>
+            <div className="flex justify-end gap-3">
+              <button className="btn-secondary" onClick={() => setDeletingUser(null)}>{t('common.cancel')}</button>
+              <button className="btn-danger" onClick={async () => {
+                await deleteUser(deletingUser.id);
+                setDeletingUser(null);
+                load();
+              }}>{t('common.delete')}</button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
 
-function UserForm({ t, onCreated, onClose }: { t: (key: string) => string; onCreated: () => void; onClose: () => void }) {
+function UserForm({ t, user, onCreated, onClose }: { t: (key: string) => string; user?: User; onCreated: () => void; onClose: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
-    full_name: '', email: '', phone: '', role: 'worker', password: '',
+    full_name: user?.full_name || '', email: user?.email || '', phone: user?.phone || '', role: user?.role || 'worker', password: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -178,13 +216,21 @@ function UserForm({ t, onCreated, onClose }: { t: (key: string) => string; onCre
     setError('');
     setSubmitting(true);
     try {
-      await createUser({
-        email: form.email,
-        password: form.password,
-        full_name: form.full_name,
-        role: form.role as User['role'],
-        phone: form.phone || undefined,
-      });
+      if (user) {
+        await updateUser(user.id, {
+          full_name: form.full_name,
+          role: form.role as User['role'],
+          phone: form.phone || undefined,
+        });
+      } else {
+        await createUser({
+          email: form.email,
+          password: form.password,
+          full_name: form.full_name,
+          role: form.role as User['role'],
+          phone: form.phone || undefined,
+        });
+      }
       onCreated();
     } catch (err: any) {
       setError(err.message);
@@ -201,10 +247,12 @@ function UserForm({ t, onCreated, onClose }: { t: (key: string) => string; onCre
           <label className="label">{t('user.form.fullname')} <span className="text-error-500">*</span></label>
           <input name="full_name" className="input" placeholder={t('user.form.fullname.placeholder')} value={form.full_name} onChange={change} required />
         </div>
-        <div>
-          <label className="label">{t('user.form.email')} <span className="text-error-500">*</span></label>
-          <input name="email" type="email" className="input" placeholder={t('user.form.email.placeholder')} value={form.email} onChange={change} required />
-        </div>
+        {!user && (
+          <div>
+            <label className="label">{t('user.form.email')} <span className="text-error-500">*</span></label>
+            <input name="email" type="email" className="input" placeholder={t('user.form.email.placeholder')} value={form.email} onChange={change} required />
+          </div>
+        )}
         <div>
           <label className="label">{t('user.form.phone')}</label>
           <input name="phone" className="input" placeholder={t('user.form.phone.placeholder')} value={form.phone} onChange={change} />
@@ -217,16 +265,18 @@ function UserForm({ t, onCreated, onClose }: { t: (key: string) => string; onCre
             <option value="owner">{t('user.form.role.owner')}</option>
           </select>
         </div>
-        <div>
-          <label className="label">{t('user.form.password')} <span className="text-error-500">*</span></label>
-          <input name="password" type="password" className="input" placeholder={t('user.form.password.placeholder')} value={form.password} onChange={change} required />
-        </div>
+        {!user && (
+          <div>
+            <label className="label">{t('user.form.password')} <span className="text-error-500">*</span></label>
+            <input name="password" type="password" className="input" placeholder={t('user.form.password.placeholder')} value={form.password} onChange={change} required />
+          </div>
+        )}
       </div>
       <div className="flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
         <button type="submit" className="btn-primary" disabled={submitting}>
           {submitting ? <Loader size={14} className="animate-spin" /> : <Plus size={14} />}
-          {t('user.add')}
+          {user ? t('common.save') : t('user.add')}
         </button>
       </div>
     </form>

@@ -10,7 +10,11 @@ function getAdminClient(): SupabaseClient {
       throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_SERVICE_ROLE_KEY env vars');
     }
     _admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        storageKey: 'sb-admin-auth-token',
+      },
     });
   }
   return _admin;
@@ -18,6 +22,8 @@ function getAdminClient(): SupabaseClient {
 
 export const supabaseAdmin = new Proxy({} as SupabaseClient, {
   get(_, prop) {
-    return getAdminClient()[prop as keyof SupabaseClient];
+    const target = getAdminClient();
+    const val = target[prop as keyof SupabaseClient];
+    return typeof val === 'function' ? val.bind(target) : val;
   },
 });

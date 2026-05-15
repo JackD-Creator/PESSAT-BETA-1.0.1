@@ -1,10 +1,9 @@
-import { supabase } from '../supabase';
 import { supabaseAdmin } from '../supabaseAdmin';
 import type { HealthRecord, Vaccination, BreedingEvent } from '../../types';
 
 // ─── Health Records ───
 export async function getHealthRecords(animalId?: string) {
-  let q = supabase.from('health_records').select('*, animals!inner(tag_id)').order('record_date', { ascending: false });
+  let q = supabaseAdmin.from('health_records').select('*, animals!inner(tag_id)').order('record_date', { ascending: false });
   if (animalId) q = q.eq('animal_id', animalId);
   const { data, error } = await q;
   if (error) throw error;
@@ -24,7 +23,7 @@ export async function resolveHealthRecord(id: string, resolved: boolean) {
 
 // ─── Vaccinations ───
 export async function getVaccinations(animalId?: string) {
-  let q = supabase.from('vaccinations').select('*, animals!vaccinations_animal_id_fkey(tag_id), herd_groups(name)').order('date_administered', { ascending: false });
+  let q = supabaseAdmin.from('vaccinations').select('*, animals!vaccinations_animal_id_fkey(tag_id), herd_groups(name)').order('date_administered', { ascending: false });
   if (animalId) q = q.eq('animal_id', animalId);
   const { data, error } = await q;
   if (error) throw error;
@@ -39,7 +38,7 @@ export async function createVaccination(vaccination: Partial<Vaccination>) {
 
 // ─── Breeding Events ───
 export async function getBreedingEvents(animalId?: string) {
-  let q = supabase.from('breeding_events').select('*, animals!breeding_events_animal_id_fkey(tag_id), sire:sire_id(tag_id)').order('event_date', { ascending: false });
+  let q = supabaseAdmin.from('breeding_events').select('*, animals!breeding_events_animal_id_fkey(tag_id), sire:sire_id(tag_id)').order('event_date', { ascending: false });
   if (animalId) q = q.eq('animal_id', animalId);
   const { data, error } = await q;
   if (error) throw error;
