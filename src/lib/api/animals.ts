@@ -5,6 +5,7 @@ import type { Animal, WeightRecord, AnimalMovement, HerdGroup, HerdGroupMember }
 export async function getAnimals(userId: string, params?: {
   species?: string; status?: string; location_id?: string; herd_group_id?: string;
 }) {
+  console.log('[getAnimals] userId:', userId);
   let q = supabaseAdmin.from('animals').select('*, locations!animals_current_location_id_fkey(name)');
   q = q.eq('user_id', userId);
   if (params?.species) q = q.eq('species', params.species);

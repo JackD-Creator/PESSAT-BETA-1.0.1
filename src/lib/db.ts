@@ -19,6 +19,7 @@ export async function getLocations(userId?: string): Promise<Location[]> {
 
 export async function getAnimals(userId?: string): Promise<Animal[]> {
   if (!supabaseAdmin) return [];
+  console.log('[db.getAnimals] userId:', userId);
   let q = supabaseAdmin.from('animals').select('*');
   if (userId) q = q.eq('user_id', userId);
   const { data } = await q.order('tag_id');

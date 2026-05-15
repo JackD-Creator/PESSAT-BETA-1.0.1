@@ -84,6 +84,7 @@ export function DashboardPage() {
   const [feedInventory, setFeedInventory] = useState<any[]>([]);
 
   useEffect(() => {
+    console.log('[Dashboard] user?.id:', user?.id);
     getAnimals(user?.id).then(setAnimals);
     getDailyProduction(user?.id, 14).then(d => setProduction(d));
     getFinancialTransactions(user?.id).then(setTransactions);
