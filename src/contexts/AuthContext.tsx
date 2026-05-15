@@ -33,7 +33,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profile) {
           setUser(profile);
           localStorage.setItem('livestock_user', JSON.stringify(profile));
+        } else {
+          setUser(null);
+          localStorage.removeItem('livestock_user');
+          setIsSupabase(false);
         }
+      } else {
+        setUser(null);
+        localStorage.removeItem('livestock_user');
+        setIsSupabase(false);
       }
     };
     checkSupabase();

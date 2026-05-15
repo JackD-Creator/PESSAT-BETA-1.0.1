@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Bell, Menu } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bell, Menu, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAlerts } from '../../lib/db';
@@ -11,7 +11,8 @@ interface TopBarProps {
 }
 
 export function TopBar({ onMenuToggle, title }: TopBarProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [unread, setUnread] = useState(0);
   const [critical, setCritical] = useState(0);
@@ -52,6 +53,14 @@ export function TopBar({ onMenuToggle, title }: TopBarProps) {
       <div className="w-8 h-8 bg-gradient-to-br from-primary-100 to-emerald-100 rounded-full flex items-center justify-center text-primary-700 text-sm font-semibold flex-shrink-0 shadow-sm">
         {user?.full_name.charAt(0)}
       </div>
+
+      <button
+        onClick={async () => { await logout(); navigate('/login'); }}
+        className="btn-ghost p-2 rounded-lg text-neutral-400 hover:text-error-600 transition-colors"
+        title={t('nav.logout')}
+      >
+        <LogOut size={20} />
+      </button>
     </header>
   );
 }
