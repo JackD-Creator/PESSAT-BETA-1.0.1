@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Loader, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Loader, Pencil, Trash2, Building2 } from 'lucide-react';
 import { getLocations, createLocation, updateLocation, deleteLocation } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Location } from '../../types';
@@ -53,6 +54,20 @@ export function LocationsPage() {
         <div className="card p-12 text-center"><p className="text-neutral-400">{t('common.loading')}</p></div>
       ) : (
         <div className="card">
+          {locations.length === 0 ? (
+            <div className="p-8">
+              <EmptyState
+                icon={<Building2 size={24} />}
+                title="Belum ada lokasi kandang"
+                description="Tambahkan lokasi kandang untuk memantau kapasitas dan okupansi."
+                action={hasRole(['owner', 'manager']) ? (
+                  <button className="btn-primary" onClick={() => setShowModal(true)}>
+                    <Plus size={16} /> Tambah Lokasi
+                  </button>
+                ) : undefined}
+              />
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
@@ -70,7 +85,7 @@ export function LocationsPage() {
                     <td className="font-medium text-neutral-800">{loc.name}</td>
                     <td>
                       <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full">
-                        {typeLabels[loc.type] || loc.type}
+                        {(loc.type && typeLabels[loc.type]) || loc.type || '-'}
                       </span>
                     </td>
                     <td>{loc.capacity || '-'}</td>
@@ -102,6 +117,7 @@ export function LocationsPage() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       )}
 

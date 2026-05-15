@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Package, ShoppingCart } from 'lucide-react';
-import { getMedicineInventory, getMedicinePurchases } from '../../lib/api';
+import { AlertTriangle, Package, ShoppingCart, Trash2 } from 'lucide-react';
+import { getMedicineInventory, getMedicinePurchases, deleteMedicine, deleteMedicinePurchase } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -26,6 +26,18 @@ export function MedicineInventoryPage() {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'stock' | 'history'>('stock');
+
+  const handleDeleteMedicine = async (med: any) => {
+    if (!window.confirm('Hapus data obat ini?')) return;
+    await deleteMedicine(user!.id, med.medicines?.id).catch(() => {});
+    loadData();
+  };
+
+  const handleDeletePurchase = async (id: string) => {
+    if (!window.confirm('Hapus data pembelian ini?')) return;
+    await deleteMedicinePurchase(user!.id, id).catch(() => {});
+    loadData();
+  };
 
   const loadData = () => {
     if (!user?.id) return;
@@ -111,7 +123,14 @@ export function MedicineInventoryPage() {
                     <p className="font-semibold text-neutral-800">{med.medicines?.name || '-'}</p>
                     <p className="text-xs text-neutral-400 mt-0.5">{med.medicines?.type || '-'}</p>
                   </div>
-                  {isLow && <span className="badge badge-red flex-shrink-0">Stok Menipis</span>}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {isLow && <span className="badge badge-red">Stok Menipis</span>}
+                    {hasRole(['owner', 'manager']) && (
+                      <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeleteMedicine(med)}>
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-end justify-between mb-2">
                   <span className={`text-3xl font-bold ${isLow ? 'text-error-600' : 'text-neutral-800'}`}>
@@ -147,19 +166,20 @@ export function MedicineInventoryPage() {
           <div className="overflow-x-auto">
             <table className="table-default">
               <thead>
-                <tr>
-                  <th>Tanggal</th>
-                  <th>Obat</th>
-                  <th>Jumlah</th>
-                  <th>Harga/Unit</th>
-                  <th>Total</th>
-                  <th>Supplier</th>
-                  <th>Batch</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchases.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center text-neutral-400 py-8">{t('common.no.data')}</td></tr>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Obat</th>
+                    <th>Jumlah</th>
+                    <th>Harga/Unit</th>
+                    <th>Total</th>
+                    <th>Supplier</th>
+                    <th>Batch</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchases.length === 0 ? (
+                    <tr><td colSpan={8} className="text-center text-neutral-400 py-8">{t('common.no.data')}</td></tr>
                 ) : purchases.map((p: any) => (
                   <tr key={p.id}>
                     <td className="text-sm">{formatDate(p.purchase_date)}</td>
@@ -169,6 +189,13 @@ export function MedicineInventoryPage() {
                     <td className="font-medium">{formatCurrency(Number(p.total_amount))}</td>
                     <td className="text-sm">{p.supplier || '-'}</td>
                     <td className="text-sm text-neutral-500">{p.batch_number || '-'}</td>
+                    <td>
+                      {hasRole(['owner', 'manager']) && (
+                        <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeletePurchase(p.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

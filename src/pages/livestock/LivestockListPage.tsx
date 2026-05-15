@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter, Download, Eye, CreditCard as Edit, Beef } from 'lucide-react';
+import { Plus, Search, Filter, Download, Eye, CreditCard as Edit, Beef, Trash2 } from 'lucide-react';
 import { StatusBadge, SpeciesBadge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { getAnimals } from '../../lib/api';
+import { getAnimals, deleteAnimal } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 import type { Animal } from '../../types';
@@ -160,9 +160,9 @@ export function LivestockListPage() {
                     </td>
                     <td><SpeciesBadge species={animal.species} /></td>
                     <td className="max-w-[140px] truncate">{animal.breed}</td>
-                    <td>{animal.gender === 'male' ? t('gender.male') : t('gender.female')}</td>
+                    <td>{animal.gender === 'male' ? t('gender.male') : animal.gender === 'female' ? t('gender.female') : '-'}</td>
                     <td>{getAge(animal.birth_date)}</td>
-                    <td className="font-medium">{animal.current_weight_kg}</td>
+                    <td className="font-medium">{animal.current_weight_kg ? `${animal.current_weight_kg} kg` : '-'}</td>
                     <td><StatusBadge status={animal.status} /></td>
                     <td>
                       <span className="text-xs text-neutral-500 capitalize">{animal.purpose}</span>
@@ -177,6 +177,14 @@ export function LivestockListPage() {
                           <Link to={`/livestock/${animal.id}/edit`} className="btn-ghost btn-sm p-1.5 rounded">
                             <Edit size={14} />
                           </Link>
+                        )}
+                        {hasRole(['owner', 'manager']) && (
+                          <button className="btn-ghost btn-sm p-1.5 rounded text-error-500" onClick={async () => {
+                            if (!window.confirm(`Hapus ternak ${animal.tag_id}?`)) return;
+                            try { await deleteAnimal(user?.id, animal.id); setAnimals(prev => prev.filter(a => a.id !== animal.id)); } catch { alert('Gagal menghapus'); }
+                          }}>
+                            <Trash2 size={14} />
+                          </button>
                         )}
                       </div>
                     </td>

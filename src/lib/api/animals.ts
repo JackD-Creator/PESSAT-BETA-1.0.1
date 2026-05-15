@@ -28,21 +28,35 @@ export async function getAnimal(userId: string, id: string) {
   return data as Animal & { locations: { name: string } | null; dam: { tag_id: string; breed: string } | null; sire: { tag_id: string; breed: string } | null };
 }
 
+async function syncLocationOccupancy(userId: string, locationId: string) {
+  if (!locationId) return;
+  const { count } = await supabaseAdmin.from('animals').select('id', { count: 'exact', head: true }).eq('current_location_id', locationId).eq('user_id', userId);
+  await supabaseAdmin.from('locations').update({ current_occupancy: count || 0 }).eq('id', locationId).eq('user_id', userId);
+}
+
 export async function createAnimal(userId: string, animal: Partial<Animal>) {
   const { data, error } = await supabaseAdmin.from('animals').insert({ ...animal, user_id: userId }).select().single();
   if (error) throw error;
+  if (data.current_location_id) syncLocationOccupancy(userId, data.current_location_id);
   return data as Animal;
 }
 
 export async function updateAnimal(userId: string, id: string, animal: Partial<Animal>) {
+  // Get old location before updating
+  const { data: old } = await supabaseAdmin.from('animals').select('current_location_id').eq('id', id).eq('user_id', userId).single();
   const { data, error } = await supabaseAdmin.from('animals').update(animal).eq('id', id).eq('user_id', userId).select().single();
   if (error) throw error;
+  // Sync old and new locations
+  if (old?.current_location_id) syncLocationOccupancy(userId, old.current_location_id);
+  if (data.current_location_id) syncLocationOccupancy(userId, data.current_location_id);
   return data as Animal;
 }
 
 export async function deleteAnimal(userId: string, id: string) {
+  const { data: old } = await supabaseAdmin.from('animals').select('current_location_id').eq('id', id).eq('user_id', userId).single();
   const { error } = await supabaseAdmin.from('animals').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
+  if (old?.current_location_id) syncLocationOccupancy(userId, old.current_location_id);
 }
 
 // ─── Weight Records ───
@@ -87,8 +101,19 @@ export async function createHerdGroup(userId: string, group: Partial<HerdGroup>)
   return data as HerdGroup;
 }
 
-export async function getHerdGroupMembers(userId: string, herdGroupId: string) {
-  const q = supabaseAdmin.from('herd_group_members').select('*, animals(tag_id, species, breed, gender, status)').eq('herd_group_id', herdGroupId).eq('user_id', userId);
+export async function updateHerdGroup(userId: string, id: string, group: Partial<HerdGroup>) {
+  const { data, error } = await supabaseAdmin.from('herd_groups').update(group).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as HerdGroup;
+}
+
+export async function deleteHerdGroup(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('herd_groups').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function getHerdGroupMembers(_userId: string, herdGroupId: string) {
+  const q = supabaseAdmin.from('herd_group_members').select('*, animals(tag_id, species, breed, gender, status)').eq('herd_group_id', herdGroupId);
   const { data, error } = await q;
   if (error) throw error;
   return data as (HerdGroupMember & { animals: Partial<Animal> })[];

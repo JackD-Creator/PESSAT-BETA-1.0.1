@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, CreditCard as Edit, Scale, Heart, Syringe, Baby, Tag, Activity } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Scale, Heart, Syringe, Baby, Tag, Activity, Trash2 } from 'lucide-react';
 import { StatusBadge, SpeciesBadge } from '../../components/ui/Badge';
-import { getAnimal, getWeightRecords, createWeightRecord, getAnimalAttributes } from '../../lib/api';
+import { getAnimal, getWeightRecords, createWeightRecord, getAnimalAttributes, deleteAnimal } from '../../lib/api';
 import { getHealthRecords, getVaccinations, getBreedingEvents } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -20,7 +20,7 @@ function InfoRow({ label, value }: { label: string; value?: string | number | nu
 
 export function LivestockDetailPage() {
   const { t, locale } = useTranslation();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('info');
   const [loading, setLoading] = useState(true);
@@ -118,10 +118,21 @@ export function LivestockDetailPage() {
           </div>
           <p className="text-sm text-neutral-500 mt-1">{animal.breed} · {animal.gender === 'male' ? t('gender.male') : t('gender.female')} · {getAge()}</p>
         </div>
-        <Link to={`/livestock/${animal.id}/edit`} className="btn-secondary">
-          <Edit size={16} />
-          {t('common.edit')}
-        </Link>
+        <div className="flex gap-2">
+          <Link to={`/livestock/${animal.id}/edit`} className="btn-secondary">
+            <Edit size={16} />
+            {t('common.edit')}
+          </Link>
+          {hasRole(['owner', 'manager']) && (
+            <button className="btn-secondary text-error-600 border-error-200 hover:bg-error-50" onClick={async () => {
+              if (!window.confirm(`Hapus ternak ${animal.tag_id}? Aksi ini tidak bisa dibatalkan.`)) return;
+              try { await deleteAnimal(user?.id, animal.id); window.location.href = '/livestock'; } catch { alert('Gagal menghapus'); }
+            }}>
+              <Trash2 size={16} />
+              Hapus
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Photo + quick stats */}

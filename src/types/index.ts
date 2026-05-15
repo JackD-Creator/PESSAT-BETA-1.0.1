@@ -207,6 +207,7 @@ export interface HerdGroup {
   name: string;
   location_id?: string;
   supervisor_id?: string;
+  supervisor_name?: string;
   member_count: number;
   notes?: string;
   created_at: string;

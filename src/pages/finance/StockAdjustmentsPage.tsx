@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Package, AlertTriangle, Plus, Loader } from 'lucide-react';
-import { getStockAdjustments, createStockAdjustment } from '../../lib/api/finance';
+import { Package, AlertTriangle, Plus, Loader, Pencil, Trash2 } from 'lucide-react';
+import { getStockAdjustments, createStockAdjustment, updateStockAdjustment, deleteStockAdjustment } from '../../lib/api/finance';
 import { getFeedInventory, getMedicineInventory, getFeeds, getMedicines } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -18,6 +18,7 @@ export function StockAdjustmentsPage() {
   const [adjustments, setAdjustments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   const loadData = () => {
       getStockAdjustments(user!.id)
@@ -68,6 +69,7 @@ export function StockAdjustmentsPage() {
                   <th>Perubahan</th>
                   <th>Alasan</th>
                   <th>Keterangan</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -87,6 +89,15 @@ export function StockAdjustmentsPage() {
                     </td>
                     <td className="max-w-[240px] truncate">{a.reason}</td>
                     <td className="text-neutral-500 max-w-[200px] truncate">{a.notes || '-'}</td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(a)}><Pencil size={14} /></button>
+                        <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                          if (!window.confirm('Hapus data ini?')) return;
+                          try { await deleteStockAdjustment(user?.id, a.id); loadData(); } catch { alert('Gagal menghapus'); }
+                        }}><Trash2 size={14} /></button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -97,6 +108,46 @@ export function StockAdjustmentsPage() {
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Catat Penyesuaian Stok" size="md">
         <AdjustmentForm onClose={() => { setShowModal(false); loadData(); }} />
+      </Modal>
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Penyesuaian Stok" size="sm">
+        {editingItem && (
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            try {
+              await updateStockAdjustment(user?.id, editingItem.id, {
+                reason: fd.get('reason') as string,
+                notes: fd.get('notes') as string,
+                adjustment_date: fd.get('adjustment_date') as string,
+              } as any);
+              setEditingItem(null);
+              loadData();
+            } catch { alert('Gagal mengupdate'); }
+          }} className="space-y-4">
+            <div>
+              <label className="label">Alasan</label>
+              <select name="reason" className="select" defaultValue={editingItem.reason} required>
+                <option value="rusak">Stok Rusak</option>
+                <option value="kadaluwarsa">Kadaluwarsa</option>
+                <option value="hilang">Hilang</option>
+                <option value="koreksi">Koreksi Stok</option>
+                <option value="lainnya">Lainnya</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Keterangan</label>
+              <textarea name="notes" className="input h-16 resize-none" defaultValue={editingItem.notes || ''} />
+            </div>
+            <div>
+              <label className="label">Tanggal</label>
+              <input name="adjustment_date" type="date" className="input" defaultValue={editingItem.adjustment_date?.split('T')[0]} required />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" className="btn-secondary" onClick={() => setEditingItem(null)}>Batal</button>
+              <button type="submit" className="btn-primary">Simpan</button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

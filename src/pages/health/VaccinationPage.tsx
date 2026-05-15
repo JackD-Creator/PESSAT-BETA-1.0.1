@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, AlertTriangle, Syringe } from 'lucide-react';
+import { Plus, AlertTriangle, Syringe, Pencil, Trash2 } from 'lucide-react';
 import { getVaccinations, getAnimals, getHerdGroups } from '../../lib/api';
-import { createVaccination } from '../../lib/api/health';
+import { createVaccination, updateVaccination, deleteVaccination } from '../../lib/api/health';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -12,6 +12,7 @@ export function VaccinationPage() {
   const [showModal, setShowModal] = useState(false);
   const [vaccinations, setVaccinations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const today = new Date();
 
   const loadData = () => {
@@ -87,6 +88,7 @@ export function VaccinationPage() {
                 <th>{t('vaccination.table.cost')}</th>
                 <th>{t('vaccination.table.officer')}</th>
                 <th>{t('vaccination.table.status')}</th>
+                <th>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -123,6 +125,19 @@ export function VaccinationPage() {
                         <span className="badge badge-green">OK</span>
                       )}
                     </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(v)}>
+                          <Pencil size={14} />
+                        </button>
+                        <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                          if (!window.confirm('Hapus data ini?')) return;
+                          try { await deleteVaccination(user?.id, v.id); loadData(); } catch { alert('Gagal menghapus'); }
+                        }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -134,20 +149,30 @@ export function VaccinationPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('vaccination.form.title')} size="lg">
         <VaccinationForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
+
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit" size="lg">
+        {editingItem && <VaccinationForm initialData={editingItem} onClose={() => { setEditingItem(null); loadData(); }} />}
+      </Modal>
     </div>
   );
 }
 
-function VaccinationForm({ onClose }: { onClose: () => void }) {
+function VaccinationForm({ initialData, onClose }: { initialData?: any; onClose: () => void }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [animals, setAnimals] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    target: 'individual', animal_id: '', herd_group_id: '',
-    vaccine_name: '', batch_number: '', date_administered: new Date().toISOString().split('T')[0],
-    next_due_date: '', cost: '', administered_by: '',
-  });
+  const [form, setForm] = useState(() => ({
+    target: initialData?.animal_id ? 'individual' : initialData?.herd_group_id ? 'group' : 'individual',
+    animal_id: initialData?.animal_id || '',
+    herd_group_id: initialData?.herd_group_id || '',
+    vaccine_name: initialData?.vaccine_name || '',
+    batch_number: initialData?.batch_number || '',
+    date_administered: initialData?.date_administered || new Date().toISOString().split('T')[0],
+    next_due_date: initialData?.next_due_date || '',
+    cost: initialData?.cost ?? '',
+    administered_by: initialData?.administered_by || '',
+  }));
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   useEffect(() => {
@@ -170,7 +195,11 @@ function VaccinationForm({ onClose }: { onClose: () => void }) {
       };
       if (form.target === 'individual') payload.animal_id = form.animal_id;
       else payload.herd_group_id = form.herd_group_id || undefined;
-      await createVaccination(user?.id, payload);
+      if (initialData) {
+        await updateVaccination(user?.id, initialData.id, payload);
+      } else {
+        await createVaccination(user?.id, payload);
+      }
       onClose();
     } catch { alert('Gagal menyimpan vaksinasi'); }
   };
@@ -233,7 +262,7 @@ function VaccinationForm({ onClose }: { onClose: () => void }) {
       </div>
       <div className="flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-        <button type="submit" className="btn-primary"><Syringe size={14} /> {t('common.save')}</button>
+        <button type="submit" className="btn-primary"><Syringe size={14} /> {initialData ? 'Simpan Perubahan' : t('common.save')}</button>
       </div>
     </form>
   );

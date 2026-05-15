@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ClipboardList, Plus, ShoppingCart, Package } from 'lucide-react';
+import { ClipboardList, Plus, ShoppingCart, Package, Trash2 } from 'lucide-react';
 import { getFeeds } from '../../lib/api';
-import { getFeedFormulas, getFeedFormulaItems, createFeedFormula, createFeedFormulaItem } from '../../lib/api/feed';
+import { getFeedFormulas, getFeedFormulaItems, createFeedFormula, createFeedFormulaItem, deleteFeedFormula } from '../../lib/api/feed';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -18,6 +18,12 @@ export function FeedFormulasPage() {
   const [showConsumeModal, setShowConsumeModal] = useState(false);
   const [showFormulaModal, setShowFormulaModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const handleDeleteFormula = async (id: string) => {
+    if (!window.confirm('Hapus formula ransum ini?')) return;
+    await deleteFeedFormula(user!.id, id).catch(() => {});
+    loadData();
+  };
 
   const loadData = () => {
     if (!user?.id) return;
@@ -84,9 +90,16 @@ export function FeedFormulasPage() {
                       {f.target_purpose ? ` &middot; ${f.target_purpose}` : ''}
                     </p>
                   </div>
-                  <span className={`badge ${f.is_active ? 'badge-green' : 'badge-gray'}`}>
-                    {f.is_active ? 'Aktif' : 'Nonaktif'}
-                  </span>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className={`badge ${f.is_active ? 'badge-green' : 'badge-gray'}`}>
+                      {f.is_active ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                    {hasRole(['owner', 'manager']) && (
+                      <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeleteFormula(f.id)}>
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm mb-3">
                   <div><span className="text-neutral-400">Total:</span> <span className="font-medium">{Number(f.total_quantity_kg || f.total_weight_kg).toLocaleString()} kg</span></div>

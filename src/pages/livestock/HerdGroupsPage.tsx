@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, Users, MapPin, MapPinned, Loader, UserPlus, UserX } from 'lucide-react';
-import { getHerdGroups, getAnimals, getLocations, createHerdGroup, getHerdGroupMembers } from '../../lib/api';
+import { Plus, Users, MapPin, MapPinned, Loader, UserPlus, UserX, UsersRound, Building2, Pencil, Trash2 } from 'lucide-react';
+import { getHerdGroups, getAnimals, getLocations, createHerdGroup, getHerdGroupMembers, updateHerdGroup, deleteHerdGroup } from '../../lib/api';
 import { createLocation } from '../../lib/api';
 import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { Modal } from '../../components/ui/Modal';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
@@ -18,12 +19,17 @@ export function HerdGroupsPage() {
   const [membersGroup, setMembersGroup] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [groupMemberMap, setGroupMemberMap] = useState<Record<string, any[]>>({});
+  const [loadingGroups, setLoadingGroups] = useState(true);
+  const [loadingLocs, setLoadingLocs] = useState(true);
+  const [editingGroup, setEditingGroup] = useState<any>(null);
 
   const loadData = () => {
     if (!user?.id) return;
-    getHerdGroups(user.id).then(setHerdGroups);
-    getAnimals(user.id).then(setAnimals);
-    getLocations(user.id).then(setLocations);
+    setLoadingGroups(true);
+    setLoadingLocs(true);
+    getHerdGroups(user.id).then(setHerdGroups).catch(() => {}).finally(() => setLoadingGroups(false));
+    getAnimals(user.id).then(setAnimals).catch(() => {});
+    getLocations(user.id).then(setLocations).catch(() => {}).finally(() => setLoadingLocs(false));
     getHerdGroups(user.id).then(async (groups) => {
         const map: Record<string, any[]> = {};
         for (const g of groups) {
@@ -33,7 +39,7 @@ export function HerdGroupsPage() {
           map[g.id] = (data || []).map((m: any) => m.animals).filter(Boolean);
         }
         setGroupMemberMap(map);
-      });
+      }).catch(() => {});
   };
 
   useEffect(() => { loadData(); }, [user?.id]);
@@ -53,6 +59,20 @@ export function HerdGroupsPage() {
         )}
       </div>
 
+      {loadingGroups ? (
+        <div className="card p-12 text-center"><Loader size={24} className="animate-spin mx-auto text-neutral-300" /></div>
+      ) : herdGroups.length === 0 ? (
+        <EmptyState
+          icon={<UsersRound size={24} />}
+          title="Belum ada kelompok ternak"
+          description="Buat kelompok ternak pertama untuk mulai mengelompokkan hewan berdasarkan kandang, jenis, atau tujuan."
+          action={hasRole(['owner', 'manager']) ? (
+            <button className="btn-primary" onClick={() => setShowModal(true)}>
+              <Plus size={16} /> Buat Kelompok
+            </button>
+          ) : undefined}
+        />
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5">
         {herdGroups.map((group: any) => {
           const groupAnimals = groupMemberMap[group.id] || [];
@@ -61,20 +81,35 @@ export function HerdGroupsPage() {
           const pregnantCount = groupAnimals.filter((a: any) => a.status === 'pregnant').length;
           return (
             <div key={group.id} className="card p-5">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-neutral-800">{group.name}</h3>
-                  {(group.locations?.name) && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-neutral-500">
-                      <MapPin size={12} />
-                      <span>{group.locations.name}</span>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-neutral-800">{group.name}</h3>
+                    {(group.locations?.name) && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-neutral-500">
+                        <MapPin size={12} />
+                        <span>{group.locations.name}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasRole(['owner', 'manager']) && (
+                      <>
+                        <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingGroup(group)}>
+                          <Pencil size={14} />
+                        </button>
+                        <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                          if (!window.confirm(`Hapus kelompok ${group.name}?`)) return;
+                          try { await deleteHerdGroup(user?.id, group.id); loadData(); } catch { alert('Gagal menghapus'); }
+                        }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                    <div className="bg-primary-50 p-2.5 rounded-xl">
+                      <Users size={18} className="text-primary-600" />
                     </div>
-                  )}
+                  </div>
                 </div>
-                <div className="bg-primary-50 p-2.5 rounded-xl">
-                  <Users size={18} className="text-primary-600" />
-                </div>
-              </div>
 
               <div className="flex items-end justify-between mb-4">
                 <div>
@@ -115,6 +150,7 @@ export function HerdGroupsPage() {
           );
         })}
       </div>
+      )}
 
       {/* Locations overview */}
       <div className="card">
@@ -127,6 +163,23 @@ export function HerdGroupsPage() {
             </button>
           )}
         </div>
+        {loadingLocs ? (
+          <div className="p-8 text-center"><Loader size={20} className="animate-spin mx-auto text-neutral-300" /></div>
+        ) : locations.length === 0 ? (
+          <div className="p-8">
+            <EmptyState
+              icon={<Building2 size={24} />}
+              title="Belum ada lokasi kandang"
+              description="Tambahkan lokasi kandang untuk memantau kapasitas dan okupansi."
+              action={hasRole(['owner', 'manager']) ? (
+                <button className="btn-secondary text-sm" onClick={() => setShowLocationModal(true)}>
+                  <Plus size={16} />
+                  Tambah Lokasi
+                </button>
+              ) : undefined}
+            />
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="table">
             <thead>
@@ -141,19 +194,22 @@ export function HerdGroupsPage() {
             </thead>
             <tbody>
               {locations.map((loc: any) => {
-                const pct = loc.capacity > 0 ? Math.round((loc.current_occupancy / loc.capacity) * 100) : 0;
+                const cap = Number(loc.capacity) || 0;
+                const occ = Number(loc.current_occupancy) || 0;
+                const avail = cap - occ;
+                const pct = cap > 0 ? Math.round((occ / cap) * 100) : 0;
                 return (
                   <tr key={loc.id}>
                     <td className="font-medium text-neutral-800">{loc.name}</td>
                     <td>
                       <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full capitalize">
-                        {loc.type.replace(/_/g, ' ')}
+                        {(loc.type || '').replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td>{loc.capacity > 0 ? t('herd.table.capacity.unit').replace('{count}', String(loc.capacity)) : '-'}</td>
-                    <td>{loc.current_occupancy > 0 ? t('herd.table.capacity.unit').replace('{count}', String(loc.current_occupancy)) : '-'}</td>
-                    <td className={loc.capacity > 0 ? (loc.capacity - loc.current_occupancy < 5 ? 'text-warning-600 font-medium' : 'text-primary-600 font-medium') : 'text-neutral-400'}>
-                      {loc.capacity > 0 ? t('herd.table.capacity.unit').replace('{count}', String(loc.capacity - loc.current_occupancy)) : '-'}
+                    <td>{cap > 0 ? t('herd.table.capacity.unit').replace('{count}', String(cap)) : '-'}</td>
+                    <td>{occ > 0 ? t('herd.table.capacity.unit').replace('{count}', String(occ)) : '-'}</td>
+                    <td className={cap > 0 ? (avail < 5 ? 'text-warning-600 font-medium' : 'text-primary-600 font-medium') : 'text-neutral-400'}>
+                      {cap > 0 ? t('herd.table.capacity.unit').replace('{count}', String(avail)) : '-'}
                     </td>
                     <td>
                       {loc.capacity > 0 ? (
@@ -174,6 +230,7 @@ export function HerdGroupsPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('herd.form.title')} size="md">
@@ -182,6 +239,10 @@ export function HerdGroupsPage() {
 
       <Modal open={showLocationModal} onClose={() => setShowLocationModal(false)} title={t('herd.location.add')} size="md">
         <LocationForm user={user} onClose={() => { setShowLocationModal(false); loadData(); }} />
+      </Modal>
+
+      <Modal open={!!editingGroup} onClose={() => setEditingGroup(null)} title="Edit Kelompok" size="md">
+        {editingGroup && <HerdGroupForm user={user} locations={locations} initialData={editingGroup} onClose={() => { setEditingGroup(null); loadData(); }} />}
       </Modal>
 
       <Modal open={!!membersGroup} onClose={() => setMembersGroup(null)} title={`Anggota: ${membersGroup?.name}`} size="lg">
@@ -196,8 +257,8 @@ export function HerdGroupsPage() {
   );
 }
 
-function MembersManager({ user, group, members, animals, onClose }: { user: any; group: any; members: any[]; animals: any[]; onClose: () => void }) {
-  const { t } = useTranslation();
+function MembersManager({ user, group, members, animals }: { user: any; group: any; members: any[]; animals: any[]; onClose?: () => void }) {
+  
   const [selectedAnimalId, setSelectedAnimalId] = useState('');
   const [adding, setAdding] = useState(false);
   const unassigned = animals.filter((a: any) => !members.some((m: any) => m.animal_id === a.id));
@@ -343,13 +404,13 @@ function LocationForm({ user, onClose }: { user: any; onClose: () => void }) {
   );
 }
 
-function HerdGroupForm({ user, locations, onClose }: { user: any; locations: any[]; onClose: () => void }) {
+function HerdGroupForm({ user, locations, onClose, initialData }: { user: any; locations: any[]; onClose: () => void; initialData?: any }) {
   const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({
-    name: '', location_id: '', supervisor_name: '', notes: '',
-  });
+  const [form, setForm] = useState(() => ({
+    name: initialData?.name || '', location_id: initialData?.location_id || '', supervisor_name: initialData?.supervisor_name || '', notes: initialData?.notes || '',
+  }));
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -358,13 +419,21 @@ function HerdGroupForm({ user, locations, onClose }: { user: any; locations: any
     setError('');
     setSubmitting(true);
     try {
-      await createHerdGroup(user!.id, {
-        name: form.name,
-        location_id: form.location_id || undefined,
-        supervisor_name: form.supervisor_name || undefined,
-        notes: form.notes || undefined,
-        member_count: 0,
-      } as any);
+      if (initialData) {
+        await updateHerdGroup(user!.id, initialData.id, {
+          name: form.name,
+          location_id: form.location_id || undefined,
+          supervisor_name: form.supervisor_name || undefined,
+          notes: form.notes || undefined,
+        } as any);
+      } else {
+        await createHerdGroup(user!.id, {
+          name: form.name,
+          location_id: form.location_id || undefined,
+          notes: form.notes || undefined,
+          member_count: 0,
+        } as any);
+      }
       onClose();
     } catch (err: any) {
       setError(err.message);
@@ -403,9 +472,11 @@ function HerdGroupForm({ user, locations, onClose }: { user: any; locations: any
         <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('common.cancel')}</button>
         <button type="submit" className="btn-primary" disabled={submitting}>
           {submitting ? <Loader size={14} className="animate-spin" /> : <Plus size={14} />}
-          {t('common.save')}
+          {initialData ? 'Simpan Perubahan' : t('common.save')}
         </button>
       </div>
     </form>
   );
 }
+
+

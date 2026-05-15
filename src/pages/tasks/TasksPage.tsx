@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
+import { Plus, CheckCircle, Clock, AlertCircle, XCircle, Pencil, Trash2 } from 'lucide-react';
 import { getTasks } from '../../lib/api';
-import { createTask } from '../../lib/api/tasks';
+import { createTask, updateTask, deleteTask } from '../../lib/api/tasks';
 import { Modal } from '../../components/ui/Modal';
 import { PriorityBadge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
@@ -18,6 +18,7 @@ export function TasksPage() {
   const { t, locale } = useTranslation();
   const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [tasks, setTasks] = useState<any[]>([]);
@@ -145,9 +146,16 @@ export function TasksPage() {
                     )}
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${cfg.bg} ${cfg.color}`}>
-                  {t(cfg.labelKey)}
-                </span>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${cfg.bg} ${cfg.color}`}>
+                    {t(cfg.labelKey)}
+                  </span>
+                  <button className="btn-ghost btn-sm p-1 text-neutral-400 hover:text-neutral-700" onClick={() => setEditingItem(task)}><Pencil size={13} /></button>
+                  <button className="btn-ghost btn-sm p-1 text-neutral-400 hover:text-error-500" onClick={async () => {
+                    if (!window.confirm('Hapus data ini?')) return;
+                    try { await deleteTask(user?.id, task.id); loadData(); } catch { alert('Gagal menghapus'); }
+                  }}><Trash2 size={13} /></button>
+                </div>
               </div>
             );
           })}
@@ -163,6 +171,52 @@ export function TasksPage() {
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('task.form.title')} size="md">
         <TaskForm t={t} onClose={() => { setShowModal(false); loadData(); }} />
+      </Modal>
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Tugas" size="sm">
+        {editingItem && (
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            try {
+              await updateTask(user?.id, editingItem.id, {
+                title: fd.get('title') as string,
+                description: fd.get('description') as string || undefined,
+                priority: fd.get('priority') as any,
+                due_date: fd.get('due_date') as string || undefined,
+              });
+              setEditingItem(null);
+              loadData();
+            } catch { alert('Gagal mengupdate'); }
+          }} className="space-y-4">
+            <div>
+              <label className="label">Judul</label>
+              <input name="title" className="input" defaultValue={editingItem.title} required />
+            </div>
+            <div>
+              <label className="label">Deskripsi</label>
+              <textarea name="description" className="input h-16 resize-none" defaultValue={editingItem.description || ''} />
+            </div>
+            <div className="form-grid-2">
+              <div>
+                <label className="label">Prioritas</label>
+                <select name="priority" className="select" defaultValue={editingItem.priority}>
+                  <option value="low">Rendah</option>
+                  <option value="medium">Sedang</option>
+                  <option value="high">Tinggi</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Tenggat</label>
+                <input name="due_date" type="date" className="input" defaultValue={editingItem.due_date?.split('T')[0] || ''} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" className="btn-secondary" onClick={() => setEditingItem(null)}>Batal</button>
+              <button type="submit" className="btn-primary">Simpan</button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

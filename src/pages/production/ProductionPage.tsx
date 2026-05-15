@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Milk } from 'lucide-react';
+import { Plus, Milk, Pencil, Trash2 } from 'lucide-react';
 import { getDailyProduction, getAnimals, getHerdGroups } from '../../lib/api';
-import { createDailyProduction } from '../../lib/api/production';
+import { createDailyProduction, updateDailyProduction, deleteDailyProduction } from '../../lib/api/production';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -25,6 +25,7 @@ export function ProductionPage() {
   const { hasRole, user } = useAuth();
   const { t, locale } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [period, setPeriod] = useState(7);
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,6 +158,7 @@ export function ProductionPage() {
                 <th>{t('production.table.amount')}</th>
                 <th>{t('production.table.shift')}</th>
                 <th>{t('production.table.officer')}</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -174,6 +176,15 @@ export function ProductionPage() {
                     {{ morning: t('production.shift.morning'), evening: t('production.shift.evening'), all_day: t('production.shift.allday') }[p.shift as string]}
                   </td>
                   <td>{p.recorded_by || '-'}</td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(p)}><Pencil size={14} /></button>
+                      <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                        if (!window.confirm('Hapus data ini?')) return;
+                        try { await deleteDailyProduction(user?.id, p.id); loadData(); } catch { alert('Gagal menghapus'); }
+                      }}><Trash2 size={14} /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -183,6 +194,44 @@ export function ProductionPage() {
       </>)}
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('production.form.title')} size="md">
         <ProductionForm onClose={() => { setShowModal(false); loadData(); }} />
+      </Modal>
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Produksi" size="sm">
+        {editingItem && (
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            try {
+              await updateDailyProduction(user?.id, editingItem.id, {
+                quantity: Number(fd.get('quantity')),
+                shift: fd.get('shift') as string,
+                production_date: fd.get('production_date') as string,
+              });
+              setEditingItem(null);
+              loadData();
+            } catch { alert('Gagal mengupdate'); }
+          }} className="space-y-4">
+            <div>
+              <label className="label">Jumlah</label>
+              <input name="quantity" type="number" step="0.1" className="input" defaultValue={editingItem.quantity} required />
+            </div>
+            <div>
+              <label className="label">Shift</label>
+              <select name="shift" className="select" defaultValue={editingItem.shift}>
+                <option value="morning">{t('production.shift.morning')}</option>
+                <option value="evening">{t('production.shift.evening')}</option>
+                <option value="all_day">{t('production.shift.allday')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Tanggal</label>
+              <input name="production_date" type="date" className="input" defaultValue={editingItem.production_date?.split('T')[0]} required />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" className="btn-secondary" onClick={() => setEditingItem(null)}>Batal</button>
+              <button type="submit" className="btn-primary">Simpan</button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

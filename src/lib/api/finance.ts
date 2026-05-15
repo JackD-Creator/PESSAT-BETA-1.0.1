@@ -143,3 +143,36 @@ export async function createStockAdjustment(userId: string, adjustment: Partial<
 
   return data as StockAdjustment;
 }
+
+export async function updateLaborExpense(userId: string, id: string, expense: Partial<LaborExpense>) {
+  const { data, error } = await supabaseAdmin.from('labor_expenses').update(expense).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as LaborExpense;
+}
+
+export async function deleteLaborExpense(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('labor_expenses').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateOperationalExpense(userId: string, id: string, expense: Partial<OperationalExpense>) {
+  const { data, error } = await supabaseAdmin.from('operational_expenses').update(expense).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as OperationalExpense;
+}
+
+export async function deleteOperationalExpense(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('operational_expenses').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateStockAdjustment(userId: string, id: string, adjustment: Partial<StockAdjustment>) {
+  const { data, error } = await supabaseAdmin.from('stock_adjustments').update(adjustment).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as StockAdjustment;
+}
+
+export async function deleteStockAdjustment(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('stock_adjustments').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}

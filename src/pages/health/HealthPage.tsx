@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, CheckCircle, Clock } from 'lucide-react';
-import { getHealthRecords, getAnimals, resolveHealthRecord, createHealthRecord } from '../../lib/api';
+import { Plus, Search, CheckCircle, Clock, Pencil, Trash2 } from 'lucide-react';
+import { getHealthRecords, getAnimals, resolveHealthRecord, createHealthRecord, updateHealthRecord, deleteHealthRecord } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +19,7 @@ export function HealthPage() {
   const [showModal, setShowModal] = useState(false);
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   const loadData = () => {
     setLoading(true);
@@ -124,16 +125,27 @@ export function HealthPage() {
                       )}
                     </td>
                     <td>
-                      {!r.is_resolved && hasRole(['owner', 'manager', 'worker']) && (
-                        <button className="btn-ghost btn-sm text-primary-600 px-2 py-1 rounded text-xs font-medium" onClick={async () => {
-                          try {
-                            await resolveHealthRecord(user?.id, r.id, true);
-                            loadData();
-                          } catch { alert('Gagal mengubah status'); }
-                        }}>
-                          {t('health.action.complete')}
+                      <div className="flex items-center gap-1">
+                        {!r.is_resolved && hasRole(['owner', 'manager', 'worker']) && (
+                          <button className="btn-ghost btn-sm text-primary-600 px-2 py-1 rounded text-xs font-medium" onClick={async () => {
+                            try {
+                              await resolveHealthRecord(user?.id, r.id, true);
+                              loadData();
+                            } catch { alert('Gagal mengubah status'); }
+                          }}>
+                            {t('health.action.complete')}
+                          </button>
+                        )}
+                        <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(r)}>
+                          <Pencil size={14} />
                         </button>
-                      )}
+                        <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                          if (!window.confirm('Hapus data ini?')) return;
+                          try { await deleteHealthRecord(user?.id, r.id); loadData(); } catch { alert('Gagal menghapus'); }
+                        }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -146,18 +158,33 @@ export function HealthPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('health.form.title')} size="lg">
         <AddHealthForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
+
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit" size="lg">
+        {editingItem && <AddHealthForm initialData={editingItem} onClose={() => { setEditingItem(null); loadData(); }} />}
+      </Modal>
     </div>
   );
 }
 
-function AddHealthForm({ onClose }: { onClose: () => void }) {
+function AddHealthForm({ initialData, onClose }: { initialData?: any; onClose: () => void }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [animals, setAnimals] = useState<any[]>([]);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     animal_id: '', record_date: new Date().toISOString().split('T')[0], type: 'checkup',
     diagnosis: '', treatment: '', vet_name: '', cost: '', follow_up_date: '', notes: '',
-  });
+    ...(initialData ? {
+      animal_id: initialData.animal_id,
+      record_date: initialData.record_date,
+      type: initialData.type,
+      diagnosis: initialData.diagnosis || '',
+      treatment: initialData.treatment || '',
+      vet_name: initialData.vet_name || '',
+      cost: initialData.cost ?? '',
+      follow_up_date: initialData.follow_up_date || '',
+      notes: initialData.notes || '',
+    } : {}),
+  }));
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   useEffect(() => { getAnimals(user?.id).then(setAnimals as any).catch(() => {}); }, []);
@@ -166,7 +193,7 @@ function AddHealthForm({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     if (!form.animal_id) { alert('Pilih ternak'); return; }
     try {
-      await createHealthRecord(user?.id, {
+      const payload = {
         animal_id: form.animal_id,
         record_date: form.record_date,
         type: form.type as any,
@@ -176,8 +203,12 @@ function AddHealthForm({ onClose }: { onClose: () => void }) {
         cost: Number(form.cost) || 0,
         follow_up_date: form.follow_up_date || undefined,
         notes: form.notes || undefined,
-        recorded_by: user?.id,
-      });
+      };
+      if (initialData) {
+        await updateHealthRecord(user?.id, initialData.id, payload);
+      } else {
+        await createHealthRecord(user?.id, { ...payload, recorded_by: user?.id });
+      }
       onClose();
     } catch (err: any) { alert('Gagal: ' + (err?.message || err)); }
   };
@@ -227,7 +258,7 @@ function AddHealthForm({ onClose }: { onClose: () => void }) {
       </div>
       <div className="flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-        <button type="submit" className="btn-primary">{t('common.save')}</button>
+        <button type="submit" className="btn-primary">{initialData ? 'Simpan Perubahan' : t('common.save')}</button>
       </div>
     </form>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-import { getFeedPurchases, getFeedConsumption } from '../../lib/api';
+import { Plus, Trash2 } from 'lucide-react';
+import { getFeedPurchases, getFeedConsumption, deleteFeedPurchase, deleteFeedConsumption } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -24,6 +24,18 @@ export function FeedPurchasesPage() {
   const [loading, setLoading] = useState(true);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'purchase' | 'usage'>('purchase');
+
+  const handleDeletePurchase = async (id: string) => {
+    if (!window.confirm('Hapus data pembelian ini?')) return;
+    await deleteFeedPurchase(user!.id, id).catch(() => {});
+    loadData();
+  };
+
+  const handleDeleteConsumption = async (id: string) => {
+    if (!window.confirm('Hapus data pemakaian ini?')) return;
+    await deleteFeedConsumption(user!.id, id).catch(() => {});
+    loadData();
+  };
 
   const loadData = () => {
     if (!user?.id) return;
@@ -100,19 +112,20 @@ export function FeedPurchasesPage() {
           <div className="overflow-x-auto">
             <table className="table-default">
               <thead>
-                <tr>
-                  <th>Tanggal</th>
-                  <th>Pakan</th>
-                  <th>Jumlah</th>
-                  <th>Harga/Unit</th>
-                  <th>Total</th>
-                  <th>Supplier</th>
-                  <th>Invoice</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchases.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center text-neutral-400 py-8">{t('common.no.data')}</td></tr>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Pakan</th>
+                    <th>Jumlah</th>
+                    <th>Harga/Unit</th>
+                    <th>Total</th>
+                    <th>Supplier</th>
+                    <th>Invoice</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchases.length === 0 ? (
+                    <tr><td colSpan={8} className="text-center text-neutral-400 py-8">{t('common.no.data')}</td></tr>
                 ) : purchases.map((p: any) => (
                   <tr key={p.id}>
                     <td className="text-sm">{formatDate(p.purchase_date)}</td>
@@ -122,6 +135,13 @@ export function FeedPurchasesPage() {
                     <td className="font-medium">{formatCurrency(Number(p.total_amount))}</td>
                     <td className="text-sm">{p.supplier || '-'}</td>
                     <td className="text-sm text-neutral-500">{p.invoice_number || '-'}</td>
+                    <td>
+                      {hasRole(['owner', 'manager']) && (
+                        <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeletePurchase(p.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -136,17 +156,18 @@ export function FeedPurchasesPage() {
           <div className="overflow-x-auto">
             <table className="table-default">
               <thead>
-                <tr>
-                  <th>Tanggal</th>
-                  <th>Pakan</th>
-                  <th>Jumlah</th>
-                  <th>Biaya/Unit</th>
-                  <th>Total Biaya</th>
-                </tr>
-              </thead>
-              <tbody>
-                {consumptions.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center text-neutral-400 py-8">{t('common.no.data')}</td></tr>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Pakan</th>
+                    <th>Jumlah</th>
+                    <th>Biaya/Unit</th>
+                    <th>Total Biaya</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {consumptions.length === 0 ? (
+                    <tr><td colSpan={6} className="text-center text-neutral-400 py-8">{t('common.no.data')}</td></tr>
                 ) : consumptions.map((c: any) => (
                   <tr key={c.id}>
                     <td className="text-sm">{formatDate(c.consumption_date)}</td>
@@ -154,6 +175,13 @@ export function FeedPurchasesPage() {
                     <td>{Number(c.quantity).toLocaleString()} {c.unit || 'kg'}</td>
                     <td>Rp {Number(c.cost_per_unit).toLocaleString()}</td>
                     <td className="font-medium">{formatCurrency(Number(c.total_cost))}</td>
+                    <td>
+                      {hasRole(['owner', 'manager']) && (
+                        <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeleteConsumption(c.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

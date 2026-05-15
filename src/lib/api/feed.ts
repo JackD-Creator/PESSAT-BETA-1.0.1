@@ -167,6 +167,50 @@ export async function getNutritionRequirements(userId: string, species?: string)
 }
 
 // ─── Inventory Summary ───
+export async function updateFeed(userId: string, id: string, feed: Partial<Feed>) {
+  const { data, error } = await supabaseAdmin.from('feeds').update(feed).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as Feed;
+}
+
+export async function deleteFeed(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('feeds').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateFeedPurchase(userId: string, id: string, purchase: Partial<FeedPurchase>) {
+  const { data, error } = await supabaseAdmin.from('feed_purchases').update(purchase).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as FeedPurchase;
+}
+
+export async function deleteFeedPurchase(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('feed_purchases').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateFeedConsumption(userId: string, id: string, consumption: Partial<FeedConsumption>) {
+  const { data, error } = await supabaseAdmin.from('feed_consumption').update(consumption).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as FeedConsumption;
+}
+
+export async function deleteFeedConsumption(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('feed_consumption').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateFeedFormula(userId: string, id: string, formula: Partial<FeedFormula>) {
+  const { data, error } = await supabaseAdmin.from('feed_formulas').update(formula).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as FeedFormula;
+}
+
+export async function deleteFeedFormula(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('feed_formulas').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
 export async function getFeedInventorySummary(userId: string) {
   const q = supabaseAdmin.from('feed_inventory').select('total_cost, min_threshold, quantity_on_hand').eq('user_id', userId);
   const { data, error } = await q;

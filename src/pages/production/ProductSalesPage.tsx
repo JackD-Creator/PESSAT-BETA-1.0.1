@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, TrendingUp, ShoppingBag } from 'lucide-react';
+import { Plus, TrendingUp, ShoppingBag, Pencil, Trash2 } from 'lucide-react';
 import { getTransactions } from '../../lib/api/finance';
-import { getDailyProduction, getProductSales, createProductSale } from '../../lib/api/production';
+import { getDailyProduction, getProductSales, createProductSale, updateProductSale, deleteProductSale } from '../../lib/api/production';
 import type { ProductSale } from '../../types';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +15,7 @@ export function ProductSalesPage() {
   const { hasRole, user } = useAuth();
   const { t, locale } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [txs, setTxs] = useState<any[]>([]);
   const [production, setProduction] = useState<any[]>([]);
   const [sales, setSales] = useState<ProductSale[]>([]);
@@ -88,6 +89,7 @@ export function ProductSalesPage() {
                 <th>{t('sales.table.total')}</th>
                 <th>{t('sales.table.buyer')}</th>
                 <th>{t('sales.table.payment')}</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -106,6 +108,15 @@ export function ProductSalesPage() {
                       {s.payment_method === 'cash' ? t('sales.payment.cash') : s.payment_method === 'transfer' ? t('sales.payment.transfer') : s.payment_method || '-'}
                     </span>
                   </td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(s)}><Pencil size={14} /></button>
+                      <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                        if (!window.confirm('Hapus data ini?')) return;
+                        try { await deleteProductSale(user?.id, s.id); loadData(); } catch { alert('Gagal menghapus'); }
+                      }}><Trash2 size={14} /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -115,6 +126,48 @@ export function ProductSalesPage() {
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('sales.form.title')} size="md">
         <SaleForm onClose={() => { setShowModal(false); loadData(); }} />
+      </Modal>
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Penjualan" size="sm">
+        {editingItem && (
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const qty = Number(fd.get('quantity'));
+            const ppu = Number(fd.get('price_per_unit'));
+            try {
+              await updateProductSale(user?.id, editingItem.id, {
+                quantity: qty,
+                price_per_unit: ppu,
+                total_amount: qty * ppu,
+                buyer_name: fd.get('buyer_name') as string,
+                sale_date: fd.get('sale_date') as string,
+              });
+              setEditingItem(null);
+              loadData();
+            } catch { alert('Gagal mengupdate'); }
+          }} className="space-y-4">
+            <div>
+              <label className="label">Jumlah</label>
+              <input name="quantity" type="number" step="0.1" className="input" defaultValue={editingItem.quantity} required />
+            </div>
+            <div>
+              <label className="label">Harga per Unit</label>
+              <input name="price_per_unit" type="number" className="input" defaultValue={editingItem.price_per_unit} required />
+            </div>
+            <div>
+              <label className="label">Pembeli</label>
+              <input name="buyer_name" className="input" defaultValue={editingItem.buyer_name || ''} />
+            </div>
+            <div>
+              <label className="label">Tanggal</label>
+              <input name="sale_date" type="date" className="input" defaultValue={editingItem.sale_date?.split('T')[0]} required />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" className="btn-secondary" onClick={() => setEditingItem(null)}>Batal</button>
+              <button type="submit" className="btn-primary">Simpan</button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

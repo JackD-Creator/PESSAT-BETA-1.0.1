@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Pencil, Trash2 } from 'lucide-react';
 import { getAnimals } from '../../lib/api';
-import { getAnimalSales, getAnimalPurchases, createAnimalSale, createAnimalPurchase } from '../../lib/api/production';
+import { getAnimalSales, getAnimalPurchases, createAnimalSale, createAnimalPurchase, updateAnimalSale, deleteAnimalSale, updateAnimalPurchase, deleteAnimalPurchase } from '../../lib/api/production';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -15,6 +15,7 @@ export function AnimalTransactionsPage() {
   const { hasRole, user } = useAuth();
   const { t, locale } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [txType, setTxType] = useState<'sale' | 'purchase'>('sale');
   const [filter, setFilter] = useState('all');
   const [animals, setAnimals] = useState<any[]>([]);
@@ -134,6 +135,7 @@ export function AnimalTransactionsPage() {
                 <th>{t('transaction.table.price')}</th>
                 <th>{t('transaction.table.party')}</th>
                 <th>{t('transaction.table.notes')}</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -159,6 +161,19 @@ export function AnimalTransactionsPage() {
                   </td>
                   <td>{tx.party}</td>
                   <td className="max-w-[180px] truncate text-neutral-500">{tx.notes || '-'}</td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(tx)}><Pencil size={14} /></button>
+                      <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                        if (!window.confirm('Hapus data ini?')) return;
+                        try {
+                          if (tx.type === 'sale') await deleteAnimalSale(user?.id, tx.id);
+                          else await deleteAnimalPurchase(user?.id, tx.id);
+                          loadData();
+                        } catch { alert('Gagal menghapus'); }
+                      }}><Trash2 size={14} /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -168,6 +183,51 @@ export function AnimalTransactionsPage() {
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={txType === 'sale' ? t('transaction.form.sale.title') : t('transaction.form.purchase.title')} size="md">
         <AnimalTransactionForm animals={animals} type={txType} onClose={() => { setShowModal(false); loadData(); }} />
+      </Modal>
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Transaksi" size="sm">
+        {editingItem && (
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const payload: any = {
+              [editingItem.type === 'sale' ? 'sale_price' : 'purchase_price']: Number(fd.get('price')),
+              notes: fd.get('notes') as string,
+            };
+            if (fd.get('weight')) payload[editingItem.type === 'sale' ? 'weight_at_sale_kg' : 'weight_at_purchase_kg'] = Number(fd.get('weight'));
+            if (editingItem.type === 'sale') {
+              payload.sale_date = fd.get('transaction_date') as string;
+            } else {
+              payload.purchase_date = fd.get('transaction_date') as string;
+            }
+            try {
+              if (editingItem.type === 'sale') await updateAnimalSale(user?.id, editingItem.id, payload);
+              else await updateAnimalPurchase(user?.id, editingItem.id, payload);
+              setEditingItem(null);
+              loadData();
+            } catch { alert('Gagal mengupdate'); }
+          }} className="space-y-4">
+            <div>
+              <label className="label">Harga</label>
+              <input name="price" type="number" className="input" defaultValue={editingItem.price} required />
+            </div>
+            <div>
+              <label className="label">Berat (kg)</label>
+              <input name="weight" type="number" step="0.1" className="input" defaultValue={editingItem.weight_kg || ''} />
+            </div>
+            <div>
+              <label className="label">Tanggal</label>
+              <input name="transaction_date" type="date" className="input" defaultValue={editingItem.transaction_date?.split('T')[0]} required />
+            </div>
+            <div>
+              <label className="label">Keterangan</label>
+              <textarea name="notes" className="input h-16 resize-none" defaultValue={editingItem.notes || ''} />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" className="btn-secondary" onClick={() => setEditingItem(null)}>Batal</button>
+              <button type="submit" className="btn-primary">Simpan</button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

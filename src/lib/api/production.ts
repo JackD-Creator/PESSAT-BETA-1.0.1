@@ -117,3 +117,47 @@ export async function createAnimalSale(userId: string, sale: Partial<AnimalSale>
 
   return data as AnimalSale;
 }
+
+export async function updateDailyProduction(userId: string, id: string, record: Partial<DailyProduction>) {
+  const { data, error } = await supabaseAdmin.from('daily_production').update(record).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as DailyProduction;
+}
+
+export async function deleteDailyProduction(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('daily_production').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateProductSale(userId: string, id: string, sale: Partial<ProductSale>) {
+  const { data, error } = await supabaseAdmin.from('product_sales').update(sale).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as ProductSale;
+}
+
+export async function deleteProductSale(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('product_sales').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateAnimalPurchase(userId: string, id: string, purchase: Partial<AnimalPurchase>) {
+  const { data, error } = await supabaseAdmin.from('animal_purchases').update(purchase).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as AnimalPurchase;
+}
+
+export async function deleteAnimalPurchase(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('animal_purchases').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateAnimalSale(userId: string, id: string, sale: Partial<AnimalSale>) {
+  const { data, error } = await supabaseAdmin.from('animal_sales').update(sale).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as AnimalSale;
+}
+
+export async function deleteAnimalSale(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('animal_sales').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}

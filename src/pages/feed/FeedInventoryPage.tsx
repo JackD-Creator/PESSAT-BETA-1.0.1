@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Package, ShoppingCart } from 'lucide-react';
-import { getFeedInventory, getMedicineInventory, getFeeds, createFeed } from '../../lib/api';
+import { AlertTriangle, Package, ShoppingCart, Trash2 } from 'lucide-react';
+import { getFeedInventory, getMedicineInventory, getFeeds, createFeed, deleteFeed } from '../../lib/api';
 import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -66,6 +66,13 @@ export function FeedInventoryPage() {
   useEffect(() => {
     seedFeeds().then(() => loadData());
   }, [user?.id]);
+
+  const handleDeleteFeed = async (feed: any) => {
+    if (!window.confirm('Hapus data pakan ini?')) return;
+    await deleteFeed(user!.id, feed.feeds?.id).catch(() => {});
+    await supabaseAdmin.from('feed_inventory').delete().eq('feed_id', feed.feeds?.id).then(() => {}, () => {});
+    loadData();
+  };
 
   const lowStockFeeds = feeds.filter((f: any) => f.quantity_on_hand < f.min_threshold);
   const lowStockMeds = medicines.filter((m: any) => m.quantity_on_hand < m.min_threshold);
@@ -166,7 +173,14 @@ export function FeedInventoryPage() {
                     <p className="font-semibold text-neutral-800">{feed.feeds?.name || '-'}</p>
                     <p className="text-xs text-neutral-400 mt-0.5">{feed.feeds?.category || '-'}</p>
                   </div>
-                  {isLow && <span className="badge badge-red flex-shrink-0">{t('feed.badge.low')}</span>}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {isLow && <span className="badge badge-red">{t('feed.badge.low')}</span>}
+                    {hasRole(['owner', 'manager']) && (
+                      <button className="btn-ghost text-neutral-400 hover:text-error-600 p-1" title="Hapus" onClick={() => handleDeleteFeed(feed)}>
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-end justify-between mb-2">
                   <span className={`text-3xl font-bold ${isLow ? 'text-error-600' : 'text-neutral-800'}`}>

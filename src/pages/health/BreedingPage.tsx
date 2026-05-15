@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Baby, Calendar } from 'lucide-react';
+import { Plus, Baby, Calendar, Pencil, Trash2 } from 'lucide-react';
 import { getBreedingEvents, getAnimals } from '../../lib/api';
-import { createBreedingEvent } from '../../lib/api/health';
+import { createBreedingEvent, updateBreedingEvent, deleteBreedingEvent } from '../../lib/api/health';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -27,6 +27,7 @@ export function BreedingPage() {
   const [breedingEvents, setBreedingEvents] = useState<any[]>([]);
   const [allAnimals, setAllAnimals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const today = new Date();
 
   const loadData = () => {
@@ -118,6 +119,7 @@ export function BreedingPage() {
                 <th>{t('breeding.table.offspring')}</th>
                 <th>{t('breeding.table.cost')}</th>
                 <th>{t('breeding.table.notes')}</th>
+                <th>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -138,6 +140,19 @@ export function BreedingPage() {
                   <td>{e.offspring_count || '-'}</td>
                   <td>Rp {e.cost.toLocaleString(locale)}</td>
                   <td className="max-w-[200px] truncate text-neutral-500">{e.notes || '-'}</td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <button className="btn-ghost btn-sm p-1.5" onClick={() => setEditingItem(e)}>
+                        <Pencil size={14} />
+                      </button>
+                      <button className="btn-ghost btn-sm p-1.5 text-error-500" onClick={async () => {
+                        if (!window.confirm('Hapus data ini?')) return;
+                        try { await deleteBreedingEvent(user?.id, e.id); loadData(); } catch { alert('Gagal menghapus'); }
+                      }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -148,18 +163,31 @@ export function BreedingPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('breeding.form.title')} size="md">
         <BreedingForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
+
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit" size="md">
+        {editingItem && <BreedingForm initialData={editingItem} onClose={() => { setEditingItem(null); loadData(); }} />}
+      </Modal>
     </div>
   );
 }
 
-function BreedingForm({ onClose }: { onClose: () => void }) {
+function BreedingForm({ initialData, onClose }: { initialData?: any; onClose: () => void }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [animals, setAnimals] = useState<any[]>([]);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     animal_id: '', event_type: 'insemination', event_date: new Date().toISOString().split('T')[0],
     expected_due_date: '', offspring_count: '', cost: '', notes: '',
-  });
+    ...(initialData ? {
+      animal_id: initialData.animal_id,
+      event_type: initialData.event_type,
+      event_date: initialData.event_date,
+      expected_due_date: initialData.expected_due_date || '',
+      offspring_count: initialData.offspring_count ?? '',
+      cost: initialData.cost ?? '',
+      notes: initialData.notes || '',
+    } : {}),
+  }));
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   useEffect(() => { getAnimals(user?.id).then(setAnimals as any).catch(() => {}); }, []);
@@ -168,7 +196,7 @@ function BreedingForm({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     if (!form.animal_id) { alert('Pilih ternak'); return; }
     try {
-      await createBreedingEvent(user?.id, {
+      const payload = {
         animal_id: form.animal_id,
         event_type: form.event_type as any,
         event_date: form.event_date,
@@ -176,8 +204,12 @@ function BreedingForm({ onClose }: { onClose: () => void }) {
         offspring_count: form.offspring_count ? Number(form.offspring_count) : undefined,
         cost: Number(form.cost) || 0,
         notes: form.notes || undefined,
-        recorded_by: user?.id,
-      });
+      };
+      if (initialData) {
+        await updateBreedingEvent(user?.id, initialData.id, payload);
+      } else {
+        await createBreedingEvent(user?.id, { ...payload, recorded_by: user?.id });
+      }
       onClose();
     } catch { alert('Gagal menyimpan event reproduksi'); }
   };
@@ -225,7 +257,7 @@ function BreedingForm({ onClose }: { onClose: () => void }) {
       </div>
       <div className="flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-        <button type="submit" className="btn-primary">{t('common.save')}</button>
+        <button type="submit" className="btn-primary">{initialData ? 'Simpan Perubahan' : t('common.save')}</button>
       </div>
     </form>
   );

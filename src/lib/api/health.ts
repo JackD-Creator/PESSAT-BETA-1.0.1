@@ -50,3 +50,36 @@ export async function createBreedingEvent(userId: string, event: Partial<Breedin
   if (error) throw error;
   return data as BreedingEvent;
 }
+
+export async function updateHealthRecord(userId: string, id: string, record: Partial<HealthRecord>) {
+  const { data, error } = await supabaseAdmin.from('health_records').update(record).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as HealthRecord;
+}
+
+export async function deleteHealthRecord(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('health_records').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateVaccination(userId: string, id: string, vaccination: Partial<Vaccination>) {
+  const { data, error } = await supabaseAdmin.from('vaccinations').update(vaccination).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as Vaccination;
+}
+
+export async function deleteVaccination(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('vaccinations').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateBreedingEvent(userId: string, id: string, event: Partial<BreedingEvent>) {
+  const { data, error } = await supabaseAdmin.from('breeding_events').update(event).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as BreedingEvent;
+}
+
+export async function deleteBreedingEvent(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('breeding_events').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}

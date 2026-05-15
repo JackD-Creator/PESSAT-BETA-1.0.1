@@ -57,6 +57,17 @@ export async function markAlertRead(userId: string, id: string) {
   if (error) throw error;
 }
 
+export async function updateTask(userId: string, id: string, task: Partial<Task>) {
+  const { data, error } = await supabaseAdmin.from('tasks').update(task).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as Task;
+}
+
+export async function deleteTask(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('tasks').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
 export async function getAlertSummary(userId: string) {
   const q = supabaseAdmin.from('alerts').select('severity, is_resolved, is_read').eq('user_id', userId);
   const { data, error } = await q;

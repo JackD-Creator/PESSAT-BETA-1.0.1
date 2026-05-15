@@ -125,6 +125,39 @@ export async function createMedicineUsage(userId: string, usage: Partial<Medicin
 }
 
 // ─── Inventory Summary ───
+export async function updateMedicine(userId: string, id: string, medicine: Partial<Medicine>) {
+  const { data, error } = await supabaseAdmin.from('medicines').update(medicine).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as Medicine;
+}
+
+export async function deleteMedicine(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('medicines').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateMedicinePurchase(userId: string, id: string, purchase: Partial<MedicinePurchase>) {
+  const { data, error } = await supabaseAdmin.from('medicine_purchases').update(purchase).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as MedicinePurchase;
+}
+
+export async function deleteMedicinePurchase(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('medicine_purchases').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function updateMedicineUsage(userId: string, id: string, usage: Partial<MedicineUsage>) {
+  const { data, error } = await supabaseAdmin.from('medicine_usages').update(usage).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as MedicineUsage;
+}
+
+export async function deleteMedicineUsage(userId: string, id: string) {
+  const { error } = await supabaseAdmin.from('medicine_usages').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
 export async function getMedicineInventorySummary(userId: string) {
   const q = supabaseAdmin.from('medicine_inventory').select('total_cost, min_threshold, quantity_on_hand').eq('user_id', userId);
   const { data, error } = await q;
