@@ -38,8 +38,10 @@ export function onAuthChange(callback: (user: unknown) => void) {
 
 // ─── Admin: User Management ───
 
-export async function getUsers() {
-  const { data, error } = await supabaseAdmin.from('users').select('*').order('created_at', { ascending: false });
+export async function getUsers(userId?: string) {
+  let q = supabaseAdmin.from('users').select('*').order('created_at', { ascending: false });
+  if (userId) q = q.eq('id', userId);
+  const { data, error } = await q;
   if (error) throw error;
   return data as User[];
 }

@@ -39,6 +39,35 @@ export async function getFeedPurchases(userId: string) {
 export async function createFeedPurchase(userId: string, purchase: Partial<FeedPurchase>) {
   const { data, error } = await supabaseAdmin.from('feed_purchases').insert({ ...purchase, user_id: userId }).select().single();
   if (error) throw error;
+
+  // Update inventory
+  const inv = await supabaseAdmin.from('feed_inventory').select('*').eq('feed_id', purchase.feed_id!).eq('user_id', userId).maybeSingle();
+  if (inv.data) {
+    const oldQty = Number(inv.data.quantity_on_hand);
+    const oldAvg = Number(inv.data.avg_cost_per_unit);
+    const newQty = Number(purchase.quantity) || 0;
+    const newPpu = Number(purchase.price_per_unit) || 0;
+    const avg = oldQty > 0 ? (oldAvg * oldQty + newPpu * newQty) / (oldQty + newQty) : newPpu;
+    await supabaseAdmin.from('feed_inventory').update({
+      quantity_on_hand: oldQty + newQty,
+      avg_cost_per_unit: Math.round(avg * 100) / 100,
+      total_cost: (oldQty + newQty) * Math.round(avg * 100) / 100,
+      last_purchase_date: purchase.purchase_date,
+    }).eq('id', inv.data.id);
+  } else {
+    const ppu = Number(purchase.price_per_unit) || 0;
+    const qty = Number(purchase.quantity) || 0;
+    await supabaseAdmin.from('feed_inventory').insert({
+      feed_id: purchase.feed_id!,
+      user_id: userId,
+      quantity_on_hand: qty,
+      avg_cost_per_unit: ppu,
+      total_cost: qty * ppu,
+      min_threshold: 0,
+      last_purchase_date: purchase.purchase_date,
+    });
+  }
+
   return data as FeedPurchase;
 }
 
@@ -53,6 +82,20 @@ export async function getFeedConsumption(userId: string) {
 export async function createFeedConsumption(userId: string, consumption: Partial<FeedConsumption>) {
   const { data, error } = await supabaseAdmin.from('feed_consumption').insert({ ...consumption, user_id: userId }).select().single();
   if (error) throw error;
+
+  // Update inventory
+  const inv = await supabaseAdmin.from('feed_inventory').select('*').eq('feed_id', consumption.feed_id!).eq('user_id', userId).maybeSingle();
+  if (inv.data) {
+    const oldQty = Number(inv.data.quantity_on_hand);
+    const newQty = Number(consumption.quantity) || 0;
+    const remaining = Math.max(0, oldQty - newQty);
+    const avg = Number(inv.data.avg_cost_per_unit);
+    await supabaseAdmin.from('feed_inventory').update({
+      quantity_on_hand: remaining,
+      total_cost: remaining * avg,
+    }).eq('id', inv.data.id);
+  }
+
   return data as FeedConsumption;
 }
 

@@ -179,7 +179,7 @@ function AnimalTransactionForm({ animals, type, onClose }: { animals: any[]; typ
           sale_price: price,
           weight_at_sale_kg: form.weight ? Number(form.weight) : undefined,
           notes: form.notes || undefined,
-          recorded_by: (user as any)?.full_name || undefined,
+          recorded_by: user?.id,
         });
       } else {
         if (!form.new_tag_id) { alert('Tag ID harus diisi'); return; }
@@ -191,7 +191,7 @@ function AnimalTransactionForm({ animals, type, onClose }: { animals: any[]; typ
           total_cost: price,
           weight_at_purchase_kg: form.weight ? Number(form.weight) : undefined,
           notes: form.notes || undefined,
-          recorded_by: (user as any)?.full_name || undefined,
+          recorded_by: user?.id,
         });
       }
       onClose();

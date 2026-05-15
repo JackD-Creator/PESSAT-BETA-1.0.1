@@ -22,7 +22,8 @@ export async function getAnimals(userId?: string): Promise<Animal[]> {
   console.log('[db.getAnimals] userId:', userId);
   let q = supabaseAdmin.from('animals').select('*');
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.order('tag_id');
+  const { data, error } = await q.order('tag_id');
+  console.log('[db.getAnimals] data.length:', data?.length, 'error:', error?.message);
   return mapRows<Animal>(data ?? []);
 }
 

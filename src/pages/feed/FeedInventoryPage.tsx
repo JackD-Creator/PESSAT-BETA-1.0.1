@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Package, ShoppingCart } from 'lucide-react';
-import { getFeedInventory, getMedicineInventory, getFeeds, getMedicines, createMedicinePurchase } from '../../lib/api';
+import { getFeedInventory, getMedicineInventory, getFeeds, getMedicines, createFeed, createMedicinePurchase } from '../../lib/api';
 import { createFeedPurchase, createFeedConsumption } from '../../lib/api/feed';
+import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -20,6 +21,34 @@ export function FeedInventoryPage() {
   const [medicines, setMedicines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const seedFeeds = async () => {
+    if (!user?.id) return;
+    const existing = await getFeeds(user.id).catch(() => []);
+    if (existing.length > 0) return;
+    const defaults = [
+      { name: 'Hijauan Segar', category: 'forage' as const, unit: 'kg' },
+      { name: 'Silase', category: 'forage' as const, unit: 'kg' },
+      { name: 'Konsentrat', category: 'concentrate' as const, unit: 'kg' },
+      { name: 'Hijauan Kering', category: 'forage' as const, unit: 'kg' },
+    ];
+    await Promise.all(defaults.map(f => createFeed(user.id, f).catch(() => {})));
+    // Also seed feed_inventory records for each feed
+    const fresh = await getFeeds(user.id).catch(() => []);
+    const invExisting = await getFeedInventory(user.id).catch(() => []);
+    const invFeedIds = new Set(invExisting.map((i: any) => i.feed_id));
+    await Promise.all(fresh.map((f: any) => {
+      if (invFeedIds.has(f.id)) return;
+      return supabaseAdmin.from('feed_inventory').insert({
+        feed_id: f.id,
+        user_id: user.id,
+        quantity_on_hand: 0,
+        avg_cost_per_unit: 0,
+        total_cost: 0,
+        min_threshold: 50,
+      }).catch(() => {});
+    }));
+  };
+
   const loadData = () => {
     Promise.all([
       getFeedInventory(user?.id),
@@ -33,7 +62,9 @@ export function FeedInventoryPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    seedFeeds().then(() => loadData());
+  }, [user?.id]);
 
   const lowStockFeeds = feeds.filter((f: any) => f.quantity_on_hand < f.min_threshold);
   const lowStockMeds = medicines.filter((m: any) => m.quantity_on_hand < m.min_threshold);
@@ -236,7 +267,7 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
   const [medList, setMedList] = useState<any[]>([]);
   const [form, setForm] = useState({
     item_id: '', supplier: '', quantity: '', price_per_unit: '',
-    purchase_date: '2026-05-14', invoice_number: '',
+    purchase_date: '2026-05-14', invoice_number: '', unit: 'kg',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -257,11 +288,12 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
           feed_id: form.item_id,
           purchase_date: form.purchase_date,
           quantity: qty,
+          unit: form.unit,
           price_per_unit: ppu,
           total_amount: qty * ppu,
           supplier: form.supplier || undefined,
           invoice_number: form.invoice_number || undefined,
-          recorded_by: (user as any)?.full_name || undefined,
+          recorded_by: user?.id,
         });
       } else {
         await createMedicinePurchase(user?.id, {
@@ -272,11 +304,11 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
           total_amount: qty * ppu,
           supplier: form.supplier || undefined,
           batch_number: form.invoice_number || undefined,
-          recorded_by: (user as any)?.full_name || undefined,
+          recorded_by: user?.id,
         });
       }
       onClose();
-    } catch { alert('Gagal menyimpan pembelian'); }
+    } catch (err: any) { alert('Gagal: ' + (err?.message || err)); }
   };
 
   const items = type === 'feed' ? feedList : medList;
@@ -289,6 +321,14 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
           <select name="item_id" className="select" value={form.item_id} onChange={change}>
             <option value="">{t('feed.form.select')}</option>
             {items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Satuan/Unit</label>
+          <select name="unit" className="select" value={form.unit} onChange={change}>
+            <option value="kg">kg</option>
+            <option value="gram">gram</option>
+            <option value="liter">liter</option>
           </select>
         </div>
         <div>
@@ -323,28 +363,40 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
 function ConsumeForm({ t, onClose }: { t: (key: string) => string; onClose: () => void }) {
   const { user } = useAuth();
   const [feedList, setFeedList] = useState<any[]>([]);
+  const [inventoryList, setInventoryList] = useState<any[]>([]);
   const [form, setForm] = useState({
-    feed_id: '', quantity: '', consumption_date: '2026-05-14',
+    feed_id: '', quantity: '', consumption_date: '2026-05-14', unit: 'kg',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  useEffect(() => { getFeeds(user?.id).then(setFeedList as any).catch(() => {}); }, []);
+  useEffect(() => {
+    Promise.all([
+      getFeeds(user?.id),
+      getFeedInventory(user?.id),
+    ]).then(([f, inv]) => {
+      setFeedList(f as any[]);
+      setInventoryList(inv as any[]);
+    }).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const qty = Number(form.quantity);
     if (!form.feed_id || !qty) { alert('Lengkapi data pemakaian'); return; }
+    const invRecord = inventoryList.find((i: any) => i.feed_id === form.feed_id);
+    const ppu = Number(invRecord?.avg_cost_per_unit) || 0;
     try {
       await createFeedConsumption(user?.id, {
         feed_id: form.feed_id,
         consumption_date: form.consumption_date,
         quantity: qty,
-        cost_per_unit: 0,
-        total_cost: 0,
-        recorded_by: (user as any)?.full_name || undefined,
+        unit: form.unit,
+        cost_per_unit: ppu,
+        total_cost: qty * ppu,
+        recorded_by: user?.id,
       });
       onClose();
-    } catch { alert('Gagal menyimpan pemakaian'); }
+    } catch (err: any) { alert('Gagal: ' + (err?.message || err)); }
   };
 
   return (
@@ -355,6 +407,14 @@ function ConsumeForm({ t, onClose }: { t: (key: string) => string; onClose: () =
           <select name="feed_id" className="select" value={form.feed_id} onChange={change}>
             <option value="">Pilih pakan...</option>
             {feedList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Satuan/Unit</label>
+          <select name="unit" className="select" value={form.unit} onChange={change}>
+            <option value="kg">kg</option>
+            <option value="gram">gram</option>
+            <option value="liter">liter</option>
           </select>
         </div>
         <div>

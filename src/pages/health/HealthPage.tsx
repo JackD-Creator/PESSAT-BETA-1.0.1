@@ -176,10 +176,10 @@ function AddHealthForm({ onClose }: { onClose: () => void }) {
         cost: Number(form.cost) || 0,
         follow_up_date: form.follow_up_date || undefined,
         notes: form.notes || undefined,
-        recorded_by: (user as any)?.full_name || undefined,
+        recorded_by: user?.id,
       });
       onClose();
-    } catch { alert('Gagal menyimpan rekam medis'); }
+    } catch (err: any) { alert('Gagal: ' + (err?.message || err)); }
   };
 
   return (

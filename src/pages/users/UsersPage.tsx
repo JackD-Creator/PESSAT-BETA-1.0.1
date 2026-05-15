@@ -3,6 +3,7 @@ import { Plus, Shield, User as UserIcon, UserCheck, Loader, Pencil, Trash2 } fro
 import { getUsers, createUser, updateUser, deactivateUser, activateUser, deleteUser } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 import type { User } from '../../types';
 
 const roleConfig = {
@@ -13,6 +14,7 @@ const roleConfig = {
 
 export function UsersPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -22,11 +24,11 @@ export function UsersPage() {
   const [showInactive, setShowInactive] = useState(false);
 
   const load = useCallback(() => {
-    getUsers()
+    getUsers(user?.id)
       .then(data => setUsers(data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => { load(); }, [load]);
 

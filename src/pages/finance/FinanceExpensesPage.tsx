@@ -185,7 +185,7 @@ function ExpenseForm({ t, onClose }: { t: (key: string) => string; onClose: () =
           expense_type: 'salary',
           amount,
           notes: form.description || undefined,
-          recorded_by: (user as any)?.full_name || undefined,
+          recorded_by: user?.id,
         });
       } else {
         await createOperationalExpense({
@@ -193,7 +193,7 @@ function ExpenseForm({ t, onClose }: { t: (key: string) => string; onClose: () =
           category: form.category as any,
           amount,
           description: form.description || undefined,
-          recorded_by: (user as any)?.full_name || undefined,
+          recorded_by: user?.id,
         });
       }
       onClose();

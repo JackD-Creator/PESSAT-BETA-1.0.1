@@ -176,7 +176,7 @@ function BreedingForm({ onClose }: { onClose: () => void }) {
         offspring_count: form.offspring_count ? Number(form.offspring_count) : undefined,
         cost: Number(form.cost) || 0,
         notes: form.notes || undefined,
-        recorded_by: (user as any)?.full_name || undefined,
+        recorded_by: user?.id,
       });
       onClose();
     } catch { alert('Gagal menyimpan event reproduksi'); }

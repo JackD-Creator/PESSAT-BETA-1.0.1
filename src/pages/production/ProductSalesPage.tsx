@@ -143,7 +143,7 @@ function SaleForm({ onClose }: { onClose: () => void }) {
         total_amount: qty * ppu,
         buyer_name: form.buyer_name || undefined,
         payment_method: form.payment_method,
-        recorded_by: (user as any)?.full_name || undefined,
+        recorded_by: user?.id,
       });
       onClose();
     } catch { alert('Gagal menyimpan penjualan'); }
