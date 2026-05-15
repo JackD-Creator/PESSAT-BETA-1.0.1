@@ -3,6 +3,20 @@ import { type User, type UserRole } from '../lib/mockData';
 import { supabase } from '../lib/supabase';
 import { getUserProfile } from '../lib/db';
 
+const DEMO_USERS: User[] = [
+  { id: 1, full_name: 'Budi Santoso', email: 'budi@farm.id', role: 'owner', phone: '081234567890', is_active: true },
+  { id: 2, full_name: 'Dewi Lestari', email: 'dewi@farm.id', role: 'manager', phone: '081234567891', is_active: true },
+  { id: 3, full_name: 'Andi Pratama', email: 'andi@farm.id', role: 'worker', phone: '081234567892', is_active: true },
+  { id: 4, full_name: 'Siti Rahayu', email: 'siti@farm.id', role: 'worker', phone: '081234567893', is_active: true },
+];
+
+const DEMO_CREDENTIALS: Record<string, string> = {
+  'budi@farm.id': 'owner123',
+  'dewi@farm.id': 'manager123',
+  'andi@farm.id': 'worker123',
+  'siti@farm.id': 'worker123',
+};
+
 interface AuthContextValue {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
@@ -82,11 +96,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return true;
         }
       }
-      return false;
-    } catch (err) {
-      console.error('Login error:', err);
-      return false;
+    } catch {
+      // supabase unavailable, fall through to demo
     }
+
+    const expectedPassword = DEMO_CREDENTIALS[email];
+    if (!expectedPassword || expectedPassword !== password) return false;
+    const found = DEMO_USERS.find(u => u.email === email);
+    if (!found) return false;
+    setUser(found);
+    localStorage.setItem('livestock_user', JSON.stringify(found));
+    return true;
   }, []);
 
   const logout = useCallback(async () => {
