@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, CheckCircle, Clock } from 'lucide-react';
-import { getHealthRecords, getAnimals } from '../../lib/api';
-import { createHealthRecord } from '../../lib/api/health';
+import { getHealthRecords, getAnimals, resolveHealthRecord, createHealthRecord } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,7 +13,7 @@ const typeLabels: Record<string, string> = {
 
 export function HealthPage() {
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -23,7 +22,7 @@ export function HealthPage() {
 
   const loadData = () => {
     setLoading(true);
-    getHealthRecords()
+    getHealthRecords(user?.id)
       .then(data => setRecords(data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -126,7 +125,12 @@ export function HealthPage() {
                     </td>
                     <td>
                       {!r.is_resolved && hasRole(['owner', 'manager', 'worker']) && (
-                        <button className="btn-ghost btn-sm text-primary-600 px-2 py-1 rounded text-xs font-medium">
+                        <button className="btn-ghost btn-sm text-primary-600 px-2 py-1 rounded text-xs font-medium" onClick={async () => {
+                          try {
+                            await resolveHealthRecord(user?.id, r.id, true);
+                            loadData();
+                          } catch { alert('Gagal mengubah status'); }
+                        }}>
                           {t('health.action.complete')}
                         </button>
                       )}
@@ -156,13 +160,13 @@ function AddHealthForm({ onClose }: { onClose: () => void }) {
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  useEffect(() => { getAnimals().then(setAnimals as any).catch(() => {}); }, []);
+  useEffect(() => { getAnimals(user?.id).then(setAnimals as any).catch(() => {}); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.animal_id) { alert('Pilih ternak'); return; }
     try {
-      await createHealthRecord({
+      await createHealthRecord(user?.id, {
         animal_id: form.animal_id,
         record_date: form.record_date,
         type: form.type as any,

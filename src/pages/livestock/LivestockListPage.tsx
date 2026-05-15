@@ -9,7 +9,7 @@ import { useTranslation } from '../../contexts/LanguageContext';
 import type { Animal } from '../../types';
 
 export function LivestockListPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState('all');
@@ -18,7 +18,7 @@ export function LivestockListPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAnimals()
+    getAnimals(user?.id)
       .then(data => setAnimals(data))
       .catch(() => {})
       .finally(() => setLoading(false));

@@ -22,7 +22,7 @@ function MiniSparkline({ data, color = '#3b82f6' }: { data: number[]; color?: st
 }
 
 export function ProductionPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [period, setPeriod] = useState(7);
@@ -31,7 +31,7 @@ export function ProductionPage() {
 
   const loadData = () => {
     setLoading(true);
-    getDailyProduction()
+    getDailyProduction(user?.id)
       .then(data => setRecords(data as any[]))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -192,7 +192,7 @@ function ProductionForm({ onClose }: { onClose: () => void }) {
   });
 
   useEffect(() => {
-    Promise.all([getAnimals(), getHerdGroups()])
+    Promise.all([getAnimals(user?.id), getHerdGroups(user?.id)])
       .then(([a, g]) => { setAnimals(a as any[]); setGroups(g as any[]); })
       .catch(() => {});
   }, []);

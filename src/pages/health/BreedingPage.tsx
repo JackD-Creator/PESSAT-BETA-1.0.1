@@ -22,7 +22,7 @@ const eventColors: Record<string, string> = {
 
 export function BreedingPage() {
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [breedingEvents, setBreedingEvents] = useState<any[]>([]);
   const [allAnimals, setAllAnimals] = useState<any[]>([]);
@@ -31,8 +31,8 @@ export function BreedingPage() {
 
   const loadData = () => {
     Promise.all([
-      getBreedingEvents(),
-      getAnimals(),
+      getBreedingEvents(user?.id),
+      getAnimals(user?.id),
     ])
       .then(([events, animals]) => {
         setBreedingEvents(events as any[]);
@@ -162,13 +162,13 @@ function BreedingForm({ onClose }: { onClose: () => void }) {
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  useEffect(() => { getAnimals().then(setAnimals as any).catch(() => {}); }, []);
+  useEffect(() => { getAnimals(user?.id).then(setAnimals as any).catch(() => {}); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.animal_id) { alert('Pilih ternak'); return; }
     try {
-      await createBreedingEvent({
+      await createBreedingEvent(user?.id, {
         animal_id: form.animal_id,
         event_type: form.event_type as any,
         event_date: form.event_date,

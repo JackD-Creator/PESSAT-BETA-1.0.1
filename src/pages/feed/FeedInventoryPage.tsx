@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Package, ShoppingCart } from 'lucide-react';
-import { getFeedInventory, getMedicineInventory, getFeeds, getMedicines } from '../../lib/api';
+import { getFeedInventory, getMedicineInventory, getFeeds, getMedicines, createMedicinePurchase } from '../../lib/api';
 import { createFeedPurchase, createFeedConsumption } from '../../lib/api/feed';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,7 +12,7 @@ function formatCurrency(n: number) {
 
 export function FeedInventoryPage() {
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [activeTab, setActiveTab] = useState('feed');
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showConsumeModal, setShowConsumeModal] = useState(false);
@@ -22,8 +22,8 @@ export function FeedInventoryPage() {
 
   const loadData = () => {
     Promise.all([
-      getFeedInventory(),
-      getMedicineInventory(),
+      getFeedInventory(user?.id),
+      getMedicineInventory(user?.id),
     ])
       .then(([feedData, medData]) => {
         setFeeds(feedData as any[]);
@@ -241,7 +241,7 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   useEffect(() => {
-    Promise.all([getFeeds(), getMedicines()])
+    Promise.all([getFeeds(user?.id), getMedicines(user?.id)])
       .then(([f, m]) => { setFeedList(f as any[]); setMedList(m as any[]); })
       .catch(() => {});
   }, []);
@@ -252,16 +252,29 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
     const ppu = Number(form.price_per_unit);
     if (!form.item_id || !qty || !ppu) { alert('Lengkapi data pembelian'); return; }
     try {
-      await createFeedPurchase({
-        feed_id: type === 'feed' ? form.item_id : form.item_id,
-        purchase_date: form.purchase_date,
-        quantity: qty,
-        price_per_unit: ppu,
-        total_amount: qty * ppu,
-        supplier: form.supplier || undefined,
-        invoice_number: form.invoice_number || undefined,
-        recorded_by: (user as any)?.full_name || undefined,
-      });
+      if (type === 'feed') {
+        await createFeedPurchase(user?.id, {
+          feed_id: form.item_id,
+          purchase_date: form.purchase_date,
+          quantity: qty,
+          price_per_unit: ppu,
+          total_amount: qty * ppu,
+          supplier: form.supplier || undefined,
+          invoice_number: form.invoice_number || undefined,
+          recorded_by: (user as any)?.full_name || undefined,
+        });
+      } else {
+        await createMedicinePurchase(user?.id, {
+          medicine_id: form.item_id,
+          purchase_date: form.purchase_date,
+          quantity: qty,
+          price_per_unit: ppu,
+          total_amount: qty * ppu,
+          supplier: form.supplier || undefined,
+          batch_number: form.invoice_number || undefined,
+          recorded_by: (user as any)?.full_name || undefined,
+        });
+      }
       onClose();
     } catch { alert('Gagal menyimpan pembelian'); }
   };
@@ -315,14 +328,14 @@ function ConsumeForm({ t, onClose }: { t: (key: string) => string; onClose: () =
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  useEffect(() => { getFeeds().then(setFeedList as any).catch(() => {}); }, []);
+  useEffect(() => { getFeeds(user?.id).then(setFeedList as any).catch(() => {}); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const qty = Number(form.quantity);
     if (!form.feed_id || !qty) { alert('Lengkapi data pemakaian'); return; }
     try {
-      await createFeedConsumption({
+      await createFeedConsumption(user?.id, {
         feed_id: form.feed_id,
         consumption_date: form.consumption_date,
         quantity: qty,

@@ -12,7 +12,7 @@ function formatCurrency(n: number) {
 
 export function FinanceExpensesPage() {
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -33,7 +33,7 @@ export function FinanceExpensesPage() {
   };
 
   const [txs, setTxs] = useState<any[]>([]);
-  const loadData = () => { getFinancialTransactions().then(setTxs); };
+  const loadData = () => { getFinancialTransactions(user?.id).then(setTxs); };
   useEffect(() => { loadData(); }, []);
 
   const expenses = txs.filter((tr: any) => tr.type === 'expense');

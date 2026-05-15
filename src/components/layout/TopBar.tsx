@@ -18,7 +18,7 @@ export function TopBar({ onMenuToggle, title }: TopBarProps) {
   const [critical, setCritical] = useState(0);
 
   useEffect(() => {
-    getAlerts().then(alerts => {
+    getAlerts(user?.id).then(alerts => {
       setUnread(alerts.filter(a => !a.is_read).length);
       setCritical(alerts.filter(a => a.severity === 'critical' && !a.is_resolved).length);
     });

@@ -5,35 +5,39 @@ import type {
   FeedInventory,
 } from './mockData';
 
-function mapRow<T>(row: Record<string, unknown> | null): T | null {
-  return row as unknown as T;
-}
-
 function mapRows<T>(rows: Record<string, unknown>[]): T[] {
   return rows as unknown as T[];
 }
 
-export async function getLocations(): Promise<Location[]> {
+export async function getLocations(userId?: string): Promise<Location[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin.from('locations').select('*').order('name');
+  let q = supabaseAdmin.from('locations').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('name');
   return mapRows<Location>(data ?? []);
 }
 
-export async function getAnimals(): Promise<Animal[]> {
+export async function getAnimals(userId?: string): Promise<Animal[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin.from('animals').select('*').order('tag_id');
+  let q = supabaseAdmin.from('animals').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('tag_id');
   return mapRows<Animal>(data ?? []);
 }
 
-export async function getAnimalsBySpecies(species: string): Promise<Animal[]> {
+export async function getAnimalsBySpecies(species: string, userId?: string): Promise<Animal[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin.from('animals').select('*').eq('species', species).order('tag_id');
+  let q = supabaseAdmin.from('animals').select('*').eq('species', species);
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('tag_id');
   return mapRows<Animal>(data ?? []);
 }
 
-export async function getAnimalCountBySpecies(): Promise<{ species: string; count: number }[]> {
+export async function getAnimalCountBySpecies(userId?: string): Promise<{ species: string; count: number }[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin.from('animals').select('species');
+  let q = supabaseAdmin.from('animals').select('species');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q;
   if (!data) return [];
   const map: Record<string, number> = {};
   for (const row of data) {
@@ -43,85 +47,86 @@ export async function getAnimalCountBySpecies(): Promise<{ species: string; coun
   return Object.entries(map).map(([species, count]) => ({ species, count }));
 }
 
-export async function getHerdGroups(): Promise<HerdGroup[]> {
+export async function getHerdGroups(userId?: string): Promise<HerdGroup[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin.from('herd_groups').select('*').order('name');
+  let q = supabaseAdmin.from('herd_groups').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('name');
   return mapRows<HerdGroup>(data ?? []);
 }
 
-export async function getFinancialTransactions(): Promise<FinancialTransaction[]> {
+export async function getFinancialTransactions(userId?: string): Promise<FinancialTransaction[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin.from('financial_transactions').select('*').order('transaction_date', { ascending: false });
+  let q = supabaseAdmin.from('financial_transactions').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('transaction_date', { ascending: false });
   return mapRows<FinancialTransaction>(data ?? []);
 }
 
-export async function getFinancialTransactionsByMonth(yearMonth: string): Promise<FinancialTransaction[]> {
+export async function getFinancialTransactionsByMonth(yearMonth: string, userId?: string): Promise<FinancialTransaction[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin
-    .from('financial_transactions')
+  let q = supabaseAdmin.from('financial_transactions')
     .select('*')
     .gte('transaction_date', `${yearMonth}-01`)
-    .lt('transaction_date', `${yearMonth}-32`)
-    .order('transaction_date', { ascending: false });
+    .lt('transaction_date', `${yearMonth}-32`);
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('transaction_date', { ascending: false });
   return mapRows<FinancialTransaction>(data ?? []);
 }
 
-export async function getDailyProduction(limit = 14): Promise<DailyProduction[]> {
+export async function getDailyProduction(userId?: string, limit = 14): Promise<DailyProduction[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin
-    .from('daily_production')
-    .select('*')
-    .order('production_date', { ascending: false })
-    .limit(limit);
+  let q = supabaseAdmin.from('daily_production').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('production_date', { ascending: false }).limit(limit);
   return mapRows<DailyProduction>(data ?? []);
 }
 
-export async function getVaccinations(): Promise<Vaccination[]> {
+export async function getVaccinations(userId?: string): Promise<Vaccination[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin
-    .from('vaccinations')
-    .select('*')
-    .order('date_administered', { ascending: false });
+  let q = supabaseAdmin.from('vaccinations').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('date_administered', { ascending: false });
   return mapRows<Vaccination>(data ?? []);
 }
 
-export async function getBreedingEvents(): Promise<BreedingEvent[]> {
+export async function getBreedingEvents(userId?: string): Promise<BreedingEvent[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin
-    .from('breeding_events')
-    .select('*')
-    .order('event_date', { ascending: false });
+  let q = supabaseAdmin.from('breeding_events').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('event_date', { ascending: false });
   return mapRows<BreedingEvent>(data ?? []);
 }
 
-export async function getTasks(): Promise<Task[]> {
+export async function getTasks(userId?: string): Promise<Task[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin.from('tasks').select('*').order('created_at', { ascending: false });
+  let q = supabaseAdmin.from('tasks').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('created_at', { ascending: false });
   return mapRows<Task>(data ?? []);
 }
 
-export async function getAlerts(): Promise<Alert[]> {
+export async function getAlerts(userId?: string): Promise<Alert[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin.from('alerts').select('*').order('created_at', { ascending: false });
+  let q = supabaseAdmin.from('alerts').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('created_at', { ascending: false });
   return mapRows<Alert>(data ?? []);
 }
 
-export async function getUnresolvedAlerts(): Promise<Alert[]> {
+export async function getUnresolvedAlerts(userId?: string): Promise<Alert[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin
-    .from('alerts')
-    .select('*')
-    .eq('is_resolved', false)
-    .order('created_at', { ascending: false });
+  let q = supabaseAdmin.from('alerts').select('*').eq('is_resolved', false);
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('created_at', { ascending: false });
   return mapRows<Alert>(data ?? []);
 }
 
-export async function getFeedInventory(): Promise<FeedInventory[]> {
+export async function getFeedInventory(userId?: string): Promise<FeedInventory[]> {
   if (!supabaseAdmin) return [];
-  const { data } = await supabaseAdmin
-    .from('feed_inventory')
-    .select('*, feeds(name, category)')
-    .order('feed_id');
+  let q = supabaseAdmin.from('feed_inventory').select('*, feeds(name, category)');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('feed_id');
   if (!data) return [];
   return data.map((row: Record<string, unknown>) => {
     const feed = row.feeds as Record<string, unknown> | undefined;
@@ -147,10 +152,10 @@ export async function getUsers(): Promise<User[]> {
   return mapRows<User>(data ?? []);
 }
 
-export async function getUserProfile(userId: string): Promise<User | null> {
+export async function getUserProfile(uid: string): Promise<User | null> {
   if (!supabaseAdmin) return null;
-  const { data } = await supabaseAdmin.from('users').select('*').eq('id', userId).single();
-  return mapRow<User>(data);
+  const { data } = await supabaseAdmin.from('users').select('*').eq('id', uid).single();
+  return data as User | null;
 }
 
 export interface ProductSale {
@@ -165,10 +170,9 @@ export interface ProductSale {
   payment_method: string | null;
 }
 
-export async function getProductSales(): Promise<ProductSale[]> {
-  const { data } = await supabaseAdmin
-    .from('product_sales')
-    .select('*')
-    .order('sale_date', { ascending: false });
+export async function getProductSales(userId?: string): Promise<ProductSale[]> {
+  let q = supabaseAdmin.from('product_sales').select('*');
+  if (userId) q = q.eq('user_id', userId);
+  const { data } = await q.order('sale_date', { ascending: false });
   return mapRows<ProductSale>(data ?? []);
 }

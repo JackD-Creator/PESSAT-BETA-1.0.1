@@ -84,15 +84,15 @@ export function DashboardPage() {
   const [feedInventory, setFeedInventory] = useState<any[]>([]);
 
   useEffect(() => {
-    getAnimals().then(setAnimals);
-    getDailyProduction(14).then(d => setProduction(d));
-    getFinancialTransactions().then(setTransactions);
-    getLocations().then(setLocations);
-    getVaccinations().then(setVaccinations);
-    getBreedingEvents().then(setBreedingEvents);
-    getTasks().then(setTasks);
-    getAlerts().then(setAlerts);
-    getFeedInventory().then(setFeedInventory);
+    getAnimals(user?.id).then(setAnimals);
+    getDailyProduction(user?.id, 14).then(d => setProduction(d));
+    getFinancialTransactions(user?.id).then(setTransactions);
+    getLocations(user?.id).then(setLocations);
+    getVaccinations(user?.id).then(setVaccinations);
+    getBreedingEvents(user?.id).then(setBreedingEvents);
+    getTasks(user?.id).then(setTasks);
+    getAlerts(user?.id).then(setAlerts);
+    getFeedInventory(user?.id).then(setFeedInventory);
   }, []);
 
   const cattleCount = animals.filter(a => a.species === 'cattle').length;

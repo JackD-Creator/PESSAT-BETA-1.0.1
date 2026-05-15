@@ -17,7 +17,7 @@ const typeLabels: Record<string, string> = {
 
 export function LocationsPage() {
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -25,7 +25,7 @@ export function LocationsPage() {
   const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
 
   const load = useCallback(() => {
-    getLocations()
+    getLocations(user?.id)
       .then(data => setLocations(data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -101,12 +101,12 @@ export function LocationsPage() {
       )}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('common.add')} size="md">
-        <LocationForm t={t} onDone={() => { setShowModal(false); load(); }} />
+        <LocationForm t={t} user={user} onDone={() => { setShowModal(false); load(); }} />
       </Modal>
 
       <Modal open={!!editingLocation} onClose={() => setEditingLocation(null)} title={t('common.edit')} size="md">
         {editingLocation && (
-          <LocationForm t={t} location={editingLocation} onDone={() => { setEditingLocation(null); load(); }} />
+          <LocationForm t={t} user={user} location={editingLocation} onDone={() => { setEditingLocation(null); load(); }} />
         )}
       </Modal>
 
@@ -117,7 +117,7 @@ export function LocationsPage() {
             <div className="flex justify-end gap-3">
               <button className="btn-secondary" onClick={() => setDeletingLocation(null)}>{t('common.cancel')}</button>
               <button className="btn-danger" onClick={async () => {
-                await deleteLocation(deletingLocation.id);
+                await deleteLocation(user?.id, deletingLocation.id);
                 setDeletingLocation(null);
                 load();
               }}>{t('common.delete')}</button>
@@ -129,7 +129,7 @@ export function LocationsPage() {
   );
 }
 
-function LocationForm({ t, location, onDone }: { t: (key: string) => string; location?: Location; onDone: () => void }) {
+function LocationForm({ t, user, location, onDone }: { t: (key: string) => string; user: any; location?: Location; onDone: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
@@ -149,7 +149,7 @@ function LocationForm({ t, location, onDone }: { t: (key: string) => string; loc
     setSubmitting(true);
     try {
       if (location) {
-        await updateLocation(location.id, {
+        await updateLocation(user?.id, location.id, {
           name: form.name,
           type: form.type as Location['type'],
           capacity: Number(form.capacity) || 0,
@@ -157,7 +157,7 @@ function LocationForm({ t, location, onDone }: { t: (key: string) => string; loc
           notes: form.notes || undefined,
         });
       } else {
-        await createLocation({
+        await createLocation(user?.id, {
           name: form.name,
           type: form.type as Location['type'],
           capacity: Number(form.capacity) || 0,

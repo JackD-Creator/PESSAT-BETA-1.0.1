@@ -8,7 +8,7 @@ import { useTranslation } from '../../contexts/LanguageContext';
 
 export function HerdGroupsPage() {
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [herdGroups, setHerdGroups] = useState<any[]>([]);
@@ -16,9 +16,9 @@ export function HerdGroupsPage() {
   const [locations, setLocations] = useState<any[]>([]);
 
   const loadData = () => {
-    getHerdGroups().then(setHerdGroups);
-    getAnimals().then(setAnimals);
-    getLocations().then(setLocations);
+    getHerdGroups(user?.id).then(setHerdGroups);
+    getAnimals(user?.id).then(setAnimals);
+    getLocations(user?.id).then(setLocations);
   };
 
   useEffect(() => { loadData(); }, []);
@@ -158,11 +158,11 @@ export function HerdGroupsPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('herd.form.title')} size="md">
-        <HerdGroupForm locations={locations} onClose={() => { setShowModal(false); loadData(); }} />
+        <HerdGroupForm user={user} locations={locations} onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
 
       <Modal open={showLocationModal} onClose={() => setShowLocationModal(false)} title={t('herd.location.add')} size="md">
-        <LocationForm onClose={() => { setShowLocationModal(false); loadData(); }} />
+        <LocationForm user={user} onClose={() => { setShowLocationModal(false); loadData(); }} />
       </Modal>
     </div>
   );
@@ -183,7 +183,7 @@ function LocationForm({ onClose }: { onClose: () => void }) {
     setError('');
     setSubmitting(true);
     try {
-      await createLocation({
+      await createLocation(user?.id, {
         name: form.name,
         type: form.type,
         capacity: Number(form.capacity) || 0,
@@ -243,7 +243,7 @@ function LocationForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-function HerdGroupForm({ locations, onClose }: { locations: any[]; onClose: () => void }) {
+function HerdGroupForm({ user, locations, onClose }: { user: any; locations: any[]; onClose: () => void }) {
   const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -258,7 +258,7 @@ function HerdGroupForm({ locations, onClose }: { locations: any[]; onClose: () =
     setError('');
     setSubmitting(true);
     try {
-      await createHerdGroup({
+      await createHerdGroup(user?.id, {
         name: form.name,
         location_id: form.location_id || undefined,
         supervisor_name: form.supervisor_name || undefined,

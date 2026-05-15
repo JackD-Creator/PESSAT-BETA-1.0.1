@@ -1,15 +1,44 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
-import { getLocations } from '../../lib/db';
-import { createAnimal } from '../../lib/api/animals';
+import { getLocations } from '../../lib/api';
+import { createAnimal, updateAnimal, getAnimal } from '../../lib/api/animals';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 export function LivestockFormPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditing = !!id;
   const [locations, setLocations] = useState<any[]>([]);
-  useEffect(() => { getLocations().then(setLocations); }, []);
+  const [loading, setLoading] = useState(isEditing);
+  useEffect(() => { getLocations(user?.id).then(setLocations); }, []);
+  useEffect(() => {
+    if (id) {
+      getAnimal(user?.id, id).then(a => {
+        setForm({
+          tag_id: a.tag_id,
+          rfid: a.rfid || '',
+          species: a.species,
+          breed: a.breed,
+          gender: a.gender,
+          birth_date: a.birth_date || '',
+          birth_weight_kg: a.birth_weight_kg !== undefined ? String(a.birth_weight_kg) : '',
+          current_weight_kg: a.current_weight_kg !== undefined ? String(a.current_weight_kg) : '',
+          color: a.color || '',
+          status: a.status,
+          purpose: a.purpose,
+          current_location_id: a.current_location_id || '',
+          acquisition_type: a.acquisition_type,
+          acquisition_cost: a.acquisition_cost !== undefined ? String(a.acquisition_cost) : '',
+          notes: a.notes || '',
+        });
+        setLoading(false);
+      }).catch(() => { navigate('/livestock'); });
+    }
+  }, [id]);
 
   const [form, setForm] = useState({
     tag_id: '', rfid: '', species: 'cattle', breed: '', gender: 'female',
@@ -37,7 +66,7 @@ export function LivestockFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createAnimal({
+      const data = {
         tag_id: form.tag_id,
         rfid: form.rfid || undefined,
         species: form.species as any,
@@ -53,12 +82,19 @@ export function LivestockFormPage() {
         acquisition_type: form.acquisition_type as any,
         acquisition_cost: form.acquisition_cost ? Number(form.acquisition_cost) : undefined,
         notes: form.notes || undefined,
-      });
+      };
+      if (isEditing) {
+        await updateAnimal(user?.id, id, data);
+      } else {
+        await createAnimal(user?.id, data);
+      }
       navigate('/livestock');
     } catch {
       alert('Gagal menyimpan data ternak');
     }
   };
+
+  if (loading) return <div className="page-container"><div className="card p-12 text-center"><p>{t('common.loading')}</p></div></div>;
 
   return (
     <div className="page-container max-w-3xl">
@@ -67,7 +103,7 @@ export function LivestockFormPage() {
           <ArrowLeft size={14} />
           {t('common.back')}
         </Link>
-        <h1 className="page-title">{t('livestock.form.new')}</h1>
+        <h1 className="page-title">{isEditing ? t('livestock.form.edit') : t('livestock.form.new')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

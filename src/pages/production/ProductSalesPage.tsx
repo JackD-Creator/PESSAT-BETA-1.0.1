@@ -12,7 +12,7 @@ function formatCurrency(n: number) {
 }
 
 export function ProductSalesPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [txs, setTxs] = useState<any[]>([]);
@@ -20,9 +20,9 @@ export function ProductSalesPage() {
   const [sales, setSales] = useState<ProductSale[]>([]);
 
   const loadData = () => {
-    getFinancialTransactions().then(setTxs);
-    getDailyProduction(30).then(setProduction);
-    getProductSales().then(setSales);
+    getFinancialTransactions(user?.id).then(setTxs);
+    getDailyProduction(user?.id, 30).then(setProduction);
+    getProductSales(user?.id).then(setSales);
   };
 
   useEffect(() => { loadData(); }, []);

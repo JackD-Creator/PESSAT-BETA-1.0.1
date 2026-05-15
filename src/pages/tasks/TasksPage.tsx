@@ -16,7 +16,7 @@ const statusConfig = {
 
 export function TasksPage() {
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -25,7 +25,7 @@ export function TasksPage() {
   const today = '2026-05-14';
 
   const loadData = () => {
-    getTasks()
+    getTasks(user?.id)
       .then(data => setTasks(data as any[]))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -180,11 +180,12 @@ function TaskForm({ t, onClose }: { t: (key: string) => string; onClose: () => v
     e.preventDefault();
     if (!form.title) { alert('Judul tugas harus diisi'); return; }
     try {
-      await createTask({
+      const userId = user?.id;
+      await createTask(user?.id, {
         title: form.title,
         description: form.description || undefined,
-        assigned_to: form.assigned_to || undefined,
-        created_by: (user as any)?.full_name || 'Unknown',
+        assigned_to: userId,
+        created_by: userId || 'Unknown',
         due_date: form.due_date || undefined,
         priority: form.priority as any,
         status: 'pending',
@@ -203,7 +204,7 @@ function TaskForm({ t, onClose }: { t: (key: string) => string; onClose: () => v
       <div className="form-grid-2">
         <div>
           <label className="label">{t('task.form.assignee')}</label>
-          <input name="assigned_to" className="input" placeholder="Nama petugas" value={form.assigned_to} onChange={change} />
+          <input name="assigned_to" className="input bg-neutral-50" value={(user as any)?.full_name || ''} readOnly />
         </div>
         <div>
           <label className="label">{t('task.form.priority')}</label>

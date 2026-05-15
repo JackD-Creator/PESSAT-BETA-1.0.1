@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from './supabase';
+import { supabaseAdmin } from './supabaseAdmin';
 import type { DashboardStats, Alert, Task, FeedInventory } from '../types';
 
-export function useDashboardData(today = '2026-05-14') {
+export function useDashboardData(userId: string, today = '2026-05-14') {
   const [stats, setStats] = useState<DashboardStats>(() => ({
     cattleCount: 0, sheepCount: 0, goatCount: 0, totalAnimals: 0,
     healthyCount: 0, sickCount: 0, pregnantCount: 0, lactatingCount: 0, dryCount: 0,
@@ -19,17 +19,18 @@ export function useDashboardData(today = '2026-05-14') {
   useEffect(() => {
     async function load() {
       try {
-        if (!supabase) { setLoading(false); return; }
+        if (!supabaseAdmin) { setLoading(false); return; }
         const todayObj = new Date(today);
         const sevenDaysAgo = new Date(todayObj.getTime() - 7 * 86400000).toISOString().split('T')[0];
         const monthStart = today.slice(0, 7) + '-01';
+
         const [animalsRes, alertsRes, tasksRes, feedRes, prodRes, finRes] = await Promise.all([
-          supabase.from('animals').select('species, status'),
-          supabase.from('alerts').select('*').eq('is_resolved', false).order('created_at', { ascending: false }).limit(5),
-          supabase.from('tasks').select('*').in('status', ['pending', 'in_progress']).order('created_at', { ascending: false }).limit(5),
-          supabase.from('feed_inventory').select('*, feeds(name, category)').order('feeds(name)'),
-          supabase.from('daily_production').select('quantity, production_date').gte('production_date', sevenDaysAgo).order('production_date'),
-          supabase.from('financial_transactions').select('type, amount').gte('transaction_date', monthStart),
+          supabaseAdmin.from('animals').select('species, status').eq('user_id', userId),
+          supabaseAdmin.from('alerts').select('*').eq('is_resolved', false).eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
+          supabaseAdmin.from('tasks').select('*').in('status', ['pending', 'in_progress']).eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
+          supabaseAdmin.from('feed_inventory').select('*, feeds(name, category)').eq('user_id', userId).order('feeds(name)'),
+          supabaseAdmin.from('daily_production').select('quantity, production_date').gte('production_date', sevenDaysAgo).eq('user_id', userId).order('production_date'),
+          supabaseAdmin.from('financial_transactions').select('type, amount').gte('transaction_date', monthStart).eq('user_id', userId),
         ]);
 
         const species: Record<string, number> = {};
@@ -72,7 +73,7 @@ export function useDashboardData(today = '2026-05-14') {
       }
     }
     load();
-  }, [today]);
+  }, [userId, today]);
 
   return { stats, alerts, tasks, feedInv, milkData, loading };
 }

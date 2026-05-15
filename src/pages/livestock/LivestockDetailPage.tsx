@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard as Edit, Scale, Heart, Syringe, Baby, Tag, Activity } from 'lucide-react';
 import { StatusBadge, SpeciesBadge } from '../../components/ui/Badge';
-import { getAnimal, getWeightRecords } from '../../lib/api';
+import { getAnimal, getWeightRecords, createWeightRecord } from '../../lib/api';
 import { getHealthRecords, getVaccinations, getBreedingEvents } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 import type { Animal, WeightRecord, HealthRecord, Vaccination, BreedingEvent } from '../../types';
 
@@ -19,6 +20,7 @@ function InfoRow({ label, value }: { label: string; value?: string | number | nu
 
 export function LivestockDetailPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('info');
   const [loading, setLoading] = useState(true);
@@ -28,14 +30,14 @@ export function LivestockDetailPage() {
   const [vaccinations, setVaccinations] = useState<(Vaccination & { animals: { tag_id: string } | null })[]>([]);
   const [breedingEvents, setBreedingEvents] = useState<(BreedingEvent & { animals: { tag_id: string }; sire: { tag_id: string } | null })[]>([]);
 
-  useEffect(() => {
+  const loadData = () => {
     if (!id) return;
     Promise.all([
-      getAnimal(id),
-      getWeightRecords(id),
-      getHealthRecords(id),
-      getVaccinations(id),
-      getBreedingEvents(id),
+      getAnimal(user?.id, id),
+      getWeightRecords(user?.id, id),
+      getHealthRecords(user?.id, id),
+      getVaccinations(user?.id, id),
+      getBreedingEvents(user?.id, id),
     ])
       .then(([animalData, weights, health, vax, breeding]) => {
         setAnimal(animalData);
@@ -46,7 +48,9 @@ export function LivestockDetailPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [id]);
+  };
+
+  useEffect(() => { loadData(); }, [id]);
 
   if (loading) {
     return (
@@ -198,7 +202,15 @@ export function LivestockDetailPage() {
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-neutral-700">{t('livestock.detail.weight.history')}</h3>
-                <button className="btn-primary btn-sm">
+                <button className="btn-primary btn-sm" onClick={async () => {
+                  const weight = prompt('Masukkan berat badan (kg):');
+                  if (weight && !isNaN(Number(weight))) {
+                    try {
+                      await createWeightRecord(user?.id, { animal_id: animal.id, weigh_date: new Date().toISOString().split('T')[0], weight_kg: Number(weight) });
+                      loadData();
+                    } catch { alert('Gagal menyimpan berat badan'); }
+                  }
+                }}>
                   <Scale size={14} />
                   {t('livestock.detail.weight.record')}
                 </button>

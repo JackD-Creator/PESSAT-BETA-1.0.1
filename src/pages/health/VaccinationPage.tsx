@@ -8,14 +8,14 @@ import { useTranslation } from '../../contexts/LanguageContext';
 
 export function VaccinationPage() {
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [vaccinations, setVaccinations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const today = new Date('2026-05-14');
 
   const loadData = () => {
-    getVaccinations()
+    getVaccinations(user?.id)
       .then(data => setVaccinations(data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -151,7 +151,7 @@ function VaccinationForm({ onClose }: { onClose: () => void }) {
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   useEffect(() => {
-    Promise.all([getAnimals(), getHerdGroups()])
+    Promise.all([getAnimals(user?.id), getHerdGroups(user?.id)])
       .then(([a, g]) => { setAnimals(a as any[]); setGroups(g as any[]); })
       .catch(() => {});
   }, []);
@@ -170,7 +170,7 @@ function VaccinationForm({ onClose }: { onClose: () => void }) {
       };
       if (form.target === 'individual') payload.animal_id = form.animal_id;
       else payload.herd_group_id = form.herd_group_id || undefined;
-      await createVaccination(payload);
+      await createVaccination(user?.id, payload);
       onClose();
     } catch { alert('Gagal menyimpan vaksinasi'); }
   };

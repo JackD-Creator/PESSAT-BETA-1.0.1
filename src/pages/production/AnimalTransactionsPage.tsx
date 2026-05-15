@@ -12,14 +12,14 @@ function formatCurrency(n: number) {
 }
 
 export function AnimalTransactionsPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [txType, setTxType] = useState<'sale' | 'purchase'>('sale');
   const [filter, setFilter] = useState('all');
   const [animals, setAnimals] = useState<any[]>([]);
 
-  const loadData = () => { getAnimals().then(setAnimals); };
+  const loadData = () => { getAnimals(user?.id).then(setAnimals); };
 
   useEffect(() => { loadData(); }, []);
 

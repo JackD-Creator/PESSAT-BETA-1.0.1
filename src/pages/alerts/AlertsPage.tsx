@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Bell, CheckCircle, AlertTriangle, Info, XCircle } from 'lucide-react';
-import { getAlerts } from '../../lib/api';
+import { getAlerts, resolveAlert } from '../../lib/api';
 import { SeverityBadge } from '../../components/ui/Badge';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 const typeLabels: Record<string, string> = {
@@ -16,16 +17,19 @@ const typeLabels: Record<string, string> = {
 
 export function AlertsPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [filter, setFilter] = useState('all');
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getAlerts()
+  const loadData = () => {
+    getAlerts(user?.id)
       .then(data => setAlerts(data as any[]))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const filtered = alerts.filter(a => {
     if (filter === 'unread') return !a.is_read;
@@ -135,7 +139,12 @@ export function AlertsPage() {
                 </div>
               </div>
               {!alert.is_resolved && (
-                <button className="btn-sm btn-secondary flex-shrink-0">
+                <button className="btn-sm btn-secondary flex-shrink-0" onClick={async () => {
+                  try {
+                    await resolveAlert(user?.id, alert.id);
+                    loadData();
+                  } catch { alert('Gagal mengubah status'); }
+                }}>
                   <CheckCircle size={13} />
                   {t('alert.mark.resolved')}
                 </button>

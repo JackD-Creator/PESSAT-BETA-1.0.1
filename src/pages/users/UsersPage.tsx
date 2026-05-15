@@ -16,6 +16,7 @@ export function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [deleteError, setDeleteError] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -184,16 +185,22 @@ export function UsersPage() {
         )}
       </Modal>
 
-      <Modal open={!!deletingUser} onClose={() => setDeletingUser(null)} title={t('common.delete')} size="sm">
+      <Modal open={!!deletingUser} onClose={() => { setDeletingUser(null); setDeleteError(''); }} title={t('common.delete')} size="sm">
         {deletingUser && (
           <div className="space-y-4">
             <p className="text-neutral-600 text-sm">{t('user.delete.confirm').replace('{name}', deletingUser.full_name)}</p>
+            {deleteError && <div className="text-sm text-error-600 bg-error-50 p-3 rounded-lg">{deleteError}</div>}
             <div className="flex justify-end gap-3">
-              <button className="btn-secondary" onClick={() => setDeletingUser(null)}>{t('common.cancel')}</button>
+              <button className="btn-secondary" onClick={() => { setDeletingUser(null); setDeleteError(''); }}>{t('common.cancel')}</button>
               <button className="btn-danger" onClick={async () => {
-                await deleteUser(deletingUser.id);
-                setDeletingUser(null);
-                load();
+                try {
+                  setDeleteError('');
+                  await deleteUser(deletingUser.id);
+                  setDeletingUser(null);
+                  load();
+                } catch (err: any) {
+                  setDeleteError(err?.message || t('common.error'));
+                }
               }}>{t('common.delete')}</button>
             </div>
           </div>
