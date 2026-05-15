@@ -110,7 +110,7 @@ export function FeedPurchasesPage() {
       ) : activeTab === 'purchase' ? (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="table-default">
+            <table className="table">
               <thead>
                   <tr>
                     <th>Tanggal</th>
@@ -154,7 +154,7 @@ export function FeedPurchasesPage() {
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="table-default">
+            <table className="table">
               <thead>
                   <tr>
                     <th>Tanggal</th>

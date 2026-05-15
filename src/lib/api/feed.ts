@@ -179,6 +179,26 @@ export async function getNutritionRequirements(userId: string = '', species?: st
   return data as NutritionRequirement[];
 }
 
+export async function createNutritionRequirement(userId: string = '', req: Partial<NutritionRequirement>) {
+  if (!userId) throw new Error('User ID required');
+  const { data, error } = await supabaseAdmin.from('nutrition_requirements').insert({ ...req, user_id: userId }).select().single();
+  if (error) throw error;
+  return data as NutritionRequirement;
+}
+
+export async function updateNutritionRequirement(userId: string = '', id: string, req: Partial<NutritionRequirement>) {
+  if (!userId) throw new Error('User ID required');
+  const { data, error } = await supabaseAdmin.from('nutrition_requirements').update(req).eq('id', id).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data as NutritionRequirement;
+}
+
+export async function deleteNutritionRequirement(userId: string = '', id: string) {
+  if (!userId) return;
+  const { error } = await supabaseAdmin.from('nutrition_requirements').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}
+
 // ─── Inventory Summary ───
 export async function updateFeed(userId: string = '', id: string, feed: Partial<Feed>) {
   if (!userId) throw new Error('User ID required');
