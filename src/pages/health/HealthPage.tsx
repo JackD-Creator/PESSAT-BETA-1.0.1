@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, CheckCircle, Clock } from 'lucide-react';
-import { getHealthRecords } from '../../lib/api';
+import { getHealthRecords, getAnimals } from '../../lib/api';
+import { createHealthRecord } from '../../lib/api/health';
 import { Modal } from '../../components/ui/Modal';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,12 +21,15 @@ export function HealthPage() {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true);
     getHealthRecords()
       .then(data => setRecords(data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const filtered = records.filter(r => {
     const tag = (r as any).animals?.tag_id || '';
@@ -136,7 +140,7 @@ export function HealthPage() {
       </div>)}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('health.form.title')} size="lg">
-        <AddHealthForm onClose={() => setShowModal(false)} />
+        <AddHealthForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
@@ -144,18 +148,45 @@ export function HealthPage() {
 
 function AddHealthForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [animals, setAnimals] = useState<any[]>([]);
   const [form, setForm] = useState({
-    animal_tag: '', record_date: '2026-05-14', type: 'checkup',
+    animal_id: '', record_date: '2026-05-14', type: 'checkup',
     diagnosis: '', treatment: '', vet_name: '', cost: '', follow_up_date: '', notes: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
+  useEffect(() => { getAnimals().then(setAnimals as any).catch(() => {}); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.animal_id) { alert('Pilih ternak'); return; }
+    try {
+      await createHealthRecord({
+        animal_id: form.animal_id,
+        record_date: form.record_date,
+        type: form.type as any,
+        diagnosis: form.diagnosis || undefined,
+        treatment: form.treatment || undefined,
+        vet_name: form.vet_name || undefined,
+        cost: Number(form.cost) || 0,
+        follow_up_date: form.follow_up_date || undefined,
+        notes: form.notes || undefined,
+        recorded_by: (user as any)?.full_name || undefined,
+      });
+      onClose();
+    } catch { alert('Gagal menyimpan rekam medis'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Rekam medis tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="form-grid-2">
         <div>
           <label className="label">{t('health.form.tag')} <span className="text-error-500">*</span></label>
-          <input name="animal_tag" className="input" placeholder="SP-001" value={form.animal_tag} onChange={change} required />
+          <select name="animal_id" className="select" value={form.animal_id} onChange={change} required>
+            <option value="">Pilih ternak...</option>
+            {animals.map((a: any) => <option key={a.id} value={a.id}>{a.tag_id} - {a.breed}</option>)}
+          </select>
         </div>
         <div>
           <label className="label">{t('health.form.date')}</label>

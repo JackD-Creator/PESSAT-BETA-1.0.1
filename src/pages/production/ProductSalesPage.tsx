@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, TrendingUp, ShoppingBag } from 'lucide-react';
 import { getFinancialTransactions, getDailyProduction, getProductSales } from '../../lib/db';
 import type { ProductSale } from '../../lib/db';
+import { createProductSale } from '../../lib/api/production';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -18,11 +19,13 @@ export function ProductSalesPage() {
   const [production, setProduction] = useState<any[]>([]);
   const [sales, setSales] = useState<ProductSale[]>([]);
 
-  useEffect(() => {
+  const loadData = () => {
     getFinancialTransactions().then(setTxs);
     getDailyProduction(30).then(setProduction);
     getProductSales().then(setSales);
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const salesTxs = txs.filter((t: any) => t.category === 'product_sale');
   const totalRevenue = salesTxs.reduce((s: number, t: any) => s + t.amount, 0);
@@ -110,7 +113,7 @@ export function ProductSalesPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('sales.form.title')} size="md">
-        <SaleForm onClose={() => setShowModal(false)} />
+        <SaleForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
@@ -118,39 +121,65 @@ export function ProductSalesPage() {
 
 function SaleForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    product_type: 'milk', sale_date: '2026-05-14', quantity: '',
+    unit: 'L', price_per_unit: '', buyer_name: '', payment_method: 'cash',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const qty = Number(form.quantity);
+    const ppu = Number(form.price_per_unit);
+    if (!qty || !ppu) { alert('Jumlah dan harga harus diisi'); return; }
+    try {
+      await createProductSale({
+        sale_date: form.sale_date,
+        product_type: form.product_type as any,
+        quantity: qty,
+        unit: form.unit,
+        price_per_unit: ppu,
+        total_amount: qty * ppu,
+        buyer_name: form.buyer_name || undefined,
+        payment_method: form.payment_method,
+        recorded_by: (user as any)?.full_name || undefined,
+      });
+      onClose();
+    } catch { alert('Gagal menyimpan penjualan'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Penjualan tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="form-grid-2">
         <div>
           <label className="label">{t('sales.form.product')}</label>
-          <select className="select">
-            <option>{t('sales.product.freshmilk')}</option>
-            <option>{t('sales.product.wool')}</option>
-            <option>{t('sales.product.compost')}</option>
+          <select name="product_type" className="select" value={form.product_type} onChange={change}>
+            <option value="milk">{t('sales.product.freshmilk')}</option>
           </select>
         </div>
         <div>
           <label className="label">{t('sales.form.buyer')}</label>
-          <input className="input" placeholder={t('sales.form.buyer.placeholder')} />
+          <input name="buyer_name" className="input" placeholder={t('sales.form.buyer.placeholder')} value={form.buyer_name} onChange={change} />
         </div>
         <div>
           <label className="label">{t('sales.form.amount')}</label>
-          <input type="number" step="0.1" className="input" placeholder={t('sales.form.amount.placeholder')} />
+          <input name="quantity" type="number" step="0.1" className="input" placeholder={t('sales.form.amount.placeholder')} value={form.quantity} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('sales.form.unitprice')}</label>
-          <input type="number" className="input" placeholder={t('sales.form.unitprice.placeholder')} />
+          <input name="price_per_unit" type="number" className="input" placeholder={t('sales.form.unitprice.placeholder')} value={form.price_per_unit} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('sales.form.date')}</label>
-          <input type="date" className="input" defaultValue="2026-05-14" />
+          <input name="sale_date" type="date" className="input" value={form.sale_date} onChange={change} />
         </div>
         <div>
           <label className="label">{t('sales.form.payment')}</label>
-          <select className="select">
-            <option>{t('sales.payment.cash')}</option>
-            <option>{t('sales.payment.transfer')}</option>
-            <option>{t('sales.payment.credit')}</option>
+          <select name="payment_method" className="select" value={form.payment_method} onChange={change}>
+            <option value="cash">{t('sales.payment.cash')}</option>
+            <option value="transfer">{t('sales.payment.transfer')}</option>
+            <option value="credit">{t('sales.payment.credit')}</option>
           </select>
         </div>
       </div>

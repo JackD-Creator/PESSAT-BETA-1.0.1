@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, DollarSign } from 'lucide-react';
 import { getFinancialTransactions } from '../../lib/db';
+import { createLaborExpense, createOperationalExpense } from '../../lib/api/finance';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -32,7 +33,8 @@ export function FinanceExpensesPage() {
   };
 
   const [txs, setTxs] = useState<any[]>([]);
-  useEffect(() => { getFinancialTransactions().then(setTxs); }, []);
+  const loadData = () => { getFinancialTransactions().then(setTxs); };
+  useEffect(() => { loadData(); }, []);
 
   const expenses = txs.filter((tr: any) => tr.type === 'expense');
   const filtered = expenses.filter((tr: any) => categoryFilter === 'all' || tr.category === categoryFilter);
@@ -148,47 +150,84 @@ export function FinanceExpensesPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('expense.form.title')} size="md">
-        <ExpenseForm t={t} onClose={() => setShowModal(false)} />
+        <ExpenseForm t={t} onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
 }
 
 function ExpenseForm({ t, onClose }: { t: (key: string) => string; onClose: () => void }) {
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    expense_type: 'labor', category: 'labor', amount: '', expense_date: '2026-05-14',
+    cash_flow: 'cash_out', description: '', worker_name: '',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const categoryOptions: Record<string, string> = {
+    labor: t('finance.category.labor'),
+    opex_electricity: t('finance.category.electricity'),
+    opex_water: t('finance.category.water'),
+    opex_fuel: t('finance.category.fuel'),
+    stock_loss: t('finance.category.stock.loss'),
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(form.amount);
+    if (!amount) { alert('Jumlah harus diisi'); return; }
+
+    try {
+      if (form.expense_type === 'labor') {
+        await createLaborExpense({
+          expense_date: form.expense_date,
+          worker_name: form.worker_name || 'Unknown',
+          expense_type: 'salary',
+          amount,
+          notes: form.description || undefined,
+          recorded_by: (user as any)?.full_name || undefined,
+        });
+      } else {
+        await createOperationalExpense({
+          expense_date: form.expense_date,
+          category: form.category as any,
+          amount,
+          description: form.description || undefined,
+          recorded_by: (user as any)?.full_name || undefined,
+        });
+      }
+      onClose();
+    } catch { alert('Gagal menyimpan pengeluaran'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Pengeluaran tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="form-grid-2">
         <div>
           <label className="label">{t('expense.form.category')}</label>
-          <select className="select">
-            {Object.entries({
-              feed_purchase: t('finance.category.feed'),
-              feed_usage: t('finance.category.feed.usage'),
-              medicine_purchase: t('finance.category.medicine'),
-              medicine_usage: t('finance.category.medicine.usage'),
-              vet_service: t('finance.category.vet'),
-              vaccination: t('finance.category.vaccination'),
-              breeding: t('finance.category.reproduction'),
-              animal_purchase: t('finance.category.livestock.purchase'),
-              labor: t('finance.category.labor'),
-              opex_electricity: t('finance.category.electricity'),
-              opex_water: t('finance.category.water'),
-              opex_fuel: t('finance.category.fuel'),
-              stock_loss: t('finance.category.stock.loss'),
-            }).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <div className="flex gap-2 mb-2">
+            <label className="flex items-center gap-1 text-sm"><input type="radio" name="expense_type" value="labor" checked={form.expense_type === 'labor'} onChange={change} /> Tenaga Kerja</label>
+            <label className="flex items-center gap-1 text-sm"><input type="radio" name="expense_type" value="opex" checked={form.expense_type === 'opex'} onChange={change} /> Operasional</label>
+          </div>
+          {form.expense_type === 'labor' ? (
+            <input name="worker_name" className="input" placeholder="Nama pekerja" value={form.worker_name} onChange={change} />
+          ) : (
+            <select name="category" className="select" value={form.category} onChange={change}>
+              {Object.entries(categoryOptions).filter(([k]) => k !== 'labor').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          )}
         </div>
         <div>
           <label className="label">{t('expense.form.amount')}</label>
-          <input type="number" className="input" placeholder="500000" />
+          <input name="amount" type="number" className="input" placeholder="500000" value={form.amount} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('expense.form.date')}</label>
-          <input type="date" className="input" defaultValue="2026-05-14" />
+          <input name="expense_date" type="date" className="input" value={form.expense_date} onChange={change} />
         </div>
         <div>
           <label className="label">{t('expense.form.cashflow')}</label>
-          <select className="select">
+          <select name="cash_flow" className="select" value={form.cash_flow} onChange={change}>
             <option value="cash_out">{t('expense.form.cashflow.cash')}</option>
             <option value="non_cash">{t('expense.form.cashflow.noncash')}</option>
           </select>
@@ -196,7 +235,7 @@ function ExpenseForm({ t, onClose }: { t: (key: string) => string; onClose: () =
       </div>
       <div>
         <label className="label">{t('expense.form.description')}</label>
-        <input className="input" placeholder={t('expense.form.description.placeholder')} />
+        <input name="description" className="input" placeholder={t('expense.form.description.placeholder')} value={form.description} onChange={change} />
       </div>
       <div className="flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>

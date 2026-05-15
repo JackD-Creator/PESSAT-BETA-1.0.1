@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Users, MapPin } from 'lucide-react';
 import { getHerdGroups, getAnimals, getLocations } from '../../lib/db';
+import { createHerdGroup } from '../../lib/api/animals';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -13,11 +14,13 @@ export function HerdGroupsPage() {
   const [animals, setAnimals] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
 
-  useEffect(() => {
+  const loadData = () => {
     getHerdGroups().then(setHerdGroups);
     getAnimals().then(setAnimals);
     getLocations().then(setLocations);
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   return (
     <div className="page-container">
@@ -148,7 +151,7 @@ export function HerdGroupsPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('herd.form.title')} size="md">
-        <HerdGroupForm locations={locations} onClose={() => setShowModal(false)} />
+        <HerdGroupForm locations={locations} onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
@@ -156,16 +159,35 @@ export function HerdGroupsPage() {
 
 function HerdGroupForm({ locations, onClose }: { locations: any[]; onClose: () => void }) {
   const { t } = useTranslation();
+  const [form, setForm] = useState({
+    name: '', location_id: '', supervisor_name: '', notes: '',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name) { alert('Nama kelompok harus diisi'); return; }
+    try {
+      await createHerdGroup({
+        name: form.name,
+        location_id: form.location_id || undefined,
+        notes: form.notes || undefined,
+        member_count: 0,
+      } as any);
+      onClose();
+    } catch { alert('Gagal menyimpan kelompok'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Kelompok tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="label">{t('herd.form.name')} <span className="text-error-500">*</span></label>
-        <input className="input" placeholder="e.g. Kandang D - Sapi Perah Muda" required />
+        <input name="name" className="input" placeholder="e.g. Kandang D - Sapi Perah Muda" value={form.name} onChange={change} required />
       </div>
       <div className="form-grid-2">
         <div>
           <label className="label">{t('herd.form.location')}</label>
-          <select className="select">
+          <select name="location_id" className="select" value={form.location_id} onChange={change}>
             <option value="">{t('herd.form.location.placeholder')}</option>
             {locations.filter((l: any) => l.type !== 'storage' && l.type !== 'office').map((l: any) => (
               <option key={l.id} value={l.id}>{l.name}</option>
@@ -174,12 +196,12 @@ function HerdGroupForm({ locations, onClose }: { locations: any[]; onClose: () =
         </div>
         <div>
           <label className="label">{t('herd.form.supervisor')}</label>
-          <input className="input" placeholder={t('herd.form.supervisor.placeholder')} />
+          <input name="supervisor_name" className="input" placeholder={t('herd.form.supervisor.placeholder')} value={form.supervisor_name} onChange={change} />
         </div>
       </div>
       <div>
         <label className="label">{t('herd.form.notes')}</label>
-        <textarea className="input h-20 resize-none" placeholder={t('herd.form.notes.placeholder')} />
+        <textarea name="notes" className="input h-20 resize-none" placeholder={t('herd.form.notes.placeholder')} value={form.notes} onChange={change} />
       </div>
       <div className="flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>

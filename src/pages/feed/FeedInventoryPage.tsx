@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Package, ShoppingCart } from 'lucide-react';
-import { getFeedInventory, getMedicineInventory } from '../../lib/api';
+import { getFeedInventory, getMedicineInventory, getFeeds, getMedicines } from '../../lib/api';
+import { createFeedPurchase, createFeedConsumption } from '../../lib/api/feed';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -19,7 +20,7 @@ export function FeedInventoryPage() {
   const [medicines, setMedicines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = () => {
     Promise.all([
       getFeedInventory(),
       getMedicineInventory(),
@@ -30,7 +31,9 @@ export function FeedInventoryPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const lowStockFeeds = feeds.filter((f: any) => f.quantity_on_hand < f.min_threshold);
   const lowStockMeds = medicines.filter((m: any) => m.quantity_on_hand < m.min_threshold);
@@ -217,49 +220,83 @@ export function FeedInventoryPage() {
       </>)}
 
       <Modal open={showPurchaseModal} onClose={() => setShowPurchaseModal(false)} title={t('feed.purchase.title')} size="md">
-        <PurchaseForm type={activeTab} t={t} onClose={() => setShowPurchaseModal(false)} />
+        <PurchaseForm type={activeTab} t={t} onClose={() => { setShowPurchaseModal(false); loadData(); }} />
       </Modal>
 
       <Modal open={showConsumeModal} onClose={() => setShowConsumeModal(false)} title={t('feed.usage.title')} size="md">
-        <ConsumeForm t={t} onClose={() => setShowConsumeModal(false)} />
+        <ConsumeForm t={t} onClose={() => { setShowConsumeModal(false); loadData(); }} />
       </Modal>
     </div>
   );
 }
 
 function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => string; onClose: () => void }) {
+  const { user } = useAuth();
+  const [feedList, setFeedList] = useState<any[]>([]);
+  const [medList, setMedList] = useState<any[]>([]);
+  const [form, setForm] = useState({
+    item_id: '', supplier: '', quantity: '', price_per_unit: '',
+    purchase_date: '2026-05-14', invoice_number: '',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  useEffect(() => {
+    Promise.all([getFeeds(), getMedicines()])
+      .then(([f, m]) => { setFeedList(f as any[]); setMedList(m as any[]); })
+      .catch(() => {});
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const qty = Number(form.quantity);
+    const ppu = Number(form.price_per_unit);
+    if (!form.item_id || !qty || !ppu) { alert('Lengkapi data pembelian'); return; }
+    try {
+      await createFeedPurchase({
+        feed_id: type === 'feed' ? form.item_id : form.item_id,
+        purchase_date: form.purchase_date,
+        quantity: qty,
+        price_per_unit: ppu,
+        total_amount: qty * ppu,
+        supplier: form.supplier || undefined,
+        invoice_number: form.invoice_number || undefined,
+        recorded_by: (user as any)?.full_name || undefined,
+      });
+      onClose();
+    } catch { alert('Gagal menyimpan pembelian'); }
+  };
+
+  const items = type === 'feed' ? feedList : medList;
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Pembelian tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="form-grid-2">
         <div>
-          <label className="label">{t('feed.form.type')} {type === 'feed' ? t('feed.tab.feed') : t('feed.tab.medicine')}</label>
-          <select className="select">
-            <option>{t('feed.form.select')}</option>
-            {type === 'feed'
-              ? [<option key="1">Pakan Konsentrat</option>, <option key="2">Jerami</option>, <option key="3">Silase Jagung</option>]
-              : [<option key="1">Antibiotik A</option>, <option key="2">Vitamin B</option>, <option key="3">Antiparasitik C</option>]
-            }
+          <label className="label">{t('feed.form.type')}</label>
+          <select name="item_id" className="select" value={form.item_id} onChange={change}>
+            <option value="">{t('feed.form.select')}</option>
+            {items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
           </select>
         </div>
         <div>
           <label className="label">{t('feed.form.supplier')}</label>
-          <input className="input" placeholder={t('feed.form.supplier.placeholder')} />
+          <input name="supplier" className="input" placeholder={t('feed.form.supplier.placeholder')} value={form.supplier} onChange={change} />
         </div>
         <div>
           <label className="label">{t('feed.form.amount')}</label>
-          <input type="number" className="input" placeholder={t('feed.form.amount.placeholder')} />
+          <input name="quantity" type="number" className="input" placeholder={t('feed.form.amount.placeholder')} value={form.quantity} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('feed.form.unitprice')}</label>
-          <input type="number" className="input" placeholder={t('feed.form.unitprice.placeholder')} />
+          <input name="price_per_unit" type="number" className="input" placeholder={t('feed.form.unitprice.placeholder')} value={form.price_per_unit} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('feed.form.date')}</label>
-          <input type="date" className="input" defaultValue="2026-05-14" />
+          <input name="purchase_date" type="date" className="input" value={form.purchase_date} onChange={change} />
         </div>
         <div>
           <label className="label">{t('feed.form.invoice')}</label>
-          <input className="input" placeholder={t('feed.form.invoice.placeholder')} />
+          <input name="invoice_number" className="input" placeholder={t('feed.form.invoice.placeholder')} value={form.invoice_number} onChange={change} />
         </div>
       </div>
       <div className="flex justify-end gap-3">
@@ -271,30 +308,49 @@ function PurchaseForm({ type, t, onClose }: { type: string; t: (key: string) => 
 }
 
 function ConsumeForm({ t, onClose }: { t: (key: string) => string; onClose: () => void }) {
+  const { user } = useAuth();
+  const [feedList, setFeedList] = useState<any[]>([]);
+  const [form, setForm] = useState({
+    feed_id: '', quantity: '', consumption_date: '2026-05-14',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  useEffect(() => { getFeeds().then(setFeedList as any).catch(() => {}); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const qty = Number(form.quantity);
+    if (!form.feed_id || !qty) { alert('Lengkapi data pemakaian'); return; }
+    try {
+      await createFeedConsumption({
+        feed_id: form.feed_id,
+        consumption_date: form.consumption_date,
+        quantity: qty,
+        cost_per_unit: 0,
+        total_cost: 0,
+        recorded_by: (user as any)?.full_name || undefined,
+      });
+      onClose();
+    } catch { alert('Gagal menyimpan pemakaian'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Pemakaian tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="form-grid-2">
         <div>
           <label className="label">{t('feed.tab.feed')}</label>
-          <select className="select">
-            {[<option key="1">Pakan Konsentrat</option>, <option key="2">Jerami</option>, <option key="3">Silase Jagung</option>]}
-          </select>
-        </div>
-        <div>
-          <label className="label">{t('feed.usage.form.target')}</label>
-          <select className="select">
-            <option>Kandang A - Sapi Perah Laktasi</option>
-            <option>Paddock 1 - Sapi Potong</option>
-            <option>Kandang C - Domba & Kambing</option>
+          <select name="feed_id" className="select" value={form.feed_id} onChange={change}>
+            <option value="">Pilih pakan...</option>
+            {feedList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
         <div>
           <label className="label">{t('feed.usage.form.amount')}</label>
-          <input type="number" className="input" placeholder={t('feed.usage.form.amount.placeholder')} />
+          <input name="quantity" type="number" className="input" placeholder={t('feed.usage.form.amount.placeholder')} value={form.quantity} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('feed.usage.form.date')}</label>
-          <input type="date" className="input" defaultValue="2026-05-14" />
+          <input name="consumption_date" type="date" className="input" value={form.consumption_date} onChange={change} />
         </div>
       </div>
       <div className="flex justify-end gap-3">

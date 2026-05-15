@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabaseAdmin';
 import type { Medicine, MedicineInventory, MedicinePurchase, MedicineUsage } from '../../types';
 
 // ─── Medicines ───
@@ -9,7 +10,7 @@ export async function getMedicines() {
 }
 
 export async function createMedicine(medicine: Partial<Medicine>) {
-  const { data, error } = await supabase.from('medicines').insert(medicine).select().single();
+  const { data, error } = await supabaseAdmin.from('medicines').insert(medicine).select().single();
   if (error) throw error;
   return data as Medicine;
 }
@@ -23,14 +24,14 @@ export async function getMedicineInventory() {
 
 // ─── Medicine Purchases ───
 export async function createMedicinePurchase(purchase: Partial<MedicinePurchase>) {
-  const { data, error } = await supabase.from('medicine_purchases').insert(purchase).select().single();
+  const { data, error } = await supabaseAdmin.from('medicine_purchases').insert(purchase).select().single();
   if (error) throw error;
   return data as MedicinePurchase;
 }
 
 // ─── Medicine Usages ───
 export async function createMedicineUsage(usage: Partial<MedicineUsage>) {
-  const { data, error } = await supabase.from('medicine_usages').insert(usage).select().single();
+  const { data, error } = await supabaseAdmin.from('medicine_usages').insert(usage).select().single();
   if (error) throw error;
   return data as MedicineUsage;
 }

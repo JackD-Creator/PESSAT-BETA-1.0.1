@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, Shield, BarChart3, Wheat, Heart, Globe } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus, Shield, BarChart3, Wheat, Heart, Globe } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, signUp } = useAuth();
   const { t, lang, setLang } = useTranslation();
   const navigate = useNavigate();
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,20 +21,37 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const ok = await login(email, password);
+
+    if (mode === 'register') {
+      if (password !== confirmPass) {
+        setError('Konfirmasi kata sandi tidak cocok');
+        setLoading(false);
+        return;
+      }
+      if (password.length < 6) {
+        setError('Kata sandi minimal 6 karakter');
+        setLoading(false);
+        return;
+      }
+      const err = await signUp(email, password, fullName);
+      setLoading(false);
+      if (err) {
+        setError(err);
+      } else {
+        setMode('login');
+        setError('Akun berhasil dibuat. Silakan masuk.');
+      }
+      return;
+    }
+
+    const err = await login(email, password);
     setLoading(false);
-    if (ok) {
-      navigate('/');
+    if (err) {
+      setError(err);
     } else {
-      setError(t('login.error'));
+      navigate('/');
     }
   };
-
-  const demoLogins = [
-    { label: t('role.owner'), email: 'budi@farm.id', password: 'owner123' },
-    { label: t('role.manager'), email: 'dewi@farm.id', password: 'manager123' },
-    { label: t('role.worker'), email: 'andi@farm.id', password: 'worker123' },
-  ];
 
   return (
     <div className="login-wrap">
@@ -74,10 +94,27 @@ export function LoginPage() {
               <img src="/PESSATLOGO.png" alt="PESSAT" className="login-mobile-logo-img" />
             </div>
 
-            <h2 className="login-form-title">{t('login.title')}</h2>
-            <p className="login-form-subtitle">{t('login.subtitle')}</p>
+            <h2 className="login-form-title">
+              {mode === 'login' ? t('login.title') : 'Buat Akun Baru'}
+            </h2>
+            <p className="login-form-subtitle">
+              {mode === 'login' ? t('login.subtitle') : 'Daftar untuk mengelola peternakan Anda'}
+            </p>
 
             <form onSubmit={handleSubmit} className="login-form">
+              {mode === 'register' && (
+                <div>
+                  <label className="label">Nama Lengkap</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Nama Anda"
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
               <div>
                 <label className="label">{t('login.email')}</label>
                 <input
@@ -100,7 +137,7 @@ export function LoginPage() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
-                    autoComplete="current-password"
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   />
                   <button
                     type="button"
@@ -111,9 +148,24 @@ export function LoginPage() {
                   </button>
                 </div>
               </div>
+              {mode === 'register' && (
+                <div>
+                  <label className="label">Konfirmasi Kata Sandi</label>
+                  <input
+                    type="password"
+                    className="input"
+                    placeholder="••••••••"
+                    value={confirmPass}
+                    onChange={e => setConfirmPass(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
               {error && (
-                <div className="bg-error-50 text-error-700 text-sm px-4 py-3 rounded-xl border border-error-100 animate-slide-in">
+                <div className={`text-sm px-4 py-3 rounded-xl border animate-slide-in ${
+                  error.includes('berhasil') ? 'bg-primary-50 text-primary-700 border-primary-100' : 'bg-error-50 text-error-700 border-error-100'
+                }`}>
                   {error}
                 </div>
               )}
@@ -126,36 +178,26 @@ export function LoginPage() {
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <LogIn size={18} />
-                    {t('login.signin')}
+                    {mode === 'login' ? <LogIn size={18} /> : <UserPlus size={18} />}
+                    {mode === 'login' ? t('login.signin') : 'Daftar'}
                   </span>
                 )}
               </button>
             </form>
 
-            {/* Demo accounts */}
-            <div className="login-demo-section">
-              <p className="login-demo-label">{t('login.demo.title')}</p>
-              <div className="login-demo-grid">
-                {demoLogins.map(demo => (
-                  <button
-                    key={demo.email}
-                    type="button"
-                    onClick={() => { setEmail(demo.email); setPassword(demo.password); }}
-                    className="login-demo-btn"
-                  >
-                    <div className="login-demo-avatar">
-                      <span className="login-demo-avatar-text">{demo.label.charAt(0)}</span>
-                    </div>
-                    <p className="login-demo-name">{demo.label}</p>
-                  </button>
-                ))}
-              </div>
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(''); }}
+              >
+                {mode === 'login' ? 'Belum punya akun? Daftar di sini' : 'Sudah punya akun? Masuk'}
+              </button>
             </div>
 
-            <p className="login-beta">{t('login.beta')}</p>
+            <p className="login-beta mt-4">{t('login.beta')}</p>
 
-            <div className="mt-6 pt-4 border-t border-neutral-100">
+            <div className="mt-4 pt-4 border-t border-neutral-100">
               <div className="login-footer-text flex flex-col sm:flex-row items-center justify-between gap-2">
                 <span>{t('login.copyright')}</span>
                 <div className="flex items-center gap-2">

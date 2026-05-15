@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, AlertTriangle, Syringe } from 'lucide-react';
-import { getVaccinations } from '../../lib/api';
+import { getVaccinations, getAnimals, getHerdGroups } from '../../lib/api';
+import { createVaccination } from '../../lib/api/health';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -13,12 +14,14 @@ export function VaccinationPage() {
   const [loading, setLoading] = useState(true);
   const today = new Date('2026-05-14');
 
-  useEffect(() => {
+  const loadData = () => {
     getVaccinations()
       .then(data => setVaccinations(data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const upcoming = vaccinations.filter(v => {
     if (!v.next_due_date) return false;
@@ -129,7 +132,7 @@ export function VaccinationPage() {
       </div>)}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('vaccination.form.title')} size="lg">
-        <VaccinationForm onClose={() => setShowModal(false)} />
+        <VaccinationForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
@@ -137,15 +140,43 @@ export function VaccinationPage() {
 
 function VaccinationForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [animals, setAnimals] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [form, setForm] = useState({
-    target: 'individual', animal_tag: '', herd_group_id: '',
+    target: 'individual', animal_id: '', herd_group_id: '',
     vaccine_name: '', batch_number: '', date_administered: '2026-05-14',
     next_due_date: '', cost: '', administered_by: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
+  useEffect(() => {
+    Promise.all([getAnimals(), getHerdGroups()])
+      .then(([a, g]) => { setAnimals(a as any[]); setGroups(g as any[]); })
+      .catch(() => {});
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.vaccine_name) { alert('Nama vaksin harus diisi'); return; }
+    try {
+      const payload: any = {
+        vaccine_name: form.vaccine_name,
+        batch_number: form.batch_number || undefined,
+        date_administered: form.date_administered,
+        next_due_date: form.next_due_date || undefined,
+        cost: Number(form.cost) || 0,
+        administered_by: form.administered_by || (user as any)?.full_name || undefined,
+      };
+      if (form.target === 'individual') payload.animal_id = form.animal_id;
+      else payload.herd_group_id = form.herd_group_id || undefined;
+      await createVaccination(payload);
+      onClose();
+    } catch { alert('Gagal menyimpan vaksinasi'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Vaksinasi tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="label">{t('vaccination.form.target')}</label>
         <div className="flex gap-3">
@@ -161,16 +192,17 @@ function VaccinationForm({ onClose }: { onClose: () => void }) {
         {form.target === 'individual' ? (
           <div>
             <label className="label">{t('vaccination.form.tag')}</label>
-            <input name="animal_tag" className="input" placeholder="SP-001" value={form.animal_tag} onChange={change} />
+            <select name="animal_id" className="select" value={form.animal_id} onChange={change}>
+              <option value="">Pilih ternak...</option>
+              {animals.map((a: any) => <option key={a.id} value={a.id}>{a.tag_id} - {a.breed}</option>)}
+            </select>
           </div>
         ) : (
           <div>
             <label className="label">{t('vaccination.form.group')}</label>
             <select name="herd_group_id" className="select" value={form.herd_group_id} onChange={change}>
               <option value="">{t('vaccination.form.group.placeholder')}</option>
-              <option value="1">Kandang A - Sapi Perah Laktasi</option>
-              <option value="2">Paddock 1 - Sapi Potong</option>
-              <option value="3">Kandang C - Domba Garut</option>
+              {groups.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
           </div>
         )}

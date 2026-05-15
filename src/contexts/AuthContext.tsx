@@ -1,122 +1,107 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { type User, type UserRole } from '../lib/mockData';
 import { supabase } from '../lib/supabase';
 import { getUserProfile } from '../lib/db';
-
-const DEMO_USERS: User[] = [
-  { id: 1, full_name: 'Budi Santoso', email: 'budi@farm.id', role: 'owner', phone: '081234567890', is_active: true },
-  { id: 2, full_name: 'Dewi Lestari', email: 'dewi@farm.id', role: 'manager', phone: '081234567891', is_active: true },
-  { id: 3, full_name: 'Andi Pratama', email: 'andi@farm.id', role: 'worker', phone: '081234567892', is_active: true },
-  { id: 4, full_name: 'Siti Rahayu', email: 'siti@farm.id', role: 'worker', phone: '081234567893', is_active: true },
-];
-
-const DEMO_CREDENTIALS: Record<string, string> = {
-  'budi@farm.id': 'owner123',
-  'dewi@farm.id': 'manager123',
-  'andi@farm.id': 'worker123',
-  'siti@farm.id': 'worker123',
-};
+import type { User, UserRole } from '../types';
 
 interface AuthContextValue {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<string | null>;
+  signUp: (email: string, password: string, fullName: string) => Promise<string | null>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
   hasRole: (roles: UserRole[]) => boolean;
-  isSupabase: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem('livestock_user');
-    if (stored) {
-      try { return JSON.parse(stored); } catch { return null; }
-    }
-    return null;
-  });
-  const [isSupabase, setIsSupabase] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const checkSupabase = async () => {
+    let cancelled = false;
+    const init = async () => {
+      try {
         const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          setIsSupabase(true);
+        if (!cancelled && data.session) {
           const profile = await getUserProfile(data.session.user.id);
-          if (profile) {
-            setUser(profile);
+          if (!cancelled && profile) {
+            setUser(profile as unknown as User);
             localStorage.setItem('livestock_user', JSON.stringify(profile));
-          } else {
-            setUser(null);
-            localStorage.removeItem('livestock_user');
-            setIsSupabase(false);
           }
-        } else {
-          setUser(null);
-          localStorage.removeItem('livestock_user');
-          setIsSupabase(false);
         }
-      };
-      checkSupabase();
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+    init();
 
-      const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        if (session) {
-          setIsSupabase(true);
-          const profile = await getUserProfile(session.user.id);
-          if (profile) {
-            setUser(profile);
-            localStorage.setItem('livestock_user', JSON.stringify(profile));
-          }
-        } else {
-          setIsSupabase(false);
-          setUser(null);
-          localStorage.removeItem('livestock_user');
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        const profile = await getUserProfile(session.user.id);
+        if (profile) {
+          setUser(profile as unknown as User);
+          localStorage.setItem('livestock_user', JSON.stringify(profile));
         }
-      });
-      return () => listener?.subscription.unsubscribe();
-    } catch (err) {
-      console.error('Auth init error:', err);
-      setUser(null);
-      localStorage.removeItem('livestock_user');
-      setIsSupabase(false);
+      } else {
+        setUser(null);
+        localStorage.removeItem('livestock_user');
+      }
+    });
+    return () => {
+      cancelled = true;
+      listener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = useCallback(async (email: string, password: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return error.message;
+      if (!data.session) return 'Login failed';
+      const profile = await getUserProfile(data.session.user.id);
+      if (profile) {
+        setUser(profile as unknown as User);
+        localStorage.setItem('livestock_user', JSON.stringify(profile));
+        return null;
+      }
+      return 'User profile not found';
+    } catch {
+      return 'Unable to connect to server';
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const expectedPassword = DEMO_CREDENTIALS[email];
-    if (expectedPassword && expectedPassword === password) {
-      const found = DEMO_USERS.find(u => u.email === email);
-      if (found) {
-        setUser(found);
-        localStorage.setItem('livestock_user', JSON.stringify(found));
-        return true;
-      }
-    }
-
+  const signUp = useCallback(async (email: string, password: string, fullName: string): Promise<string | null> => {
     try {
-      const { data: authData } = await supabase.auth.signInWithPassword({ email, password });
-      if (authData?.session) {
-        const profile = await getUserProfile(authData.session.user.id);
-        if (profile) {
-          setUser(profile);
-          localStorage.setItem('livestock_user', JSON.stringify(profile));
-          setIsSupabase(true);
-          return true;
-        }
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) return error.message;
+      if (data.user) {
+        const { error: profileError } = await supabase.from('users').insert({
+          id: data.user.id,
+          full_name: fullName,
+          email,
+          role: 'worker',
+          is_active: true,
+        });
+        if (profileError) return profileError.message;
       }
+      return null;
     } catch {
-      // supabase unavailable
+      return 'Unable to connect to server';
     }
-    return false;
   }, []);
 
   const logout = useCallback(async () => {
-    if (supabase) await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
     setUser(null);
     localStorage.removeItem('livestock_user');
-    setIsSupabase(false);
   }, []);
 
   const hasRole = useCallback((roles: UserRole[]) => {
@@ -125,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, hasRole, isSupabase }}>
+    <AuthContext.Provider value={{ user, login, signUp, logout, isAuthenticated: !!user, isLoading, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

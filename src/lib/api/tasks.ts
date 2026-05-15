@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabaseAdmin';
 import type { Task, Alert } from '../../types';
 
 // ─── Tasks ───
@@ -12,7 +13,7 @@ export async function getTasks(params?: { assignedTo?: string; status?: string }
 }
 
 export async function createTask(task: Partial<Task>) {
-  const { data, error } = await supabase.from('tasks').insert(task).select().single();
+  const { data, error } = await supabaseAdmin.from('tasks').insert(task).select().single();
   if (error) throw error;
   return data as Task;
 }
@@ -20,7 +21,7 @@ export async function createTask(task: Partial<Task>) {
 export async function updateTaskStatus(id: string, status: string) {
   const updates: Record<string, string | null> = { status };
   if (status === 'completed') updates.completed_at = new Date().toISOString();
-  const { error } = await supabase.from('tasks').update(updates).eq('id', id);
+  const { error } = await supabaseAdmin.from('tasks').update(updates).eq('id', id);
   if (error) throw error;
 }
 
@@ -47,12 +48,12 @@ export async function getAlerts(unresolvedOnly?: boolean) {
 }
 
 export async function resolveAlert(id: string) {
-  const { error } = await supabase.from('alerts').update({ is_resolved: true }).eq('id', id);
+  const { error } = await supabaseAdmin.from('alerts').update({ is_resolved: true }).eq('id', id);
   if (error) throw error;
 }
 
 export async function markAlertRead(id: string) {
-  const { error } = await supabase.from('alerts').update({ is_read: true }).eq('id', id);
+  const { error } = await supabaseAdmin.from('alerts').update({ is_read: true }).eq('id', id);
   if (error) throw error;
 }
 

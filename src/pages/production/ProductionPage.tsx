@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Milk } from 'lucide-react';
-import { getDailyProduction } from '../../lib/api';
+import { getDailyProduction, getAnimals, getHerdGroups } from '../../lib/api';
+import { createDailyProduction } from '../../lib/api/production';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -28,12 +29,15 @@ export function ProductionPage() {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true);
     getDailyProduction()
       .then(data => setRecords(data as any[]))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const recentData = records.slice(0, period).reverse();
   const totalMilk = recentData.reduce((s, d) => s + d.quantity, 0);
@@ -171,7 +175,7 @@ export function ProductionPage() {
       </div>
       </>)}
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('production.form.title')} size="md">
-        <ProductionForm onClose={() => setShowModal(false)} />
+        <ProductionForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
@@ -179,30 +183,71 @@ export function ProductionPage() {
 
 function ProductionForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [animals, setAnimals] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [form, setForm] = useState({
+    targetType: 'group', targetId: '', productType: 'milk',
+    quantity: '', shift: 'morning', productionDate: '2026-05-14',
+  });
+
+  useEffect(() => {
+    Promise.all([getAnimals(), getHerdGroups()])
+      .then(([a, g]) => { setAnimals(a as any[]); setGroups(g as any[]); })
+      .catch(() => {});
+  }, []);
+
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const record: any = {
+      production_date: form.productionDate,
+      product_type: form.productType,
+      quantity: Number(form.quantity),
+      unit: 'L',
+      shift: form.shift,
+      recorded_by: (user as any)?.full_name || undefined,
+    };
+    if (form.targetType === 'individual') record.animal_id = form.targetId;
+    else record.herd_group_id = form.targetId || undefined;
+
+    try {
+      await createDailyProduction(record);
+      onClose();
+    } catch { alert('Gagal menyimpan produksi'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Produksi tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="form-grid-2">
         <div>
           <label className="label">{t('production.form.target')}</label>
-          <select className="select">
-            <option>Kandang A - Sapi Perah Laktasi</option>
-            <option>Individu - SP-001</option>
+          <div className="flex gap-2 mb-2">
+            <label className="flex items-center gap-1 text-sm"><input type="radio" name="targetType" value="group" checked={form.targetType === 'group'} onChange={change} /> Kelompok</label>
+            <label className="flex items-center gap-1 text-sm"><input type="radio" name="targetType" value="individual" checked={form.targetType === 'individual'} onChange={change} /> Individu</label>
+          </div>
+          <select name="targetId" className="select" value={form.targetId} onChange={change}>
+            <option value="">Pilih {form.targetType === 'group' ? 'kelompok' : 'ternak'}...</option>
+            {form.targetType === 'group'
+              ? groups.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)
+              : animals.map((a: any) => <option key={a.id} value={a.id}>{a.tag_id} - {a.breed}</option>)
+            }
           </select>
         </div>
         <div>
           <label className="label">{t('production.form.product')}</label>
-          <select className="select">
+          <select name="productType" className="select" value={form.productType} onChange={change}>
             <option value="milk">{t('production.form.product.milk')}</option>
-            <option value="wool">{t('production.form.product.wool')}</option>
           </select>
         </div>
         <div>
           <label className="label">{t('production.form.amount')}</label>
-          <input type="number" step="0.1" className="input" placeholder={t('production.form.amount.placeholder')} />
+          <input name="quantity" type="number" step="0.1" className="input" placeholder={t('production.form.amount.placeholder')} value={form.quantity} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('production.form.shift')}</label>
-          <select className="select">
+          <select name="shift" className="select" value={form.shift} onChange={change}>
             <option value="morning">{t('production.form.shift.morning')}</option>
             <option value="evening">{t('production.form.shift.evening')}</option>
             <option value="all_day">{t('production.form.shift.allday')}</option>
@@ -210,7 +255,7 @@ function ProductionForm({ onClose }: { onClose: () => void }) {
         </div>
         <div>
           <label className="label">{t('production.form.date')}</label>
-          <input type="date" className="input" defaultValue="2026-05-14" />
+          <input name="productionDate" type="date" className="input" value={form.productionDate} onChange={change} />
         </div>
       </div>
       <div className="flex justify-end gap-3">

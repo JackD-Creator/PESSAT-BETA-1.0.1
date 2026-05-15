@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabaseAdmin';
 import type { FinancialTransaction, LaborExpense, OperationalExpense, StockAdjustment } from '../../types';
 
 // ─── Financial Transactions ───
@@ -32,21 +33,21 @@ export async function getFinanceSummary() {
 
 // ─── Labor Expenses ───
 export async function createLaborExpense(expense: Partial<LaborExpense>) {
-  const { data, error } = await supabase.from('labor_expenses').insert(expense).select().single();
+  const { data, error } = await supabaseAdmin.from('labor_expenses').insert(expense).select().single();
   if (error) throw error;
   return data as LaborExpense;
 }
 
 // ─── Operational Expenses ───
 export async function createOperationalExpense(expense: Partial<OperationalExpense>) {
-  const { data, error } = await supabase.from('operational_expenses').insert(expense).select().single();
+  const { data, error } = await supabaseAdmin.from('operational_expenses').insert(expense).select().single();
   if (error) throw error;
   return data as OperationalExpense;
 }
 
 // ─── Stock Adjustments ───
 export async function createStockAdjustment(adjustment: Partial<StockAdjustment>) {
-  const { data, error } = await supabase.from('stock_adjustments').insert(adjustment).select().single();
+  const { data, error } = await supabaseAdmin.from('stock_adjustments').insert(adjustment).select().single();
   if (error) throw error;
   return data as StockAdjustment;
 }

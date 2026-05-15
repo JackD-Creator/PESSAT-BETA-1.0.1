@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
 import { getTasks } from '../../lib/api';
+import { createTask } from '../../lib/api/tasks';
 import { Modal } from '../../components/ui/Modal';
 import { PriorityBadge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,12 +24,14 @@ export function TasksPage() {
   const [loading, setLoading] = useState(true);
   const today = '2026-05-14';
 
-  useEffect(() => {
+  const loadData = () => {
     getTasks()
       .then(data => setTasks(data as any[]))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const filtered = tasks.filter(task => {
     const matchStatus = statusFilter === 'all' || task.status === statusFilter;
@@ -159,29 +162,52 @@ export function TasksPage() {
       </div>)}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('task.form.title')} size="md">
-        <TaskForm t={t} onClose={() => setShowModal(false)} />
+        <TaskForm t={t} onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
 }
 
 function TaskForm({ t, onClose }: { t: (key: string) => string; onClose: () => void }) {
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    title: '', assigned_to: '', priority: 'medium', due_date: '',
+    related_animal_tag: '', description: '',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title) { alert('Judul tugas harus diisi'); return; }
+    try {
+      await createTask({
+        title: form.title,
+        description: form.description || undefined,
+        assigned_to: form.assigned_to || undefined,
+        created_by: (user as any)?.full_name || 'Unknown',
+        due_date: form.due_date || undefined,
+        priority: form.priority as any,
+        status: 'pending',
+        related_animal_id: form.related_animal_tag || undefined,
+      });
+      onClose();
+    } catch { alert('Gagal menyimpan tugas'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Tugas tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="label">{t('task.form.title.label')} <span className="text-error-500">*</span></label>
-        <input className="input" placeholder={t('task.form.title.placeholder')} required />
+        <input name="title" className="input" placeholder={t('task.form.title.placeholder')} value={form.title} onChange={change} required />
       </div>
       <div className="form-grid-2">
         <div>
           <label className="label">{t('task.form.assignee')}</label>
-          <select className="select">
-            {[<option key="1">Budi Santoso</option>, <option key="2">Dewi Lestari</option>, <option key="3">Andi Firmansyah</option>, <option key="4">Siti Rahmawati</option>]}
-          </select>
+          <input name="assigned_to" className="input" placeholder="Nama petugas" value={form.assigned_to} onChange={change} />
         </div>
         <div>
           <label className="label">{t('task.form.priority')}</label>
-          <select className="select">
+          <select name="priority" className="select" value={form.priority} onChange={change}>
             <option value="low">{t('task.form.priority.low')}</option>
             <option value="medium">{t('task.form.priority.medium')}</option>
             <option value="high">{t('task.form.priority.high')}</option>
@@ -190,16 +216,16 @@ function TaskForm({ t, onClose }: { t: (key: string) => string; onClose: () => v
         </div>
         <div>
           <label className="label">{t('task.form.duedate')}</label>
-          <input type="date" className="input" defaultValue="2026-05-14" />
+          <input name="due_date" type="date" className="input" value={form.due_date} onChange={change} />
         </div>
         <div>
           <label className="label">{t('task.form.animal')}</label>
-          <input className="input" placeholder={t('task.form.animal.placeholder')} />
+          <input name="related_animal_tag" className="input" placeholder={t('task.form.animal.placeholder')} value={form.related_animal_tag} onChange={change} />
         </div>
       </div>
       <div>
         <label className="label">{t('task.form.description')}</label>
-        <textarea className="input h-20 resize-none" placeholder={t('task.form.description.placeholder')} />
+        <textarea name="description" className="input h-20 resize-none" placeholder={t('task.form.description.placeholder')} value={form.description} onChange={change} />
       </div>
       <div className="flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>

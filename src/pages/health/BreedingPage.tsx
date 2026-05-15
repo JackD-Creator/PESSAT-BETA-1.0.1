@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Baby, Calendar } from 'lucide-react';
-import { getBreedingEvents } from '../../lib/api';
-import { getAnimals } from '../../lib/api';
+import { getBreedingEvents, getAnimals } from '../../lib/api';
+import { createBreedingEvent } from '../../lib/api/health';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -29,7 +29,7 @@ export function BreedingPage() {
   const [loading, setLoading] = useState(true);
   const today = new Date('2026-05-14');
 
-  useEffect(() => {
+  const loadData = () => {
     Promise.all([
       getBreedingEvents(),
       getAnimals(),
@@ -40,7 +40,9 @@ export function BreedingPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const pregnantAnimals = allAnimals.filter((a: any) => a.status === 'pregnant');
 
@@ -144,7 +146,7 @@ export function BreedingPage() {
       </div>)}
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={t('breeding.form.title')} size="md">
-        <BreedingForm onClose={() => setShowModal(false)} />
+        <BreedingForm onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
@@ -152,18 +154,43 @@ export function BreedingPage() {
 
 function BreedingForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [animals, setAnimals] = useState<any[]>([]);
   const [form, setForm] = useState({
-    animal_tag: '', event_type: 'insemination', event_date: '2026-05-14',
+    animal_id: '', event_type: 'insemination', event_date: '2026-05-14',
     expected_due_date: '', offspring_count: '', cost: '', notes: '',
   });
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
+  useEffect(() => { getAnimals().then(setAnimals as any).catch(() => {}); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.animal_id) { alert('Pilih ternak'); return; }
+    try {
+      await createBreedingEvent({
+        animal_id: form.animal_id,
+        event_type: form.event_type as any,
+        event_date: form.event_date,
+        expected_due_date: form.expected_due_date || undefined,
+        offspring_count: form.offspring_count ? Number(form.offspring_count) : undefined,
+        cost: Number(form.cost) || 0,
+        notes: form.notes || undefined,
+        recorded_by: (user as any)?.full_name || undefined,
+      });
+      onClose();
+    } catch { alert('Gagal menyimpan event reproduksi'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Event tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="form-grid-2">
         <div>
           <label className="label">{t('breeding.form.tag')} <span className="text-error-500">*</span></label>
-          <input name="animal_tag" className="input" placeholder="SP-003" value={form.animal_tag} onChange={change} required />
+          <select name="animal_id" className="select" value={form.animal_id} onChange={change} required>
+            <option value="">Pilih ternak...</option>
+            {animals.map((a: any) => <option key={a.id} value={a.id}>{a.tag_id} - {a.breed}</option>)}
+          </select>
         </div>
         <div>
           <label className="label">{t('breeding.form.type')}</label>

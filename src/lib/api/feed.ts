@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabaseAdmin';
 import type { Feed, FeedInventory, FeedPurchase, FeedConsumption, FeedFormula, FeedFormulaItem, NutritionRequirement } from '../../types';
 
 // ─── Feeds ───
@@ -9,7 +10,7 @@ export async function getFeeds() {
 }
 
 export async function createFeed(feed: Partial<Feed>) {
-  const { data, error } = await supabase.from('feeds').insert(feed).select().single();
+  const { data, error } = await supabaseAdmin.from('feeds').insert(feed).select().single();
   if (error) throw error;
   return data as Feed;
 }
@@ -22,7 +23,7 @@ export async function getFeedInventory() {
 }
 
 export async function updateFeedThreshold(id: string, min_threshold: number) {
-  const { error } = await supabase.from('feed_inventory').update({ min_threshold }).eq('id', id);
+  const { error } = await supabaseAdmin.from('feed_inventory').update({ min_threshold }).eq('id', id);
   if (error) throw error;
 }
 
@@ -34,7 +35,7 @@ export async function getFeedPurchases() {
 }
 
 export async function createFeedPurchase(purchase: Partial<FeedPurchase>) {
-  const { data, error } = await supabase.from('feed_purchases').insert(purchase).select().single();
+  const { data, error } = await supabaseAdmin.from('feed_purchases').insert(purchase).select().single();
   if (error) throw error;
   return data as FeedPurchase;
 }
@@ -47,7 +48,7 @@ export async function getFeedConsumption() {
 }
 
 export async function createFeedConsumption(consumption: Partial<FeedConsumption>) {
-  const { data, error } = await supabase.from('feed_consumption').insert(consumption).select().single();
+  const { data, error } = await supabaseAdmin.from('feed_consumption').insert(consumption).select().single();
   if (error) throw error;
   return data as FeedConsumption;
 }

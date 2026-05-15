@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabaseAdmin';
 import type { DailyProduction, ProductSale, AnimalPurchase, AnimalSale } from '../../types';
 
 // ─── Daily Production ───
@@ -13,7 +14,7 @@ export async function getDailyProduction(params?: { dateFrom?: string; dateTo?: 
 }
 
 export async function createDailyProduction(record: Partial<DailyProduction>) {
-  const { data, error } = await supabase.from('daily_production').insert(record).select().single();
+  const { data, error } = await supabaseAdmin.from('daily_production').insert(record).select().single();
   if (error) throw error;
   return data as DailyProduction;
 }
@@ -36,7 +37,7 @@ export async function getProductSales() {
 }
 
 export async function createProductSale(sale: Partial<ProductSale>) {
-  const { data, error } = await supabase.from('product_sales').insert(sale).select().single();
+  const { data, error } = await supabaseAdmin.from('product_sales').insert(sale).select().single();
   if (error) throw error;
   return data as ProductSale;
 }
@@ -49,7 +50,7 @@ export async function getAnimalPurchases() {
 }
 
 export async function createAnimalPurchase(purchase: Partial<AnimalPurchase>) {
-  const { data, error } = await supabase.from('animal_purchases').insert(purchase).select().single();
+  const { data, error } = await supabaseAdmin.from('animal_purchases').insert(purchase).select().single();
   if (error) throw error;
   return data as AnimalPurchase;
 }
@@ -62,7 +63,7 @@ export async function getAnimalSales() {
 }
 
 export async function createAnimalSale(sale: Partial<AnimalSale>) {
-  const { data, error } = await supabase.from('animal_sales').insert(sale).select().single();
+  const { data, error } = await supabaseAdmin.from('animal_sales').insert(sale).select().single();
   if (error) throw error;
   return data as AnimalSale;
 }

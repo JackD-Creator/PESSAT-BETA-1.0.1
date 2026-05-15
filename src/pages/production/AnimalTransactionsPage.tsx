@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { getAnimals } from '../../lib/db';
+import { createAnimalSale, createAnimalPurchase } from '../../lib/api/production';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -18,7 +19,9 @@ export function AnimalTransactionsPage() {
   const [filter, setFilter] = useState('all');
   const [animals, setAnimals] = useState<any[]>([]);
 
-  useEffect(() => { getAnimals().then(setAnimals); }, []);
+  const loadData = () => { getAnimals().then(setAnimals); };
+
+  useEffect(() => { loadData(); }, []);
 
   const mockAnimalTransactions = animals
     .filter((a: any) => a.acquisition_type === 'purchased' || a.status === 'sold')
@@ -146,7 +149,7 @@ export function AnimalTransactionsPage() {
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={txType === 'sale' ? t('transaction.form.sale.title') : t('transaction.form.purchase.title')} size="md">
-        <AnimalTransactionForm animals={animals} type={txType} onClose={() => setShowModal(false)} />
+        <AnimalTransactionForm animals={animals} type={txType} onClose={() => { setShowModal(false); loadData(); }} />
       </Modal>
     </div>
   );
@@ -154,39 +157,81 @@ export function AnimalTransactionsPage() {
 
 function AnimalTransactionForm({ animals, type, onClose }: { animals: any[]; type: 'sale' | 'purchase'; onClose: () => void }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    animal_id: '', party: '', price: '', transaction_date: '2026-05-14',
+    new_tag_id: '', species: 'cattle', weight: '', notes: '',
+  });
+  const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const price = Number(form.price);
+    if (!price) { alert('Harga harus diisi'); return; }
+
+    try {
+      if (type === 'sale') {
+        if (!form.animal_id) { alert('Pilih ternak'); return; }
+        await createAnimalSale({
+          animal_id: form.animal_id,
+          sale_date: form.transaction_date,
+          buyer_name: form.party || undefined,
+          sale_price: price,
+          weight_at_sale_kg: form.weight ? Number(form.weight) : undefined,
+          notes: form.notes || undefined,
+          recorded_by: (user as any)?.full_name || undefined,
+        });
+      } else {
+        if (!form.new_tag_id) { alert('Tag ID harus diisi'); return; }
+        await createAnimalPurchase({
+          animal_id: form.new_tag_id,
+          purchase_date: form.transaction_date,
+          seller_name: form.party || undefined,
+          purchase_price: price,
+          total_cost: price,
+          weight_at_purchase_kg: form.weight ? Number(form.weight) : undefined,
+          notes: form.notes || undefined,
+          recorded_by: (user as any)?.full_name || undefined,
+        });
+      }
+      onClose();
+    } catch { alert('Gagal menyimpan transaksi'); }
+  };
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); alert('Transaksi tersimpan (demo)'); onClose(); }} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="form-grid-2">
         {type === 'sale' ? (
           <div>
             <label className="label">{t('transaction.form.animal')}</label>
-            <select className="select">
-              {animals.map(a => <option key={a.id} value={a.id}>{a.tag_id} - {a.breed}</option>)}
+            <select name="animal_id" className="select" value={form.animal_id} onChange={change}>
+              <option value="">Pilih ternak...</option>
+              {animals.map((a: any) => <option key={a.id} value={a.id}>{a.tag_id} - {a.breed}</option>)}
             </select>
           </div>
         ) : (
           <div>
             <label className="label">{t('transaction.form.newtag')} <span className="text-error-500">*</span></label>
-            <input className="input" placeholder={t('transaction.form.newtag.placeholder')} required />
+            <input name="new_tag_id" className="input" placeholder={t('transaction.form.newtag.placeholder')} value={form.new_tag_id} onChange={change} required />
           </div>
         )}
         <div>
           <label className="label">{t('transaction.form.party')}</label>
-          <input className="input" placeholder={t('transaction.form.party.placeholder')} />
+          <input name="party" className="input" placeholder={t('transaction.form.party.placeholder')} value={form.party} onChange={change} />
         </div>
         <div>
           <label className="label">{t('transaction.form.price')}</label>
-          <input type="number" className="input" placeholder={t('transaction.form.price.placeholder')} />
+          <input name="price" type="number" className="input" placeholder={t('transaction.form.price.placeholder')} value={form.price} onChange={change} required />
         </div>
         <div>
           <label className="label">{t('transaction.form.date')}</label>
-          <input type="date" className="input" defaultValue="2026-05-14" />
+          <input name="transaction_date" type="date" className="input" value={form.transaction_date} onChange={change} />
         </div>
         {type === 'purchase' && (
           <>
             <div>
               <label className="label">{t('transaction.form.species')}</label>
-              <select className="select">
+              <select name="species" className="select" value={form.species} onChange={change}>
                 <option value="cattle">{t('species.cattle')}</option>
                 <option value="sheep">{t('species.sheep')}</option>
                 <option value="goat">{t('species.goat')}</option>
@@ -194,14 +239,14 @@ function AnimalTransactionForm({ animals, type, onClose }: { animals: any[]; typ
             </div>
             <div>
               <label className="label">{t('transaction.form.weight')}</label>
-              <input type="number" step="0.1" className="input" placeholder={t('transaction.form.weight.placeholder')} />
+              <input name="weight" type="number" step="0.1" className="input" placeholder={t('transaction.form.weight.placeholder')} value={form.weight} onChange={change} />
             </div>
           </>
         )}
       </div>
       <div>
         <label className="label">{t('transaction.form.notes')}</label>
-        <textarea className="input h-16 resize-none" placeholder={t('transaction.form.notes.placeholder')} />
+        <textarea name="notes" className="input h-16 resize-none" placeholder={t('transaction.form.notes.placeholder')} value={form.notes} onChange={change} />
       </div>
       <div className="flex justify-end gap-3">
         <button type="button" className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>

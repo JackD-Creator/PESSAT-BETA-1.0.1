@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabaseAdmin';
 import type { Animal, WeightRecord, AnimalMovement, HerdGroup, HerdGroupMember } from '../../types';
 
 // ─── Animals ───
@@ -26,19 +27,19 @@ export async function getAnimal(id: string) {
 }
 
 export async function createAnimal(animal: Partial<Animal>) {
-  const { data, error } = await supabase.from('animals').insert(animal).select().single();
+  const { data, error } = await supabaseAdmin.from('animals').insert(animal).select().single();
   if (error) throw error;
   return data as Animal;
 }
 
 export async function updateAnimal(id: string, animal: Partial<Animal>) {
-  const { data, error } = await supabase.from('animals').update(animal).eq('id', id).select().single();
+  const { data, error } = await supabaseAdmin.from('animals').update(animal).eq('id', id).select().single();
   if (error) throw error;
   return data as Animal;
 }
 
 export async function deleteAnimal(id: string) {
-  const { error } = await supabase.from('animals').delete().eq('id', id);
+  const { error } = await supabaseAdmin.from('animals').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -50,7 +51,7 @@ export async function getWeightRecords(animalId: string) {
 }
 
 export async function createWeightRecord(record: Partial<WeightRecord>) {
-  const { data, error } = await supabase.from('weight_records').insert(record).select().single();
+  const { data, error } = await supabaseAdmin.from('weight_records').insert(record).select().single();
   if (error) throw error;
   return data as WeightRecord;
 }
@@ -63,7 +64,7 @@ export async function getMovements(animalId: string) {
 }
 
 export async function createMovement(movement: Partial<AnimalMovement>) {
-  const { data, error } = await supabase.from('animal_movements').insert(movement).select().single();
+  const { data, error } = await supabaseAdmin.from('animal_movements').insert(movement).select().single();
   if (error) throw error;
   return data as AnimalMovement;
 }
@@ -76,7 +77,7 @@ export async function getHerdGroups() {
 }
 
 export async function createHerdGroup(group: Partial<HerdGroup>) {
-  const { data, error } = await supabase.from('herd_groups').insert(group).select().single();
+  const { data, error } = await supabaseAdmin.from('herd_groups').insert(group).select().single();
   if (error) throw error;
   return data as HerdGroup;
 }

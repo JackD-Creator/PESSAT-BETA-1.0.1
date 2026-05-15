@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getLocations } from '../../lib/db';
+import { createAnimal } from '../../lib/api/animals';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 export function LivestockFormPage() {
@@ -25,7 +26,7 @@ export function LivestockFormPage() {
 
   const purposeOptions: Record<string, string[]> = {
     cattle: ['dairy', 'beef', 'breeding', 'dual'],
-    sheep: ['wool', 'beef', 'breeding', 'dual'],
+    sheep: ['dairy', 'beef', 'breeding', 'dual'],
     goat: ['beef', 'dairy', 'breeding', 'dual'],
   };
 
@@ -33,10 +34,30 @@ export function LivestockFormPage() {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Data ternak berhasil disimpan (demo mode)');
-    navigate('/livestock');
+    try {
+      await createAnimal({
+        tag_id: form.tag_id,
+        rfid: form.rfid || undefined,
+        species: form.species as any,
+        breed: form.breed,
+        gender: form.gender as any,
+        birth_date: form.birth_date || undefined,
+        birth_weight_kg: form.birth_weight_kg ? Number(form.birth_weight_kg) : undefined,
+        current_weight_kg: form.current_weight_kg ? Number(form.current_weight_kg) : undefined,
+        status: form.status as any,
+        purpose: form.purpose as any,
+        color: form.color || undefined,
+        current_location_id: form.current_location_id || undefined,
+        acquisition_type: form.acquisition_type as any,
+        acquisition_cost: form.acquisition_cost ? Number(form.acquisition_cost) : undefined,
+        notes: form.notes || undefined,
+      });
+      navigate('/livestock');
+    } catch {
+      alert('Gagal menyimpan data ternak');
+    }
   };
 
   return (

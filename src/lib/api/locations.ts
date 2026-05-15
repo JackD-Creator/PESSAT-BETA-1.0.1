@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabaseAdmin';
 import type { Location } from '../../types';
 
 export async function getLocations() {
@@ -8,7 +9,7 @@ export async function getLocations() {
 }
 
 export async function createLocation(location: Partial<Location>) {
-  const { data, error } = await supabase.from('locations').insert(location).select().single();
+  const { data, error } = await supabaseAdmin.from('locations').insert(location).select().single();
   if (error) throw error;
   return data as Location;
 }

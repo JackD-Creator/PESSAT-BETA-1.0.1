@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { supabaseAdmin } from '../supabaseAdmin';
 import type { HealthRecord, Vaccination, BreedingEvent } from '../../types';
 
 // ─── Health Records ───
@@ -11,13 +12,13 @@ export async function getHealthRecords(animalId?: string) {
 }
 
 export async function createHealthRecord(record: Partial<HealthRecord>) {
-  const { data, error } = await supabase.from('health_records').insert(record).select().single();
+  const { data, error } = await supabaseAdmin.from('health_records').insert(record).select().single();
   if (error) throw error;
   return data as HealthRecord;
 }
 
 export async function resolveHealthRecord(id: string, resolved: boolean) {
-  const { error } = await supabase.from('health_records').update({ is_resolved: resolved }).eq('id', id);
+  const { error } = await supabaseAdmin.from('health_records').update({ is_resolved: resolved }).eq('id', id);
   if (error) throw error;
 }
 
@@ -31,7 +32,7 @@ export async function getVaccinations(animalId?: string) {
 }
 
 export async function createVaccination(vaccination: Partial<Vaccination>) {
-  const { data, error } = await supabase.from('vaccinations').insert(vaccination).select().single();
+  const { data, error } = await supabaseAdmin.from('vaccinations').insert(vaccination).select().single();
   if (error) throw error;
   return data as Vaccination;
 }
@@ -46,7 +47,7 @@ export async function getBreedingEvents(animalId?: string) {
 }
 
 export async function createBreedingEvent(event: Partial<BreedingEvent>) {
-  const { data, error } = await supabase.from('breeding_events').insert(event).select().single();
+  const { data, error } = await supabaseAdmin.from('breeding_events').insert(event).select().single();
   if (error) throw error;
   return data as BreedingEvent;
 }
