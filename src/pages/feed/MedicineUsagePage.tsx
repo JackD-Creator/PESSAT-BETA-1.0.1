@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { getMedicineUsages, deleteMedicineUsage, createMedicineUsage, updateMedicineUsage, getMedicines } from '../../lib/api/medicine';
+import { getAnimals, getHerdGroups } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -78,8 +79,8 @@ export function MedicineUsagePage() {
                 <tr>
                   <th>Tanggal</th>
                   <th>Item</th>
+                  <th>Target Ternak</th>
                   <th>Jumlah</th>
-                  <th>Biaya/Unit</th>
                   <th>Total Biaya</th>
                   <th>Catatan Dosis</th>
                   <th>Diberikan Oleh</th>
@@ -93,8 +94,13 @@ export function MedicineUsagePage() {
                   <tr key={u.id}>
                     <td className="text-sm">{formatDate(u.usage_date)}</td>
                     <td className="font-medium">{u.medicines?.name || '-'}</td>
+                    <td className="text-sm">
+                      {u.animals?.tag_id
+                        ? <span className="bg-primary-50 text-primary-700 px-2 py-0.5 rounded text-xs font-medium">{u.animals.tag_id}</span>
+                        : <span className="text-neutral-400">-</span>
+                      }
+                    </td>
                     <td>{Number(u.quantity)} pcs</td>
-                    <td>Rp {Number(u.cost_per_unit || 0).toLocaleString()}</td>
                     <td className="font-medium">{formatCurrency(Number(u.total_cost || 0))}</td>
                     <td className="text-sm text-neutral-500">{u.dosage_notes || '-'}</td>
                     <td className="text-sm">{u.administered_by || '-'}</td>
@@ -127,8 +133,10 @@ export function MedicineUsagePage() {
 function UsageForm({ initialData, onClose }: { initialData?: any; onClose: () => void }) {
   const { user } = useAuth();
   const [medicines, setMedicines] = useState<any[]>([]);
+  const [animals, setAnimals] = useState<any[]>([]);
   const [form, setForm] = useState({
     medicine_id: initialData?.medicine_id || '',
+    animal_id: initialData?.animal_id || '',
     usage_date: initialData?.usage_date || new Date().toISOString().split('T')[0],
     quantity: initialData?.quantity || '',
     dosage_notes: initialData?.dosage_notes || '',
@@ -137,7 +145,14 @@ function UsageForm({ initialData, onClose }: { initialData?: any; onClose: () =>
   const change = (e: React.ChangeEvent<any>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   useEffect(() => {
-    getMedicines(user!.id).then(setMedicines).catch(() => {});
+    if (!user?.id) return;
+    Promise.all([
+      getMedicines(user.id),
+      getAnimals(user.id),
+    ]).then(([m, a]) => {
+      setMedicines(m as any[]);
+      setAnimals(a as any[]);
+    }).catch(() => {});
   }, [user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,17 +164,18 @@ function UsageForm({ initialData, onClose }: { initialData?: any; onClose: () =>
         await updateMedicineUsage(user!.id, initialData.id, {
           usage_date: form.usage_date,
           quantity: qty,
+          animal_id: form.animal_id || undefined,
           dosage_notes: form.dosage_notes || undefined,
           administered_by: form.administered_by || undefined,
         });
       } else {
         await createMedicineUsage(user!.id, {
           medicine_id: form.medicine_id,
+          animal_id: form.animal_id || undefined,
           usage_date: form.usage_date,
           quantity: qty,
           dosage_notes: form.dosage_notes || undefined,
           administered_by: form.administered_by || undefined,
-          recorded_by: user?.id,
         });
       }
       onClose();
@@ -176,13 +192,22 @@ function UsageForm({ initialData, onClose }: { initialData?: any; onClose: () =>
             {medicines.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         </div>
+        <div className="col-span-2">
+          <label className="label">Target Ternak</label>
+          <select name="animal_id" className="select" value={form.animal_id} onChange={change}>
+            <option value="">Pilih ternak (opsional)...</option>
+            {animals.map((a: any) => (
+              <option key={a.id} value={a.id}>{a.tag_id}{a.name ? ` - ${a.name}` : ''} ({a.breed || a.species || '-'})</option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="label">Tanggal</label>
           <input name="usage_date" type="date" className="input" value={form.usage_date} onChange={change} />
         </div>
         <div>
           <label className="label">Jumlah (pcs) <span className="text-error-500">*</span></label>
-          <input name="quantity" type="number" min="0" className="input" value={form.quantity} onChange={change} required />
+          <input name="quantity" type="number" min="1" className="input" value={form.quantity} onChange={change} required />
         </div>
         <div>
           <label className="label">Diberikan Oleh</label>

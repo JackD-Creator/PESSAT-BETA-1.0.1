@@ -265,7 +265,7 @@ function ProductionForm({ onClose }: { onClose: () => void }) {
       quantity: Number(form.quantity),
       unit,
       shift: form.shift,
-      recorded_by: user?.id,
+      recorded_by: user?.full_name,
     };
     if (form.targetType === 'individual') record.animal_id = form.targetId;
     else record.herd_group_id = form.targetId || undefined;

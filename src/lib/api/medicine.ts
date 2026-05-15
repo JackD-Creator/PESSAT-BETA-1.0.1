@@ -93,10 +93,10 @@ export async function createMedicinePurchase(userId: string = '', purchase: Part
 // ─── Medicine Usages ───
 export async function getMedicineUsages(userId: string = '') {
   if (!userId) return [];
-  const q = supabaseAdmin.from('medicine_usages').select('*, medicines(name)').eq('user_id', userId);
+  const q = supabaseAdmin.from('medicine_usages').select('*, medicines(name), animals(tag_id, name)').eq('user_id', userId);
   const { data, error } = await q.order('usage_date', { ascending: false }).limit(50);
   if (error) throw error;
-  return data as (MedicineUsage & { medicines: { name: string } })[];
+  return data as (MedicineUsage & { medicines: { name: string }; animals?: { tag_id: string; name?: string } })[];
 }
 
 export async function createMedicineUsage(userId: string = '', usage: Partial<MedicineUsage>) {
