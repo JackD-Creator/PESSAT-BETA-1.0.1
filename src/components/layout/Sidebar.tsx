@@ -91,7 +91,7 @@ export function Sidebar(_props?: { onClose?: () => void }) {
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-primary-900 via-primary-900 to-primary-950 border-r border-primary-950/40">
       <div className="px-4 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center">
           <img src="/PESSATLOGO.png" alt="PESSAT" className="sidebar-logo" style={{ filter: 'brightness(1.05) saturate(0.75)' }} />
         </div>
       </div>
@@ -100,19 +100,19 @@ export function Sidebar(_props?: { onClose?: () => void }) {
         <NavGroup key="dashboard" item={navItems[0]} user={user} t={t} />
 
         <div className="pt-4 pb-1.5 px-1">
-          <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Ternak &amp; Kesehatan</span>
+          <span className="text-[11px] font-bold tracking-widest uppercase text-emerald-300 select-none drop-shadow-sm">Ternak &amp; Kesehatan</span>
         </div>
         {navItems.slice(1, 7).map(item => (
           <NavGroup key={item.to || item.labelKey} item={item} user={user} t={t} />
         ))}
 
         <div className="pt-4 pb-1.5 px-1">
-          <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Keuangan</span>
+          <span className="text-[11px] font-bold tracking-widest uppercase text-emerald-300 select-none drop-shadow-sm">Keuangan</span>
         </div>
         <NavGroup key="finance" item={navItems[7]} user={user} t={t} />
 
         <div className="pt-4 pb-1.5 px-1">
-          <span className="text-[9px] font-bold tracking-[0.22em] uppercase text-emerald-300/50 select-none">Operasional</span>
+          <span className="text-[11px] font-bold tracking-widest uppercase text-emerald-300 select-none drop-shadow-sm">Operasional</span>
         </div>
         {navItems.slice(8).map(item => (
           <NavGroup key={item.to || item.labelKey} item={item} user={user} t={t} />

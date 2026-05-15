@@ -10,7 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 function formatCurrency(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
+  return `Rp. ${n.toLocaleString('id-ID')},-`;
 }
 
 function formatDate(d: string) {

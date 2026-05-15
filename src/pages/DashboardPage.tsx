@@ -19,9 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 
 function formatCurrency(n: number) {
-  if (n >= 1000000) return `Rp ${(n / 1000000).toFixed(1)}jt`;
-  if (n >= 1000) return `Rp ${(n / 1000).toFixed(0)}rb`;
-  return `Rp ${n.toFixed(0)}`;
+  return `Rp. ${n.toLocaleString('id-ID')},-`;
 }
 
 function MiniChart({ data, color = '#10b981' }: { data: number[]; color?: string }) {

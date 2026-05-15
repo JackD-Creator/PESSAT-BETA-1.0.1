@@ -8,7 +8,7 @@ import { useTranslation } from '../../contexts/LanguageContext';
 import { SpeciesBadge } from '../../components/ui/Badge';
 
 function formatCurrency(n: number, locale = 'id-ID') {
-  return `Rp ${n.toLocaleString(locale)}`;
+  return `Rp. ${n.toLocaleString(locale)},-`;
 }
 
 export function AnimalTransactionsPage() {

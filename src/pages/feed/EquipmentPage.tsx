@@ -4,7 +4,7 @@ import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 
-function formatCurrency(n: number) { return `Rp ${n.toLocaleString('id-ID')}`; }
+function formatCurrency(n: number) { return `Rp. ${n.toLocaleString('id-ID')},-`; }
 function formatDate(d: string) {
   if (!d) return '-';
   try { return new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }); }

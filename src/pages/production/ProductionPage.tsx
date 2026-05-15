@@ -107,7 +107,7 @@ export function ProductionPage() {
           <p className="text-xs text-neutral-500 font-medium">{t('production.total').replace('{period}', String(period))}</p>
           <p className="text-3xl font-bold text-neutral-800 mt-1">{totalQty} {unit}</p>
           <p className="text-xs text-neutral-400 mt-1">
-            {t('production.value').replace('{value}', 'Rp ' + (totalQty * 20000).toLocaleString(locale))}
+            {t('production.value').replace('{value}', 'Rp. ' + (totalQty * 20000).toLocaleString(locale) + ',-')}
           </p>
         </div>
       </div>

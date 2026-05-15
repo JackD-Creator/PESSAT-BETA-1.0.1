@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 
 function formatCurrency(n: number, locale = 'id-ID') {
-  return `Rp ${n.toLocaleString(locale)}`;
+  return `Rp. ${n.toLocaleString(locale)},-`;
 }
 
 export function ProductSalesPage() {

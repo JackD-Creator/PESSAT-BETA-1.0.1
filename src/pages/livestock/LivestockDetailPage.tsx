@@ -184,7 +184,7 @@ export function LivestockDetailPage() {
               <InfoRow label={t('livestock.table.location')} value={animal.locations?.name || '-'} />
               <InfoRow label={t('livestock.form.acquisition')} value={{ born: t('livestock.form.acquisition.born'), purchased: t('livestock.form.acquisition.purchased'), gift: t('livestock.form.acquisition.gift') }[animal.acquisition_type]} />
               {animal.acquisition_cost && (
-                <InfoRow label={t('livestock.form.price')} value={`Rp ${animal.acquisition_cost.toLocaleString(locale)}`} />
+                <InfoRow label={t('livestock.form.price')} value={`Rp. ${animal.acquisition_cost.toLocaleString(locale)},-`} />
               )}
               {animal.notes && <InfoRow label={t('livestock.form.notes')} value={animal.notes} />}
             </div>
@@ -411,7 +411,7 @@ export function LivestockDetailPage() {
                 <InfoRow label={t('livestock.form.location')} value={animal.locations?.name || '-'} />
                 <InfoRow label={t('livestock.form.acquisition')} value={{ born: t('livestock.form.acquisition.born'), purchased: t('livestock.form.acquisition.purchased'), gift: t('livestock.form.acquisition.gift') }[animal.acquisition_type]} />
                 {animal.acquisition_cost && (
-                  <InfoRow label={t('livestock.form.price')} value={`Rp ${animal.acquisition_cost.toLocaleString(locale)}`} />
+                  <InfoRow label={t('livestock.form.price')} value={`Rp. ${animal.acquisition_cost.toLocaleString(locale)},-`} />
                 )}
                 {animal.acquisition_date && (
                   <InfoRow label={t('livestock.detail.info.acquisition_date')} value={new Date(animal.acquisition_date).toLocaleDateString(locale)} />

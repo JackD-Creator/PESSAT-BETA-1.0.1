@@ -5,7 +5,7 @@ import { getMedicinePurchases, getMedicineUsages } from '../../lib/api/medicine'
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 
-function formatCurrency(n: number) { return `Rp ${n.toLocaleString('id-ID')}`; }
+function formatCurrency(n: number) { return `Rp. ${n.toLocaleString('id-ID')},-`; }
 
 const OBAT_TYPES = ['antibiotic', 'antiparasitic', 'hormone', 'anti_inflammatory', 'vaccine'];
 const VITAMIN_TYPES = ['vitamin'];

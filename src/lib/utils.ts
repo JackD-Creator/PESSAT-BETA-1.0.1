@@ -1,7 +1,5 @@
 export function formatCurrency(n: number): string {
-  if (n >= 1000000) return `Rp ${(n / 1000000).toFixed(1)}jt`;
-  if (n >= 1000) return `Rp ${(n / 1000).toFixed(0)}rb`;
-  return `Rp ${n.toFixed(0)}`;
+  return `Rp. ${n.toLocaleString('id-ID')},-`;
 }
 
 export function formatDateLocale(d: string | undefined | null, locale = 'id-ID') {

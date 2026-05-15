@@ -9,7 +9,7 @@ import { FeedPurchaseForm } from './FeedPurchaseForm';
 import { FeedConsumeForm } from './FeedConsumeForm';
 
 function formatCurrency(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
+  return `Rp. ${n.toLocaleString('id-ID')},-`;
 }
 
 export function FeedInventoryPage() {

@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { FeedPurchaseForm } from './FeedPurchaseForm';
 
-function formatCurrency(n: number) { return `Rp ${n.toLocaleString('id-ID')}`; }
+function formatCurrency(n: number) { return `Rp. ${n.toLocaleString('id-ID')},-`; }
 function formatDate(d: string) {
   if (!d) return '-';
   try { return new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }); }
