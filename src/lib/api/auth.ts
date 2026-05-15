@@ -84,7 +84,23 @@ export async function activateUser(id: string) {
   return updateUser(id, { is_active: true });
 }
 
+const DATA_TABLES = [
+  'animals','locations','herd_groups','herd_group_members',
+  'weight_records','animal_movements',
+  'health_records','vaccinations','breeding_events',
+  'feeds','feed_inventory','feed_purchases','feed_consumption',
+  'feed_formulas','feed_formula_items','nutrition_requirements',
+  'medicines','medicine_inventory','medicine_purchases','medicine_usages',
+  'daily_production','product_sales','animal_purchases','animal_sales',
+  'labor_expenses','operational_expenses','stock_adjustments',
+  'financial_transactions','alerts','tasks',
+  'attribute_definitions','animal_attributes','genetic_records',
+];
+
 export async function deleteUser(id: string) {
+  for (const table of DATA_TABLES) {
+    await supabaseAdmin.from(table).delete().eq('user_id', id);
+  }
   const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
   if (authError) throw new Error(authError.message);
   const { error } = await supabaseAdmin.from('users').delete().eq('id', id);
