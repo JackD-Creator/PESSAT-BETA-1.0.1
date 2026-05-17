@@ -55,9 +55,14 @@ export function EquipmentPage() {
   const [dbReady, setDbReady] = useState<'checking' | 'ready' | 'missing'>('checking');
 
   const isMissingTable = (err: any) =>
-    err?.code === '42P01' ||
-    err?.message?.toLowerCase().includes('does not exist') ||
-    err?.message?.toLowerCase().includes('relation');
+    !!err && (
+      err?.code === '42P01' ||
+      err?.message?.toLowerCase().includes('does not exist') ||
+      err?.message?.toLowerCase().includes('relation') ||
+      err?.message?.toLowerCase().includes('could not find') ||
+      err?.message?.toLowerCase().includes('schema cache') ||
+      err?.message?.toLowerCase().includes('not found')
+    );
 
   const loadData = async () => {
     if (!user?.id) return;
@@ -117,8 +122,11 @@ export function EquipmentPage() {
         <div className="card p-8 text-center space-y-4">
           <Wrench size={40} className="mx-auto text-neutral-300" />
           <p className="text-neutral-600 font-medium">Tabel database belum dibuat</p>
-          <p className="text-sm text-neutral-400">Salin dan jalankan SQL berikut di Supabase SQL Editor, lalu refresh halaman:</p>
+          <p className="text-sm text-neutral-400">Salin dan jalankan SQL berikut di <strong>Supabase SQL Editor</strong>, lalu jalankan juga perintah reload di bawah, kemudian refresh halaman ini:</p>
           <pre className="bg-neutral-50 text-left text-xs p-4 rounded-lg border overflow-x-auto whitespace-pre-wrap text-neutral-700">{SQL_SETUP}</pre>
+          <p className="text-sm text-neutral-500 font-medium">Setelah menjalankan SQL di atas, jalankan juga perintah ini untuk reload schema cache:</p>
+          <pre className="bg-neutral-50 text-left text-xs p-4 rounded-lg border overflow-x-auto whitespace-pre-wrap text-neutral-700">NOTIFY pgrst, 'reload schema';</pre>
+          <p className="text-xs text-neutral-400">Kemudian refresh halaman ini (F5).</p>
         </div>
       </div>
     );

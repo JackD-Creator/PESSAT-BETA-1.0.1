@@ -53,18 +53,26 @@ export function LoginPage() {
         farm_scale: farmScale,
         phone: farmPhone,
         email: farmEmail,
-        website: farmWebsite,
-        social_media: farmSocial,
+        website: farmWebsite || undefined,
+        social_media: farmSocial || undefined,
       });
-      setLoading(false);
       if (err) {
+        setLoading(false);
         if (err.includes('rate_limit') || err.includes('rate limit') || err.includes('Rate limit'))
           setError(t('register.error.rate.limit'));
         else
           setError(err);
-      } else {
+        return;
+      }
+      // Auto-login after registration, then redirect to profile
+      const loginErr = await login(email, password);
+      setLoading(false);
+      if (loginErr) {
+        // Account created but auto-login failed (e.g. email verification required)
         setMode('login');
-        setSuccessMsg(t('register.success'));
+        setSuccessMsg('Akun berhasil dibuat! Silakan login dan lengkapi profil peternakan Anda.');
+      } else {
+        navigate('/profile');
       }
       return;
     }
@@ -196,39 +204,39 @@ export function LoginPage() {
                     Registrasi ini untuk <strong>Pemilik Farm</strong>. Untuk mendaftarkan manajer/staf, login sebagai pemilik lalu buka <strong>Manajemen Pengguna</strong>.
                   </div>
                   <div>
-                    <label className="label">{t('register.farm.name')}</label>
-                    <input type="text" className="input" placeholder={t('register.farm.name.placeholder')} value={farmName} onChange={e => setFarmName(e.target.value)} />
+                    <label className="label">{t('register.farm.name')} <span className="text-error-500">*</span></label>
+                    <input type="text" className="input" placeholder={t('register.farm.name.placeholder')} value={farmName} onChange={e => setFarmName(e.target.value)} required />
                   </div>
                   <div>
-                    <label className="label">{t('register.farm.owner')}</label>
-                    <input type="text" className="input" placeholder={t('register.farm.owner.placeholder')} value={ownerName} onChange={e => setOwnerName(e.target.value)} />
+                    <label className="label">{t('register.farm.owner')} <span className="text-error-500">*</span></label>
+                    <input type="text" className="input" placeholder={t('register.farm.owner.placeholder')} value={ownerName} onChange={e => setOwnerName(e.target.value)} required />
                   </div>
                   <div>
-                    <label className="label">{t('register.farm.address')}</label>
-                    <textarea className="input" rows={2} placeholder={t('register.farm.address.placeholder')} value={farmAddress} onChange={e => setFarmAddress(e.target.value)} />
+                    <label className="label">{t('register.farm.address')} <span className="text-error-500">*</span></label>
+                    <textarea className="input" rows={2} placeholder={t('register.farm.address.placeholder')} value={farmAddress} onChange={e => setFarmAddress(e.target.value)} required />
                   </div>
                   <div>
-                    <label className="label">{t('register.farm.scale')}</label>
-                    <select className="input" value={farmScale} onChange={e => setFarmScale(e.target.value as FarmScale)}>
+                    <label className="label">{t('register.farm.scale')} <span className="text-error-500">*</span></label>
+                    <select className="input" value={farmScale} onChange={e => setFarmScale(e.target.value as FarmScale)} required>
                       <option value="kecil">{t('farm.scale.small')}</option>
                       <option value="sedang">{t('farm.scale.medium')}</option>
                       <option value="besar">{t('farm.scale.large')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="label">{t('register.farm.phone')}</label>
-                    <input type="tel" className="input" placeholder={t('register.farm.phone.placeholder')} value={farmPhone} onChange={e => setFarmPhone(e.target.value)} />
+                    <label className="label">{t('register.farm.phone')} <span className="text-error-500">*</span></label>
+                    <input type="tel" className="input" placeholder={t('register.farm.phone.placeholder')} value={farmPhone} onChange={e => setFarmPhone(e.target.value)} required />
                   </div>
                   <div>
-                    <label className="label">{t('register.farm.email')}</label>
-                    <input type="email" className="input" placeholder={t('register.farm.email.placeholder')} value={farmEmail} onChange={e => setFarmEmail(e.target.value)} />
+                    <label className="label">{t('register.farm.email')} <span className="text-error-500">*</span></label>
+                    <input type="email" className="input" placeholder={t('register.farm.email.placeholder')} value={farmEmail} onChange={e => setFarmEmail(e.target.value)} required />
                   </div>
                   <div>
-                    <label className="label">{t('register.farm.website')}</label>
+                    <label className="label">{t('register.farm.website')} <span className="text-neutral-400 text-xs font-normal">(opsional)</span></label>
                     <input type="url" className="input" placeholder={t('register.farm.website.placeholder')} value={farmWebsite} onChange={e => setFarmWebsite(e.target.value)} />
                   </div>
                   <div>
-                    <label className="label">{t('register.farm.social')}</label>
+                    <label className="label">{t('register.farm.social')} <span className="text-neutral-400 text-xs font-normal">(opsional)</span></label>
                     <input type="text" className="input" placeholder={t('register.farm.social.placeholder')} value={farmSocial} onChange={e => setFarmSocial(e.target.value)} />
                   </div>
                 </>
